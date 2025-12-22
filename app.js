@@ -18,10 +18,6 @@ const dom = {
   clearBtn: document.getElementById("clearBtn"),
   tabs: Array.from(document.querySelectorAll("[data-tab-target]")),
   panels: Array.from(document.querySelectorAll(".tab-panel")),
-  typhoonPathSelect: document.getElementById("typhoonPathSelect"),
-  typhoonStatus: document.getElementById("typhoonStatus"),
-  typhoonTable: document.getElementById("typhoonTable"),
-  typhoonNameSelect: document.getElementById("typhoonNameSelect"),
   realtimeStatus: document.getElementById("realtimeStatus"),
   realtimeCounty: document.getElementById("realtimeCounty"),
   alertList: document.getElementById("alertList"),
@@ -40,18 +36,6 @@ let stationsMeta = [];
 const charts = {};
 const fileCache = new Map();
 const dailyCache = new Map();
-
-const typhoonState = {
-  map: null,
-  lineLayer: null,
-  countyLayer: null,
-  holiday: null,
-  lines: {},
-  nameMap: {},
-  cityFlags: [],
-  countiesGeo: null,
-  selectedPath: null,
-};
 
 const realtimeState = {
   forecastCache: new Map(),
@@ -98,7 +82,6 @@ async function init() {
   updateRangeLabel();
   updateLoadButtonState();
   setStatus("請先選測站或縣市與時間區間，再點重新載入。");
-  initTyphoonView();
   initRealtimeView();
 }
 
@@ -108,12 +91,7 @@ function bindTabs() {
       const target = btn.dataset.tabTarget;
       dom.tabs.forEach((b) => b.classList.toggle("active", b === btn));
       dom.panels.forEach((p) => p.classList.toggle("active", p.dataset.tab === target));
-      if (target === "typhoon") {
-        // Leaflet needs a size refresh when container switches from display:none
-        requestAnimationFrame(() => {
-          ensureTyphoonMapSized();
-        });
-      } else if (target === "realtime") {
+      if (target === "realtime") {
         requestAnimationFrame(() => {
           ensureRealtimeMapSized();
         });
@@ -134,15 +112,6 @@ function bindEvents() {
   });
   dom.stationSelect.addEventListener("change", updateLoadButtonState);
   dom.rollupSelect.addEventListener("change", updateLoadButtonState);
-  dom.typhoonPathSelect.addEventListener("change", () => {
-    const pathVal = dom.typhoonPathSelect.value;
-    buildTyphoonNameOptions(pathVal);
-    renderTyphoonPath(pathVal, dom.typhoonNameSelect.value || null);
-  });
-  dom.typhoonNameSelect.addEventListener("change", () => {
-    const pathVal = dom.typhoonPathSelect.value;
-    renderTyphoonPath(pathVal, dom.typhoonNameSelect.value || null);
-  });
   dom.realtimeCounty?.addEventListener("change", () => {
     loadForecast(dom.realtimeCounty.value);
   });
@@ -156,7 +125,6 @@ function bindEvents() {
   dom.reloadLiveTyphoonBtn?.addEventListener("click", loadLiveTyphoon);
   dom.clearRealtimeBtn?.addEventListener("click", clearRealtimeDisplay);
 }
-
 async function loadIndex() {
   try {
     const res = await fetch("./data/fileIndex.json");
@@ -496,343 +464,6 @@ function hexToRgba(hex, alpha) {
   return `rgba(${r}, ${g}, ${b}, ${alpha})`;
 }
 
-// ----------------- 颱風視圖 -----------------
-
-function colorByValue(value) {
-  const v = Number(value);
-  if (!Number.isFinite(v) || v <= 0) return "#ffffffff"; // 無資料或 0
-  if (v <= 20) return "#1E90FF";
-  if (v <= 40) return "#32CD32";
-  if (v <= 60) return "#FFFF00";
-  if (v <= 80) return "#FF8C00";
-  return "#FF0000";
-}
-
-async function initTyphoonView() {
-  typhoonState.map = L.map("typhoonMap", { zoomControl: true }).setView([23.5, 121], 6);
-  L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
-    maxZoom: 10,
-    attribution: "&copy; OpenStreetMap contributors",
-  }).addTo(typhoonState.map);
-
-  try {
-    await loadTyphoonAssets();
-    buildTyphoonPathOptions();
-    renderTyphoonPath("all");
-    setTyphoonStatus("已載入颱風資料");
-  } catch (err) {
-    console.error(err);
-    setTyphoonStatus("載入颱風資料失敗，請檢查 web/data/typhoon");
-  }
-}
-
-async function loadTyphoonAssets() {
-  const res = await fetch("./data/typhoon/holiday_paths.json");
-  if (!res.ok) throw new Error("找不到 holiday_paths.json");
-  typhoonState.holiday = await res.json();
-
-  // optional: map English -> 中文名稱
-  try {
-    const r = await fetch("./data/typhoon/name_map.json");
-    if (r.ok) {
-      typhoonState.nameMap = await r.json();
-    }
-  } catch (_) {
-    typhoonState.nameMap = {};
-  }
-
-  await Promise.all(
-    typhoonState.holiday.paths.map(async (p) => {
-      const resp = await fetch(`./data/typhoon/typhoon_lines_${p}.geojson`);
-      if (!resp.ok) throw new Error(`缺少 typhoon_lines_${p}.geojson`);
-      typhoonState.lines[p] = await resp.json();
-    })
-  );
-
-  try {
-    const r2 = await fetch("./data/typhoon/typhoon_cities.json");
-    if (r2.ok) {
-      typhoonState.cityFlags = await r2.json();
-    }
-  } catch (_) {
-    typhoonState.cityFlags = [];
-  }
-
-  try {
-    const r3 = await fetch("./data/typhoon/counties.geojson");
-    if (r3.ok) {
-      typhoonState.countiesGeo = await r3.json();
-    }
-  } catch (_) {
-    typhoonState.countiesGeo = null;
-  }
-}
-
-function buildTyphoonPathOptions() {
-  const opts = ['<option value="all">全部路徑</option>'].concat(
-    typhoonState.holiday.paths.map((p) => `<option value="${p}">路徑 ${p}</option>`)
-  );
-  dom.typhoonPathSelect.innerHTML = opts.join("");
-  dom.typhoonPathSelect.value = "all";
-  buildTyphoonNameOptions("all");
-}
-
-function buildTyphoonNameOptions(path) {
-  const names = new Set();
-  if (path === "all") {
-    Object.values(typhoonState.lines).forEach((geo) => {
-      geo.features.forEach((f) => {
-        const name = f.properties?.TY_ID;
-        if (name) names.add(name);
-      });
-    });
-  } else {
-    const geo = typhoonState.lines[path];
-    if (geo && geo.features) {
-      geo.features.forEach((f) => {
-        const name = f.properties?.TY_ID;
-        if (name) names.add(name);
-      });
-    }
-  }
-  const list = Array.from(names).sort();
-  if (!list.length) {
-    dom.typhoonNameSelect.innerHTML = '<option value="">此路徑無颱風名稱</option>';
-    dom.typhoonNameSelect.disabled = true;
-    return;
-  }
-  const options = ['<option value="">全部颱風</option>'].concat(
-    list.map((n) => {
-      const zh = typhoonState.nameMap[n] || n;
-      return `<option value="${n}">${zh} (${n})</option>`;
-    })
-  );
-  dom.typhoonNameSelect.innerHTML = options.join("");
-  dom.typhoonNameSelect.disabled = false;
-}
-
-function renderTyphoonPath(path, typhoonName = null) {
-  if (!typhoonState.map) return;
-  const isAll = path === "all";
-  if (!isAll && !typhoonState.lines[path]) return;
-  typhoonState.selectedPath = path;
-
-  if (typhoonState.lineLayer) {
-    typhoonState.map.removeLayer(typhoonState.lineLayer);
-  }
-
-  let features = [];
-  if (isAll) {
-    typhoonState.holiday.paths.forEach((p) => {
-      const geo = typhoonState.lines[p];
-      if (!geo) return;
-      features = features.concat(
-        geo.features.filter((f) => {
-          if (!typhoonName) return true;
-          return (f.properties?.TY_ID || "").toString() === typhoonName;
-        })
-      );
-    });
-  } else {
-    features = typhoonState.lines[path].features.filter((f) => {
-      if (!typhoonName) return true;
-      return (f.properties?.TY_ID || "").toString() === typhoonName;
-    });
-  }
-
-  typhoonState.lineLayer = L.geoJSON(
-    { type: "FeatureCollection", features },
-    {
-      style: (feature) => ({
-        color: colorByValue(feature.properties?.Value),
-        weight: 4,
-        opacity: 0.85,
-      }),
-      onEachFeature: (feature, layer) => {
-        const p = feature.properties || {};
-        const zh = p.TY_ID ? typhoonState.nameMap[p.TY_ID] || p.TY_ID : "未知";
-        const title = p.TY_ID ? `${zh} (${p.TY_ID})` : "未知";
-        layer.bindTooltip(`<strong>${title} (${p.Year || ""})</strong><br/>放假機率：${p.Value ?? "N/A"}%`, {
-          sticky: true,
-        });
-      },
-    }
-  ).addTo(typhoonState.map);
-
-  try {
-    const bounds = typhoonState.lineLayer.getBounds();
-    if (bounds.isValid()) {
-      typhoonState.map.fitBounds(bounds, { padding: [20, 20] });
-    }
-  } catch (_) {
-    // ignore fit errors
-  }
-
-  renderTyphoonTable(path, typhoonName);
-  const count = features.length;
-  const displayName =
-    typhoonName && typhoonState.nameMap[typhoonName]
-      ? `${typhoonState.nameMap[typhoonName]} (${typhoonName})`
-      : typhoonName || "";
-  const pathLabel = isAll ? "全部路徑" : `路徑 ${path}`;
-  setTyphoonStatus(`顯示${pathLabel}${displayName ? ` - ${displayName}` : ""}，共 ${count} 條軌跡`);
-  ensureTyphoonMapSized();
-
-  updateCountyLayer(path, typhoonName);
-}
-
-function renderTyphoonTable(path, typhoonName = null) {
-  if (!typhoonState.holiday) return;
-  const isAll = path === "all";
-  const pathNum = isAll ? null : Number(path);
-  let rows = [];
-
-  if (typhoonName && typhoonState.cityFlags.length) {
-    const counties = getAllCountiesList();
-    const valueMap = new Map(counties.map((c) => [normalizeCountyName(c), 0]));
-    typhoonState.cityFlags.forEach((r) => {
-      if (!isAll && r.path !== pathNum) return;
-      if (r.typhoon !== typhoonName) return;
-      if (Number(r.flag) > 0) {
-        valueMap.set(normalizeCountyName(r.county), 100);
-      }
-    });
-    rows = counties
-      .filter((c) => normalizeCountyName(c) !== "總計")
-      .map((c) => {
-        const val = valueMap.get(normalizeCountyName(c)) ?? 0;
-        return { county: c, val };
-      })
-      .sort((a, b) => b.val - a.val)
-      .map((r) => `<tr><td>${r.county}</td><td>${Number(r.val).toFixed(1)}</td></tr>`);
-  } else {
-    if (isAll) {
-      const byCounty = new Map();
-      typhoonState.holiday.records.forEach((r) => {
-        if (normalizeCountyName(r.county) === "總計") return;
-        const prev = byCounty.get(r.county) || -Infinity;
-        byCounty.set(r.county, Math.max(prev, Number(r.probability)));
-      });
-      rows = Array.from(byCounty.entries())
-        .sort((a, b) => b[1] - a[1])
-        .slice(0, 20)
-        .map(([county, prob]) => `<tr><td>${county}</td><td>${prob.toFixed(1)}</td></tr>`);
-    } else {
-      rows = typhoonState.holiday.records
-        .filter((r) => r.path === pathNum && normalizeCountyName(r.county) !== "總計")
-        .sort((a, b) => b.probability - a.probability)
-        .slice(0, 20)
-        .map(
-          (r) =>
-            `<tr><td>${r.county}</td><td>${Number(r.probability).toFixed(1)}</td></tr>`
-        );
-    }
-  }
-
-  dom.typhoonTable.innerHTML = rows.join("") || '<tr><td colspan="2">無資料</td></tr>';
-}
-
-function getAllCountiesList() {
-  if (typhoonState.countiesGeo?.features) {
-    return typhoonState.countiesGeo.features
-      .map((f) => f.properties?.COUNTYNAME || f.properties?.name)
-      .filter(Boolean);
-  }
-  if (typhoonState.holiday?.records) {
-    const set = new Set();
-    typhoonState.holiday.records.forEach((r) => {
-      if (r.county) set.add(r.county);
-    });
-    return Array.from(set);
-  }
-  return [];
-}
-
-function updateCountyLayer(path, typhoonName) {
-  if (!typhoonState.countiesGeo || !typhoonState.map) return;
-  if (typhoonState.countyLayer) {
-    typhoonState.map.removeLayer(typhoonState.countyLayer);
-  }
-  const valueMap = new Map();
-  const isAll = path === "all";
-  const pathNum = isAll ? null : Number(path);
-
-  if (typhoonName && typhoonState.cityFlags.length) {
-    typhoonState.cityFlags.forEach((r) => {
-      if (!isAll && r.path !== pathNum) return;
-      if (r.typhoon !== typhoonName) return;
-      // 標記有影響就給 100，沒有就跳過
-      if (Number(r.flag) > 0) {
-        valueMap.set(normalizeCountyName(r.county), 100);
-      }
-    });
-  } else {
-    if (isAll) {
-      typhoonState.holiday.records.forEach((r) => {
-        const prev = valueMap.get(r.county) || -Infinity;
-        valueMap.set(normalizeCountyName(r.county), Math.max(prev, Number(r.probability)));
-      });
-    } else {
-      typhoonState.holiday.records.forEach((r) => {
-        if (r.path !== pathNum) return;
-        valueMap.set(normalizeCountyName(r.county), Number(r.probability));
-      });
-    }
-  }
-
-  typhoonState.countyLayer = L.geoJSON(typhoonState.countiesGeo, {
-    style: (feature) => {
-      const name = feature.properties?.COUNTYNAME || feature.properties?.name;
-      const val = valueMap.get(normalizeCountyName(name)) ?? 0;
-      return {
-        fillColor: colorByValue(val),
-        color: "#4b5563",
-        weight: 1,
-        fillOpacity: 0.35,
-      };
-    },
-    onEachFeature: (feature, layer) => {
-      const name = feature.properties?.COUNTYNAME || feature.properties?.name;
-      const val = valueMap.get(normalizeCountyName(name));
-      const displayVal = val == null ? "無資料" : `${Number(val).toFixed(1)}%`;
-      layer.bindTooltip(`${name}：${displayVal}`, { sticky: true });
-    },
-  }).addTo(typhoonState.map);
-}
-
-function normalizeCountyName(name) {
-  if (!name) return "";
-  let n = String(name).trim().replace(/臺/g, "台");
-  const mapping = {
-    台北縣: "新北市",
-    臺北縣: "新北市",
-    桃園市: "桃園縣",
-    台中縣: "台中市",
-    臺中縣: "台中市",
-    台南縣: "台南市",
-    臺南縣: "台南市",
-    高雄縣: "高雄市",
-  };
-  return mapping[n] || n;
-}
-
-function setTyphoonStatus(text) {
-  dom.typhoonStatus.textContent = text;
-}
-
-function ensureTyphoonMapSized() {
-  if (!typhoonState.map) return;
-  typhoonState.map.invalidateSize();
-  if (typhoonState.lineLayer) {
-    const bounds = typhoonState.lineLayer.getBounds();
-    if (bounds && bounds.isValid()) {
-      typhoonState.map.fitBounds(bounds, { padding: [20, 20] });
-    }
-  }
-}
-
-// ----------------- 定位並自動套用縣市 -----------------
-
 function requestUserLocation() {
   if (!navigator.geolocation) {
     setRealtimeStatus("瀏覽器不支援定位，請手動選縣市。");
@@ -866,10 +497,6 @@ function requestUserLocation() {
 
 async function ensureCountiesGeo() {
   if (realtimeState.countiesGeo) return realtimeState.countiesGeo;
-  if (typhoonState.countiesGeo) {
-    realtimeState.countiesGeo = typhoonState.countiesGeo;
-    return realtimeState.countiesGeo;
-  }
   const res = await fetch("./data/typhoon/counties.geojson");
   if (!res.ok) throw new Error("無法載入縣市邊界資料");
   realtimeState.countiesGeo = await res.json();

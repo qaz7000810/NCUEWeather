@@ -15,17 +15,14 @@
   <header class="header">
     <div>
       <p class="eyebrow">1987 - 2025 | 台灣氣象站歷史數據</p>
-      <p class="eyebrow">2004 - 2024 | 台灣颱風放假機率</p>
       <p class="eyebrow">CWA opendata | 即時天氣與警特報</p>
       <h1>聽說你很大氣？</h1>
-      <p class="subtitle">即時天氣與預報、颱風路徑與放假機率、歷史氣象數據查詢。</p>
     </div>
   </header>
 
   <nav class="tabs">
     <button class="tab-btn active" data-tab-target="realtime">即時天氣</button>
-    <button class="tab-btn" data-tab-target="typhoon">颱風放假機率</button>
-    <button class="tab-btn" data-tab-target="historical">歷史氣象數據</button>
+<button class="tab-btn" data-tab-target="historical">歷史氣象數據</button>
   </nav>
 
   <main class="tab-panel active" data-tab="realtime">
@@ -83,59 +80,8 @@
     </section>
   </main>
 
-  <main class="tab-panel" data-tab="typhoon">
-    <section class="panel">
-      <div class="typhoon-controls">
-        <div>
-          <p class="eyebrow">颱風路徑 + 放假機率</p>
-          <h2>各路徑歷史軌跡與縣市放假機率</h2>
-          <p class="subtitle">路徑分類參考如下圖。</p>
-        </div>
-        <div class="control">
-          <label for="typhoonPathSelect">選擇路徑</label>
-          <select id="typhoonPathSelect"></select>
-        </div>
-        <div class="control">
-          <label for="typhoonNameSelect">選擇颱風名稱</label>
-          <select id="typhoonNameSelect" disabled>
-            <option value="">請先選擇路徑</option>
-          </select>
-        </div>
-        <div class="status" id="typhoonStatus">載入中...</div>
-      </div>
-
-      <div class="typhoon-layout">
-        <div id="typhoonMap" class="map-shell"></div>
-        <div class="typhoon-side">
-          <div class="typhoon-guide">
-            <div class="typhoon-guide-title">路徑分類參考</div>
-            <img src="./颱風路徑圖.jpg" alt="颱風路徑分類示意圖" />
-          </div>
-<div class="typhoon-side">
-          <div class="legend" id="typhoonLegend">
-            <div class="legend-title">放假機率色階</div>
-            <div class="legend-row"><span class="swatch" style="background:#ffffff"></span>0% (無資料)</div>
-            <div class="legend-row"><span class="swatch" style="background:#1E90FF"></span>1-20% (極低)</div>
-            <div class="legend-row"><span class="swatch" style="background:#32CD32"></span>21-40% (低)</div>
-            <div class="legend-row"><span class="swatch" style="background:#FFFF00"></span>41-60% (中低)</div>
-            <div class="legend-row"><span class="swatch" style="background:#FF8C00"></span>61-80% (中高)</div>
-            <div class="legend-row"><span class="swatch" style="background:#FF0000"></span>81-100% (高)</div>
-          </div>
-          <div class="table-card">
-            <div class="table-header">縣市放假機率</div>
-            <table>
-              <thead>
-                <tr><th>縣市</th><th>機率 (%)</th></tr>
-              </thead>
-              <tbody id="typhoonTable"></tbody>
-            </table>
-          </div>
-        </div>
-      </div>
-    </section>
-  </main>
-
-  <main class="tab-panel" data-tab="historical">
+  
+<main class="tab-panel" data-tab="historical">
     <section class="panel">
       <div class="controls">
         <div class="control">
