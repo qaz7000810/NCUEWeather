@@ -1,9 +1,9 @@
-<!doctype html>
+﻿<!doctype html>
 <html lang="zh-Hant">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>聽說你很大氣？</title>
+  <title>彰師大氣象觀測網站</title>
   <link rel="icon" href="./favicon.ico" type="image/x-icon" />
   <link rel="shortcut icon" href="./favicon.ico" type="image/x-icon" />
   <link rel="stylesheet" href="./styles.css" />
@@ -12,17 +12,18 @@
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 </head>
 <body>
-  <header class="header">
+    <header class="header">
     <div>
-      <p class="eyebrow">1987 - 2025 | 台灣氣象站歷史數據</p>
-      <p class="eyebrow">CWA opendata | 即時天氣與警特報</p>
-      <h1>聽說你很大氣？</h1>
+      <p class="eyebrow">彰師大氣象觀測網站</p>
+      <p class="eyebrow">CWA O-A0003-001 | 彰師大測站</p>
+      <p class="eyebrow">環境部 AQI | 彰化測站</p>
+      <h1>彰師大即時氣象與空品</h1>
     </div>
   </header>
 
   <nav class="tabs">
     <button class="tab-btn active" data-tab-target="realtime">即時天氣</button>
-<button class="tab-btn" data-tab-target="historical">歷史氣象數據</button>
+<button class="tab-btn" data-tab-target="historical">歷史資料</button>
   </nav>
 
   <main class="tab-panel active" data-tab="realtime">
@@ -44,6 +45,30 @@
     </section>
 
     <section class="panel realtime-grid">
+      <div class="realtime-card">
+        <div class="realtime-card-header">
+          <div>
+            <p class="eyebrow">O-A0003-001</p>
+            <h3>彰師大測站即時觀測</h3>
+          </div>
+          <button id="reloadNCUEBtn" class="ghost">重新載入</button>
+        </div>
+        <div class="status" id="ncueStatus">尚未載入</div>
+        <div id="ncueObservation" class="data-list"></div>
+      </div>
+
+      <div class="realtime-card">
+        <div class="realtime-card-header">
+          <div>
+            <p class="eyebrow">環境部 AQI</p>
+            <h3>彰化測站空氣品質</h3>
+          </div>
+          <button id="reloadAqiBtn" class="ghost">重新載入</button>
+        </div>
+        <div class="status" id="aqiStatus">尚未載入</div>
+        <div id="aqiObservation" class="data-list"></div>
+      </div>
+
       <div class="realtime-card">
         <div class="realtime-card-header">
           <div>

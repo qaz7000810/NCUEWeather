@@ -1,4 +1,4 @@
-const metricConfigs = {
+﻿const metricConfigs = {
   TX01: { label: "氣溫 (°C)", mode: "mean", color: "#5be4a8", index: 3 },
   PP01: { label: "降雨量 (mm)", mode: "sum", color: "#4ea3ff", index: 7 },
   RH01: { label: "相對濕度 (%)", mode: "mean", color: "#fcb97d", index: 4 },
@@ -29,6 +29,12 @@ const dom = {
   clearRealtimeBtn: document.getElementById("clearRealtimeBtn"),
   liveTyphoonMap: document.getElementById("liveTyphoonMap"),
   typhoonLiveList: document.getElementById("typhoonLiveList"),
+  reloadNCUEBtn: document.getElementById("reloadNCUEBtn"),
+  ncueStatus: document.getElementById("ncueStatus"),
+  ncueObservation: document.getElementById("ncueObservation"),
+  reloadAqiBtn: document.getElementById("reloadAqiBtn"),
+  aqiStatus: document.getElementById("aqiStatus"),
+  aqiObservation: document.getElementById("aqiObservation"),
 };
 
 let fileIndex = [];
@@ -46,6 +52,11 @@ const realtimeState = {
 };
 
 const CWA_BASE = "https://faein.climate-quiz-yuchen.workers.dev/api/v1/rest/datastore";
+const CWA_API_KEY = "";
+const NCUE_STATION_KEYWORDS = ["彰師大", "彰化師大", "國立彰化師範大學", "NCUE"];
+const AQI_ENDPOINT = "https://faein.climate-quiz-yuchen.workers.dev/api/v1/aqi";
+const AQI_SITE_KEYWORDS = ["彰化"];
+const AQI_API_KEY = "";
 const CWA_COUNTIES = [
   "基隆市",
   "臺北市",
@@ -123,6 +134,8 @@ function bindEvents() {
     }
   });
   dom.reloadLiveTyphoonBtn?.addEventListener("click", loadLiveTyphoon);
+  dom.reloadNCUEBtn?.addEventListener("click", loadNCUEObservation);
+  dom.reloadAqiBtn?.addEventListener("click", loadAqiData);
   dom.clearRealtimeBtn?.addEventListener("click", clearRealtimeDisplay);
 }
 async function loadIndex() {
@@ -549,6 +562,8 @@ function initRealtimeView() {
   buildRealtimeCountyOptions();
   setRealtimeStatus("已使用 Cloudflare Proxy，直接點「更新全部」即可。");
   initRealtimeMap();
+  loadNCUEObservation();
+  loadAqiData();
   requestUserLocation();
 }
 
@@ -589,7 +604,13 @@ async function refreshRealtimeAll() {
   setRealtimeStatus("更新中...");
   const county = dom.realtimeCounty?.value || CWA_COUNTIES[0];
   try {
-    await Promise.all([loadWeatherAlerts(), loadForecast(county), loadLiveTyphoon()]);
+    await Promise.all([
+      loadWeatherAlerts(),
+      loadForecast(county),
+      loadLiveTyphoon(),
+      loadNCUEObservation(),
+      loadAqiData(),
+    ]);
     setRealtimeStatus("已完成最新一次更新。");
   } catch (err) {
     console.error(err);
@@ -601,6 +622,10 @@ function clearRealtimeDisplay() {
   if (dom.alertList) dom.alertList.innerHTML = "";
   if (dom.forecastSlots) dom.forecastSlots.innerHTML = "";
   if (dom.typhoonLiveList) dom.typhoonLiveList.innerHTML = "";
+  if (dom.ncueObservation) dom.ncueObservation.innerHTML = "";
+  if (dom.aqiObservation) dom.aqiObservation.innerHTML = "";
+  if (dom.ncueStatus) dom.ncueStatus.textContent = "尚未載入";
+  if (dom.aqiStatus) dom.aqiStatus.textContent = "尚未載入";
   if (realtimeState.typhoonLayer && realtimeState.typhoonMap) {
     realtimeState.typhoonMap.removeLayer(realtimeState.typhoonLayer);
     realtimeState.typhoonLayer = null;
@@ -610,6 +635,7 @@ function clearRealtimeDisplay() {
 
 async function fetchCwaDataset(datasetId, params = {}) {
   const search = new URLSearchParams({ format: "JSON", ...params });
+  if (CWA_API_KEY) search.set("Authorization", CWA_API_KEY);
   const url = `${CWA_BASE}/${datasetId}?${search.toString()}`;
   const res = await fetch(url);
   if (!res.ok) {
@@ -843,7 +869,331 @@ function renderForecast(slots, county) {
     })
     .join("");
 }
+function setNCUEStatus(text) {
+  if (dom.ncueStatus) {
+    dom.ncueStatus.textContent = text;
+  }
+}
 
+function setAqiStatus(text) {
+  if (dom.aqiStatus) {
+    dom.aqiStatus.textContent = text;
+  }
+}
+
+async function loadNCUEObservation() {
+  if (!dom.ncueObservation) return;
+  setNCUEStatus("載入中...");
+  try {
+    const data = await fetchCwaDataset("O-A0003-001");
+    const station = pickNCUEStation(data);
+    if (!station) {
+      dom.ncueObservation.innerHTML = "";
+      setNCUEStatus("找不到彰師大測站資料");
+      return;
+    }
+    renderNCUEObservation(station);
+    setNCUEStatus("已更新");
+  } catch (err) {
+    console.error(err);
+    dom.ncueObservation.innerHTML = "";
+    setNCUEStatus(err.message || "載入失敗");
+  }
+}
+
+function pickNCUEStation(payload) {
+  const stations = extractCwaStations(payload);
+  if (!stations.length) return null;
+  const found = stations.find((s) => {
+    const name = getStationName(s);
+    return NCUE_STATION_KEYWORDS.some((k) => name.includes(k));
+  });
+  return found || stations[0];
+}
+
+function extractCwaStations(payload) {
+  const records = payload?.records || {};
+  const list =
+    records.Station ||
+    records.station ||
+    records.Stations ||
+    records.stations ||
+    records.location ||
+    records.locations;
+  if (Array.isArray(list)) return list;
+  if (list && Array.isArray(list.Station)) return list.Station;
+  return [];
+}
+
+function getStationName(station) {
+  const raw =
+    station?.StationName ||
+    station?.stationName ||
+    station?.Station?.StationName ||
+    station?.Station?.stationName ||
+    station?.LocationName ||
+    station?.locationName ||
+    "";
+  return String(raw);
+}
+
+function readWeatherElement(station, key) {
+  const el =
+    station?.WeatherElement ||
+    station?.weatherElement ||
+    station?.WeatherElements ||
+    station?.weatherElements ||
+    station?.Element ||
+    station?.element ||
+    null;
+  if (!el) return null;
+  if (Array.isArray(el)) {
+    const found = el.find((e) => e.ElementName === key || e.elementName === key);
+    if (!found) return null;
+    return found.ElementValue ?? found.elementValue ?? found.Value ?? found.value ?? null;
+  }
+  const node = el[key] ?? el[key.toLowerCase?.() ?? key];
+  if (node == null) return null;
+  if (typeof node === "object") {
+    return node.ElementValue ?? node.Value ?? node.value ?? node.elementValue ?? null;
+  }
+  return node;
+}
+
+function readWeatherNested(station, path) {
+  const el =
+    station?.WeatherElement ||
+    station?.weatherElement ||
+    station?.WeatherElements ||
+    station?.weatherElements ||
+    station?.Element ||
+    station?.element ||
+    null;
+  if (!el) return null;
+  const parts = path.split(".");
+  let cursor = el;
+  for (const part of parts) {
+    if (cursor == null) return null;
+    cursor = cursor[part] ?? cursor[part.toLowerCase?.() ?? part];
+  }
+  if (cursor == null) return null;
+  if (typeof cursor === "object") {
+    return cursor.ElementValue ?? cursor.Value ?? cursor.value ?? cursor.elementValue ?? null;
+  }
+  return cursor;
+}
+
+function toNumber(value) {
+  if (value == null) return null;
+  const n = Number(value);
+  return Number.isFinite(n) ? n : null;
+}
+
+function formatValue(value, unit = "", digits = 1) {
+  if (value == null) return "—";
+  const num = Number(value);
+  if (!Number.isFinite(num)) return "—";
+  const fixed = typeof digits === "number" ? num.toFixed(digits) : String(num);
+  return `${fixed}${unit}`;
+}
+
+function formatObsTime(value) {
+  if (!value) return "";
+  const raw = String(value).trim();
+  const match = raw.match(/^(\d{4})-(\d{2})-(\d{2})T(\d{2}:\d{2}:\d{2})/);
+  if (!match) return raw.replace("T", " ").replace(/[-/]/g, "/");
+  const [, y, m, d, t] = match;
+  return `${y}/${m}/${d} ${t}`;
+}
+
+function formatWindDirection(value) {
+  const deg = Number(value);
+  if (!Number.isFinite(deg)) return "—";
+  const dirs = [
+    "北",
+    "北北東",
+    "東北",
+    "東北東",
+    "東",
+    "東南東",
+    "東南",
+    "南南東",
+    "南",
+    "南南西",
+    "西南",
+    "西南西",
+    "西",
+    "西北西",
+    "西北",
+    "北北西",
+  ];
+  const idx = Math.round(((deg % 360) / 22.5)) % 16;
+  return `${dirs[idx]} (${deg}°)`;
+}
+
+function windToBeaufort(mps) {
+  const v = Number(mps);
+  if (!Number.isFinite(v)) return "--";
+  const scale = [
+    [0.0, 0.2, "靜風"],
+    [0.3, 1.5, "1級"],
+    [1.6, 3.3, "2級"],
+    [3.4, 5.4, "3級"],
+    [5.5, 7.9, "4級"],
+    [8.0, 10.7, "5級"],
+    [10.8, 13.8, "6級"],
+    [13.9, 17.1, "7級"],
+    [17.2, 20.7, "8級"],
+    [20.8, 24.4, "9級"],
+    [24.5, 28.4, "10級"],
+    [28.5, 32.6, "11級"],
+    [32.7, 36.9, "12級"],
+    [37.0, 41.4, "13級"],
+    [41.5, 46.1, "14級"],
+    [46.2, 50.9, "15級"],
+    [51.0, 56.0, "16級"],
+    [56.1, 61.2, "17級"],
+  ];
+  for (const [low, high, label] of scale) {
+    if (v >= low && v <= high) return label;
+  }
+  return "17級以上";
+}
+
+function calcApparentTemp(temperature, humidity, windMps) {
+  const T = Number(temperature);
+  const RH = Number(humidity);
+  const V = Number(windMps);
+  if (!Number.isFinite(T) || !Number.isFinite(RH) || !Number.isFinite(V)) {
+    return temperature;
+  }
+  const e = (RH / 100) * 6.105 * Math.exp((17.27 * T) / (237.7 + T));
+  const at = 1.04 * T + 0.2 * e - 0.65 * V - 2.7;
+  return Math.round(at * 10) / 10;
+}
+
+function renderNCUEObservation(station) {
+  if (!dom.ncueObservation) return;
+  const name = getStationName(station) || "彰師大測站";
+  const obsTime =
+    station?.ObsTime?.DateTime ||
+    station?.ObsTime?.dateTime ||
+    station?.ObsTime?.LocalTime ||
+    station?.obsTime?.dateTime ||
+    station?.obsTime?.DateTime ||
+    "";
+  const obsTimeFormatted = formatObsTime(obsTime);
+  const temp = toNumber(readWeatherElement(station, "AirTemperature"));
+  let humidity = toNumber(readWeatherElement(station, "RelativeHumidity"));
+  if (humidity != null && humidity <= 1) humidity *= 100;
+  const windSpeed = toNumber(readWeatherElement(station, "WindSpeed"));
+  const windDir = toNumber(readWeatherElement(station, "WindDirection"));
+  const gustRaw =
+    toNumber(readWeatherNested(station, "GustInfo.PeakGustSpeed")) ??
+    toNumber(readWeatherNested(station, "Max10MinAverage.WindSpeed")) ??
+    toNumber(readWeatherElement(station, "Max10MinAverage")) ??
+    toNumber(readWeatherElement(station, "Max10MinAverageWindSpeed")) ??
+    toNumber(readWeatherElement(station, "Max10MinWindSpeed")) ??
+    toNumber(readWeatherElement(station, "GustWindSpeed")) ??
+    toNumber(readWeatherElement(station, "PeakGustSpeed"));
+  const rain =
+    toNumber(readWeatherElement(station, "NowPrecipitation")) ??
+    toNumber(readWeatherElement(station, "Precipitation")) ??
+    toNumber(readWeatherElement(station, "HourlyPrecipitation")) ??
+    toNumber(readWeatherElement(station, "DailyRainfall"));
+  const weather = readWeatherElement(station, "Weather");
+  const windLevel = windToBeaufort(windSpeed);
+  const gustLevel = windToBeaufort(gustRaw);
+  const apparent = calcApparentTemp(temp, humidity, windSpeed);
+  const rows = [
+    { label: "測站", value: name },
+    { label: "觀測時間", value: obsTimeFormatted || "—" },
+    { label: "氣溫", value: formatValue(temp, "°C", 1) },
+    { label: "體感溫度", value: formatValue(apparent, "°C", 1) },
+    { label: "相對濕度", value: formatValue(humidity, "%", 0) },
+    {
+      label: "風速",
+      value: windSpeed != null ? `${windLevel} (${formatValue(windSpeed, " m/s", 1)})` : "—",
+    },
+    { label: "風向", value: formatWindDirection(windDir) },
+    {
+      label: "陣風",
+      value: gustRaw != null ? `${gustLevel} (${formatValue(gustRaw, " m/s", 1)})` : "—",
+    },
+    { label: "降雨量", value: formatValue(rain, " mm", 1) },
+    { label: "天氣現象", value: weather ? String(weather) : "—" },
+  ];
+  dom.ncueObservation.innerHTML = rows
+    .map((r) => `<div class="data-row"><span>${sanitizeText(r.label)}</span><strong>${sanitizeText(r.value)}</strong></div>`)
+    .join("");
+}
+
+async function loadAqiData() {
+  if (!dom.aqiObservation) return;
+  setAqiStatus("載入中...");
+  try {
+    const data = await fetchAqiDataset();
+    const record = pickAqiRecord(data);
+    if (!record) {
+      dom.aqiObservation.innerHTML = "";
+      setAqiStatus("找不到彰化測站 AQI");
+      return;
+    }
+    renderAqi(record);
+    setAqiStatus("已更新");
+  } catch (err) {
+    console.error(err);
+    dom.aqiObservation.innerHTML = "";
+    setAqiStatus(err.message || "載入失敗");
+  }
+}
+
+async function fetchAqiDataset() {
+  const params = new URLSearchParams({ format: "json", limit: "200" });
+  if (AQI_API_KEY) params.set("api_key", AQI_API_KEY);
+  const url = `${AQI_ENDPOINT}?${params.toString()}`;
+  const res = await fetch(url);
+  if (!res.ok) {
+    throw new Error(`AQI 讀取失敗 (${res.status})`);
+  }
+  return res.json();
+}
+
+function pickAqiRecord(payload) {
+  const records = payload?.records || payload?.data || [];
+  if (!Array.isArray(records)) return null;
+  return (
+    records.find((r) => {
+      const name = String(r.sitename || r.siteName || r.SiteName || "");
+      return AQI_SITE_KEYWORDS.some((k) => name.includes(k));
+    }) ||
+    records.find((r) => {
+      const county = String(r.county || r.County || "");
+      const name = String(r.sitename || r.siteName || r.SiteName || "");
+      return county.includes("彰化") && name.includes("彰化");
+    }) ||
+    null
+  );
+}
+
+function renderAqi(record) {
+  if (!dom.aqiObservation) return;
+  const rows = [
+    { label: "測站", value: record.sitename || record.siteName || record.SiteName || "彰化" },
+    { label: "發布時間", value: record.publishtime || record.PublishTime || "—" },
+    { label: "AQI", value: record.aqi ?? record.AQI ?? "—" },
+    { label: "狀態", value: record.status || record.Status || "—" },
+    { label: "PM2.5", value: record["pm2.5"] ?? record.pm25 ?? "—" },
+    { label: "PM10", value: record.pm10 ?? "—" },
+    { label: "O3", value: record.o3 ?? "—" },
+    { label: "NO2", value: record.no2 ?? "—" },
+    { label: "SO2", value: record.so2 ?? "—" },
+    { label: "CO", value: record.co ?? "—" },
+  ];
+  dom.aqiObservation.innerHTML = rows
+    .map((r) => `<div class="data-row"><span>${sanitizeText(r.label)}</span><strong>${sanitizeText(r.value)}</strong></div>`)
+    .join("");
+}
 async function loadLiveTyphoon() {
   setRealtimeStatus("讀取即時颱風消息...");
   try {
@@ -970,6 +1320,36 @@ function parseTrackPoint(p) {
 
 function sanitizeText(text) {
   return String(text ?? "").replace(/[<>]/g, "");
+}
+
+function normalizeCountyName(name) {
+  const raw = String(name || "").trim();
+  if (!raw) return "";
+  const map = {
+    台北市: "臺北市",
+    台中市: "臺中市",
+    台南市: "臺南市",
+    台東縣: "臺東縣",
+    彰化縣: "彰化縣",
+    雲林縣: "雲林縣",
+    南投縣: "南投縣",
+    屏東縣: "屏東縣",
+    高雄市: "高雄市",
+    桃園縣: "桃園市",
+    花蓮縣: "花蓮縣",
+    苗栗縣: "苗栗縣",
+    新北市: "新北市",
+    基隆市: "基隆市",
+    新竹市: "新竹市",
+    新竹縣: "新竹縣",
+    宜蘭縣: "宜蘭縣",
+    澎湖縣: "澎湖縣",
+    金門縣: "金門縣",
+    連江縣: "連江縣",
+    嘉義縣: "嘉義縣",
+    嘉義市: "嘉義市",
+  };
+  return map[raw] || raw;
 }
 
 function formatTimeRange(start, end) {
