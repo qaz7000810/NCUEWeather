@@ -49,6 +49,8 @@ const realtimeState = {
   typhoonMap: null,
   typhoonLayer: null,
   countiesGeo: null,
+  latestObservation: null,
+  latestAqi: null,
 };
 
 const CWA_BASE = "https://faein.climate-quiz-yuchen.workers.dev/api/v1/rest/datastore";
@@ -739,6 +741,45 @@ function normalizeAlerts(payload) {
   return list;
 }
 
+function buildLocalAlerts() {
+  const alerts = [];
+  const obs = realtimeState.latestObservation;
+  const aqi = realtimeState.latestAqi;
+  const add = (title) => {
+    alerts.push({
+      area: REALTIME_COUNTY,
+      title: "即時提醒",
+      desc: title,
+      severity: "提醒",
+    });
+  };
+
+  if (obs) {
+    if (Number.isFinite(obs.temp) && obs.temp >= 34) add("溫度 ≥ 34（目前溫度偏高）");
+    if (Number.isFinite(obs.temp) && obs.temp <= 12) add("溫度 ≤ 12（目前溫度偏低）");
+    if (Number.isFinite(obs.apparent) && obs.apparent >= 34) add("體感溫度 ≥ 34（目前體感溫度偏高）");
+    if (Number.isFinite(obs.apparent) && obs.apparent <= 12) add("體感溫度 ≤ 12（目前體感溫度偏低）");
+    if (Number.isFinite(obs.humidity) && obs.humidity < 50) add("濕度 < 50%（目前濕度偏低）");
+    const windLevel = windToBeaufortLevel(obs.windSpeed);
+    const gustLevel = windToBeaufortLevel(obs.gust);
+    if (Number.isFinite(windLevel) && windLevel >= 4) add("風速 ≥ 4級（目前風速偏大）");
+    if (Number.isFinite(gustLevel) && gustLevel >= 6) add("陣風 ≥ 6級（目前陣風偏大）");
+    if (Number.isFinite(obs.rain) && obs.rain >= 30) add("雨量 ≥ 30（今日雨量偏大）");
+  }
+
+  if (aqi) {
+    if (Number.isFinite(aqi.aqi) && aqi.aqi >= 101) add("AQI ≥ 101（目前空氣品質較差）");
+    if (Number.isFinite(aqi.pm25) && aqi.pm25 >= 30) add("PM2.5 ≥ 30（目前細懸浮微粒值偏高）");
+    if (Number.isFinite(aqi.pm10) && aqi.pm10 >= 76) add("PM10 ≥ 76（目前懸浮微粒值偏高）");
+    if (Number.isFinite(aqi.o3) && aqi.o3 >= 101) add("O3 ≥ 101（目前臭氧濃度偏高）");
+    if (Number.isFinite(aqi.so2) && aqi.so2 >= 66) add("SO2 ≥ 66（目前二氧化硫偏高）");
+    if (Number.isFinite(aqi.no2) && aqi.no2 >= 101) add("NO2 ≥ 101（目前氮氧化物偏高）");
+    if (Number.isFinite(aqi.co) && aqi.co >= 9.5) add("CO ≥ 9.5（目前一氧化碳偏高）");
+  }
+
+  return alerts;
+}
+
 function renderAlerts(list) {
   if (!dom.alertList) return;
   const county = normalizeCountyName(REALTIME_COUNTY);
@@ -752,8 +793,9 @@ function renderAlerts(list) {
     });
   }
 
-  // 嚴格依縣市過濾；若該縣市沒有特報，就顯示「目前沒有警特報」而不是全部資料
-  const useList = county ? filtered : list;
+  const localAlerts = buildLocalAlerts();
+  // 嚴格依縣市過濾；若該縣市沒有特報，仍顯示本地提醒
+  const useList = county ? localAlerts.concat(filtered) : localAlerts.concat(list);
 
   if (!useList.length) {
     dom.alertList.innerHTML = `<div class="alert-item">${county ? `目前 ${county} 沒有警特報。` : "目前沒有警特報。"}</div>`;
@@ -1067,6 +1109,35 @@ function windToBeaufort(mps) {
   return "17級以上";
 }
 
+function windToBeaufortLevel(mps) {
+  const v = Number(mps);
+  if (!Number.isFinite(v)) return NaN;
+  const scale = [
+    [0.0, 0.2, 0],
+    [0.3, 1.5, 1],
+    [1.6, 3.3, 2],
+    [3.4, 5.4, 3],
+    [5.5, 7.9, 4],
+    [8.0, 10.7, 5],
+    [10.8, 13.8, 6],
+    [13.9, 17.1, 7],
+    [17.2, 20.7, 8],
+    [20.8, 24.4, 9],
+    [24.5, 28.4, 10],
+    [28.5, 32.6, 11],
+    [32.7, 36.9, 12],
+    [37.0, 41.4, 13],
+    [41.5, 46.1, 14],
+    [46.2, 50.9, 15],
+    [51.0, 56.0, 16],
+    [56.1, 61.2, 17],
+  ];
+  for (const [low, high, level] of scale) {
+    if (v >= low && v <= high) return level;
+  }
+  return 18;
+}
+
 function calcApparentTemp(temperature, humidity, windMps) {
   const T = Number(temperature);
   const RH = Number(humidity);
@@ -1112,6 +1183,16 @@ function renderNCUEObservation(station) {
   const windLevel = windToBeaufort(windSpeed);
   const gustLevel = windToBeaufort(gustRaw);
   const apparent = calcApparentTemp(temp, humidity, windSpeed);
+  realtimeState.latestObservation = {
+    temp,
+    apparent,
+    humidity,
+    windSpeed,
+    gust: gustRaw,
+    rain,
+    weather,
+    obsTime: obsTimeFormatted || "",
+  };
   const rows = [
     { label: "測站", value: name },
     { label: "觀測時間", value: obsTimeFormatted || "—" },
@@ -1133,6 +1214,9 @@ function renderNCUEObservation(station) {
   dom.ncueObservation.innerHTML = rows
     .map((r) => `<div class="data-row"><span>${sanitizeText(r.label)}</span><strong>${sanitizeText(r.value)}</strong></div>`)
     .join("");
+  if (realtimeState.alertCache) {
+    renderAlerts(realtimeState.alertCache);
+  }
 }
 
 async function loadAqiData() {
@@ -1185,6 +1269,15 @@ function pickAqiRecord(payload) {
 
 function renderAqi(record) {
   if (!dom.aqiObservation) return;
+  realtimeState.latestAqi = {
+    aqi: toNumber(record.aqi ?? record.AQI),
+    pm25: toNumber(record["pm2.5"] ?? record.pm25),
+    pm10: toNumber(record.pm10),
+    o3: toNumber(record.o3),
+    no2: toNumber(record.no2),
+    so2: toNumber(record.so2),
+    co: toNumber(record.co),
+  };
   const rows = [
     { label: "測站", value: record.sitename || record.siteName || record.SiteName || "彰化" },
     { label: "發布時間", value: record.publishtime || record.PublishTime || "—" },
@@ -1200,6 +1293,9 @@ function renderAqi(record) {
   dom.aqiObservation.innerHTML = rows
     .map((r) => `<div class="data-row"><span>${sanitizeText(r.label)}</span><strong>${sanitizeText(r.value)}</strong></div>`)
     .join("");
+  if (realtimeState.alertCache) {
+    renderAlerts(realtimeState.alertCache);
+  }
 }
 async function loadLiveTyphoon() {
   setRealtimeStatus("讀取即時颱風消息...");
