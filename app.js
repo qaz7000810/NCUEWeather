@@ -57,6 +57,7 @@ const NCUE_STATION_KEYWORDS = ["彰師大", "彰化師大", "國立彰化師範�
 const AQI_ENDPOINT = "https://faein.climate-quiz-yuchen.workers.dev/api/v1/aqi";
 const AQI_SITE_KEYWORDS = ["彰化"];
 const AQI_API_KEY = "";
+const REALTIME_COUNTY = "彰化縣";
 const CWA_COUNTIES = [
   "基隆市",
   "臺北市",
@@ -116,22 +117,17 @@ function bindEvents() {
   dom.rangeEnd.addEventListener("input", syncRange);
   dom.loadBtn.addEventListener("click", refreshChart);
   dom.clearBtn.addEventListener("click", clearChart);
-  dom.countySelect.addEventListener("change", () => {
+  dom.countySelect?.addEventListener("change", () => {
     buildStationOptions();
     updateRangeLabel();
     updateLoadButtonState();
   });
   dom.stationSelect.addEventListener("change", updateLoadButtonState);
   dom.rollupSelect.addEventListener("change", updateLoadButtonState);
-  dom.realtimeCounty?.addEventListener("change", () => {
-    loadForecast(dom.realtimeCounty.value);
-  });
   dom.refreshRealtimeBtn?.addEventListener("click", refreshRealtimeAll);
   dom.reloadAlertsBtn?.addEventListener("click", loadWeatherAlerts);
   dom.reloadForecastBtn?.addEventListener("click", () => {
-    if (dom.realtimeCounty?.value) {
-      loadForecast(dom.realtimeCounty.value);
-    }
+    loadForecast(REALTIME_COUNTY);
   });
   dom.reloadLiveTyphoonBtn?.addEventListener("click", loadLiveTyphoon);
   dom.reloadNCUEBtn?.addEventListener("click", loadNCUEObservation);
@@ -140,10 +136,10 @@ function bindEvents() {
 }
 async function loadIndex() {
   try {
-    const res = await fetch("./data/fileIndex.json");
+    const res = await fetch("./data/changhua/fileIndex.json");
     fileIndex = await res.json();
     if (!Array.isArray(fileIndex) || !fileIndex.length) {
-      setStatus("找不到索引檔，請先執行 scripts/build_file_index.js");
+      setStatus("找不到索引檔，請先執行 scripts/build_changhua_subset.py");
       return;
     }
     dom.rangeStart.max = fileIndex.length - 1;
@@ -158,7 +154,7 @@ async function loadIndex() {
 
 async function loadStationsMeta() {
   try {
-    const res = await fetch("./data/stations_meta.json");
+    const res = await fetch("./data/changhua/stations_meta.json");
     if (!res.ok) return;
     stationsMeta = await res.json();
   } catch (err) {
@@ -170,6 +166,7 @@ async function loadStationsMeta() {
 }
 
 function buildCountyOptions() {
+  if (!dom.countySelect) return;
   const counties = new Set(
     stationsMeta
       .filter((s) => !s.status || s.status === "existing")
@@ -185,17 +182,20 @@ function buildCountyOptions() {
 }
 
 function buildStationOptions() {
-  const county = dom.countySelect.value;
+  const county = dom.countySelect ? dom.countySelect.value : "";
   let list = stationsMeta.filter((s) => !s.status || s.status === "existing");
   if (county && county !== "*") {
     list = list.filter((s) => s.county === county);
   }
-  const options = ['<option value="*">全部測站（可能較慢）</option>'].concat(
+  const options = ['<option value="*">全部測站（縣內平均）</option>'].concat(
     list
       .sort((a, b) => a.id.localeCompare(b.id))
       .map((s) => `<option value="${s.id}">${s.id} ｜ ${s.name || ""}</option>`)
   );
   dom.stationSelect.innerHTML = options.join("");
+  if (list.some((s) => s.id === "A0G720")) {
+    dom.stationSelect.value = "A0G720";
+  }
 }
 
 function syncRange() {
@@ -230,11 +230,11 @@ function isSelectionReady() {
   const end = Number(dom.rangeEnd.value);
   const hasValidRange = start <= end;
   const station = dom.stationSelect.value;
-  const county = dom.countySelect.value;
+  const county = dom.countySelect ? dom.countySelect.value : "";
   if (stationsMeta.length > 0) {
     const hasStation = station && station !== "*";
     const hasCounty = county && county !== "*";
-    return hasValidRange && (hasStation || hasCounty);
+    return hasValidRange && (hasStation || hasCounty || !dom.countySelect);
   }
   return hasValidRange;
 }
@@ -243,7 +243,7 @@ function updateLoadButtonState() {
   const ready = isSelectionReady();
   dom.loadBtn.disabled = !ready;
   if (!ready) {
-    setStatus("請先選縣市或測站並設定時間範圍");
+    setStatus("請先選測站並設定時間範圍");
   }
 }
 
@@ -285,6 +285,7 @@ function resolveStations() {
   if (pick && pick !== "*") {
     return new Set([pick]);
   }
+  if (!dom.countySelect) return null;
   const county = dom.countySelect.value;
   if (!county || county === "*") return null;
   const ids = stationsMeta
@@ -331,18 +332,24 @@ async function loadAllSeries() {
   const labels = sortedKeys.map((k) => formatKey(k, rollup));
 
   const series = {};
+  const isMultiStation = !allowedStations || allowedStations.size > 1;
   for (const metricKey of metricKeys) {
     const cfg = metricConfigs[metricKey];
     const map = bucketMap.get(metricKey);
     const data = sortedKeys.map((k) => {
       const b = map.get(k);
       if (!b || b.count === 0) return null;
-      const val = cfg.mode === "sum" ? b.sum : b.sum / b.count;
+      const val =
+        cfg.mode === "sum" && metricKey === "PP01" && isMultiStation
+          ? b.sum / b.count
+          : cfg.mode === "sum"
+            ? b.sum
+            : b.sum / b.count;
       pointCount += b.count;
       return Number(val.toFixed(2));
     });
     series[metricKey] = {
-      label: cfg.label,
+      label: cfg.mode === "sum" && metricKey === "PP01" && isMultiStation ? `${cfg.label}（平均）` : cfg.label,
       data,
       color: cfg.color,
       mode: cfg.mode,
@@ -380,7 +387,7 @@ function parseFileAll(text, metricKeys, rollup, allowedStations, bucketMap) {
 }
 
 async function tryParseDailyAll(fileInfo, metricKeys, allowedStations, bucketMap) {
-  const dailyPath = `./data/daily/${fileInfo.file.replace(".auto_hr.txt", ".daily.json")}`;
+  const dailyPath = `./data/changhua/daily/${fileInfo.file.replace(".auto_hr.txt", ".daily.json")}`;
   let records = dailyCache.get(dailyPath);
   if (!records) {
     const res = await fetch(dailyPath);
@@ -429,7 +436,7 @@ function formatKey(key, rollup) {
 }
 
 function renderCharts(payload) {
-  dom.chartTitle.textContent = `${payload.labels[0]} ~ ${payload.labels[payload.labels.length - 1]} ｜ 5 指標`;
+  dom.chartTitle.textContent = `${payload.labels[0]} ~ ${payload.labels[payload.labels.length - 1]} ｜ 氣溫、降雨量、相對濕度、風速`;
   Object.entries(payload.series).forEach(([metricKey, ser]) => {
     const canvas = document.getElementById(`chart-${metricKey}`);
     if (!canvas) return;
@@ -558,20 +565,20 @@ function polygonContainsPoint(rings, pt) {
 // ----------------- 即時資料 -----------------
 
 function initRealtimeView() {
-  if (!dom.realtimeCounty) return;
-  buildRealtimeCountyOptions();
   setRealtimeStatus("已使用 Cloudflare Proxy，直接點「更新全部」即可。");
   initRealtimeMap();
   loadNCUEObservation();
   loadAqiData();
-  requestUserLocation();
+  loadForecast(REALTIME_COUNTY);
+  loadWeatherAlerts();
+  loadLiveTyphoon();
 }
 
 function buildRealtimeCountyOptions() {
   if (!dom.realtimeCounty) return;
   const opts = CWA_COUNTIES.map((c) => `<option value="${c}">${c}</option>`);
   dom.realtimeCounty.innerHTML = opts.join("");
-  dom.realtimeCounty.value = "臺北市";
+  dom.realtimeCounty.value = REALTIME_COUNTY;
 }
 
 function setRealtimeStatus(text) {
@@ -602,7 +609,7 @@ function ensureRealtimeMapSized() {
 
 async function refreshRealtimeAll() {
   setRealtimeStatus("更新中...");
-  const county = dom.realtimeCounty?.value || CWA_COUNTIES[0];
+  const county = REALTIME_COUNTY;
   try {
     await Promise.all([
       loadWeatherAlerts(),
@@ -734,7 +741,7 @@ function normalizeAlerts(payload) {
 
 function renderAlerts(list) {
   if (!dom.alertList) return;
-  const county = dom.realtimeCounty?.value ? normalizeCountyName(dom.realtimeCounty.value) : "";
+  const county = normalizeCountyName(REALTIME_COUNTY);
   let filtered = list;
   if (county) {
     filtered = list.filter((a) => {

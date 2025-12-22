@@ -1,0 +1,3236 @@
+[
+  {
+    "file": "19870699.auto_hr.txt",
+    "year": 1987,
+    "month": 6,
+    "bytes": 0,
+    "path": "./data/changhua/hourly/19870699.auto_hr.txt"
+  },
+  {
+    "file": "19870799.auto_hr.txt",
+    "year": 1987,
+    "month": 7,
+    "bytes": 0,
+    "path": "./data/changhua/hourly/19870799.auto_hr.txt"
+  },
+  {
+    "file": "19870899.auto_hr.txt",
+    "year": 1987,
+    "month": 8,
+    "bytes": 0,
+    "path": "./data/changhua/hourly/19870899.auto_hr.txt"
+  },
+  {
+    "file": "19870999.auto_hr.txt",
+    "year": 1987,
+    "month": 9,
+    "bytes": 0,
+    "path": "./data/changhua/hourly/19870999.auto_hr.txt"
+  },
+  {
+    "file": "19871099.auto_hr.txt",
+    "year": 1987,
+    "month": 10,
+    "bytes": 0,
+    "path": "./data/changhua/hourly/19871099.auto_hr.txt"
+  },
+  {
+    "file": "19871199.auto_hr.txt",
+    "year": 1987,
+    "month": 11,
+    "bytes": 0,
+    "path": "./data/changhua/hourly/19871199.auto_hr.txt"
+  },
+  {
+    "file": "19871299.auto_hr.txt",
+    "year": 1987,
+    "month": 12,
+    "bytes": 0,
+    "path": "./data/changhua/hourly/19871299.auto_hr.txt"
+  },
+  {
+    "file": "19880199.auto_hr.txt",
+    "year": 1988,
+    "month": 1,
+    "bytes": 0,
+    "path": "./data/changhua/hourly/19880199.auto_hr.txt"
+  },
+  {
+    "file": "19880299.auto_hr.txt",
+    "year": 1988,
+    "month": 2,
+    "bytes": 0,
+    "path": "./data/changhua/hourly/19880299.auto_hr.txt"
+  },
+  {
+    "file": "19880399.auto_hr.txt",
+    "year": 1988,
+    "month": 3,
+    "bytes": 0,
+    "path": "./data/changhua/hourly/19880399.auto_hr.txt"
+  },
+  {
+    "file": "19880499.auto_hr.txt",
+    "year": 1988,
+    "month": 4,
+    "bytes": 0,
+    "path": "./data/changhua/hourly/19880499.auto_hr.txt"
+  },
+  {
+    "file": "19880599.auto_hr.txt",
+    "year": 1988,
+    "month": 5,
+    "bytes": 0,
+    "path": "./data/changhua/hourly/19880599.auto_hr.txt"
+  },
+  {
+    "file": "19880699.auto_hr.txt",
+    "year": 1988,
+    "month": 6,
+    "bytes": 0,
+    "path": "./data/changhua/hourly/19880699.auto_hr.txt"
+  },
+  {
+    "file": "19880799.auto_hr.txt",
+    "year": 1988,
+    "month": 7,
+    "bytes": 0,
+    "path": "./data/changhua/hourly/19880799.auto_hr.txt"
+  },
+  {
+    "file": "19880899.auto_hr.txt",
+    "year": 1988,
+    "month": 8,
+    "bytes": 0,
+    "path": "./data/changhua/hourly/19880899.auto_hr.txt"
+  },
+  {
+    "file": "19880999.auto_hr.txt",
+    "year": 1988,
+    "month": 9,
+    "bytes": 0,
+    "path": "./data/changhua/hourly/19880999.auto_hr.txt"
+  },
+  {
+    "file": "19881099.auto_hr.txt",
+    "year": 1988,
+    "month": 10,
+    "bytes": 0,
+    "path": "./data/changhua/hourly/19881099.auto_hr.txt"
+  },
+  {
+    "file": "19881199.auto_hr.txt",
+    "year": 1988,
+    "month": 11,
+    "bytes": 0,
+    "path": "./data/changhua/hourly/19881199.auto_hr.txt"
+  },
+  {
+    "file": "19881299.auto_hr.txt",
+    "year": 1988,
+    "month": 12,
+    "bytes": 0,
+    "path": "./data/changhua/hourly/19881299.auto_hr.txt"
+  },
+  {
+    "file": "19890199.auto_hr.txt",
+    "year": 1989,
+    "month": 1,
+    "bytes": 0,
+    "path": "./data/changhua/hourly/19890199.auto_hr.txt"
+  },
+  {
+    "file": "19890299.auto_hr.txt",
+    "year": 1989,
+    "month": 2,
+    "bytes": 0,
+    "path": "./data/changhua/hourly/19890299.auto_hr.txt"
+  },
+  {
+    "file": "19890399.auto_hr.txt",
+    "year": 1989,
+    "month": 3,
+    "bytes": 0,
+    "path": "./data/changhua/hourly/19890399.auto_hr.txt"
+  },
+  {
+    "file": "19890499.auto_hr.txt",
+    "year": 1989,
+    "month": 4,
+    "bytes": 0,
+    "path": "./data/changhua/hourly/19890499.auto_hr.txt"
+  },
+  {
+    "file": "19890599.auto_hr.txt",
+    "year": 1989,
+    "month": 5,
+    "bytes": 0,
+    "path": "./data/changhua/hourly/19890599.auto_hr.txt"
+  },
+  {
+    "file": "19890699.auto_hr.txt",
+    "year": 1989,
+    "month": 6,
+    "bytes": 0,
+    "path": "./data/changhua/hourly/19890699.auto_hr.txt"
+  },
+  {
+    "file": "19890799.auto_hr.txt",
+    "year": 1989,
+    "month": 7,
+    "bytes": 0,
+    "path": "./data/changhua/hourly/19890799.auto_hr.txt"
+  },
+  {
+    "file": "19890899.auto_hr.txt",
+    "year": 1989,
+    "month": 8,
+    "bytes": 0,
+    "path": "./data/changhua/hourly/19890899.auto_hr.txt"
+  },
+  {
+    "file": "19890999.auto_hr.txt",
+    "year": 1989,
+    "month": 9,
+    "bytes": 0,
+    "path": "./data/changhua/hourly/19890999.auto_hr.txt"
+  },
+  {
+    "file": "19891099.auto_hr.txt",
+    "year": 1989,
+    "month": 10,
+    "bytes": 0,
+    "path": "./data/changhua/hourly/19891099.auto_hr.txt"
+  },
+  {
+    "file": "19891199.auto_hr.txt",
+    "year": 1989,
+    "month": 11,
+    "bytes": 0,
+    "path": "./data/changhua/hourly/19891199.auto_hr.txt"
+  },
+  {
+    "file": "19891299.auto_hr.txt",
+    "year": 1989,
+    "month": 12,
+    "bytes": 0,
+    "path": "./data/changhua/hourly/19891299.auto_hr.txt"
+  },
+  {
+    "file": "19900199.auto_hr.txt",
+    "year": 1990,
+    "month": 1,
+    "bytes": 0,
+    "path": "./data/changhua/hourly/19900199.auto_hr.txt"
+  },
+  {
+    "file": "19900299.auto_hr.txt",
+    "year": 1990,
+    "month": 2,
+    "bytes": 0,
+    "path": "./data/changhua/hourly/19900299.auto_hr.txt"
+  },
+  {
+    "file": "19900399.auto_hr.txt",
+    "year": 1990,
+    "month": 3,
+    "bytes": 0,
+    "path": "./data/changhua/hourly/19900399.auto_hr.txt"
+  },
+  {
+    "file": "19900499.auto_hr.txt",
+    "year": 1990,
+    "month": 4,
+    "bytes": 0,
+    "path": "./data/changhua/hourly/19900499.auto_hr.txt"
+  },
+  {
+    "file": "19900599.auto_hr.txt",
+    "year": 1990,
+    "month": 5,
+    "bytes": 0,
+    "path": "./data/changhua/hourly/19900599.auto_hr.txt"
+  },
+  {
+    "file": "19900699.auto_hr.txt",
+    "year": 1990,
+    "month": 6,
+    "bytes": 0,
+    "path": "./data/changhua/hourly/19900699.auto_hr.txt"
+  },
+  {
+    "file": "19900799.auto_hr.txt",
+    "year": 1990,
+    "month": 7,
+    "bytes": 0,
+    "path": "./data/changhua/hourly/19900799.auto_hr.txt"
+  },
+  {
+    "file": "19900899.auto_hr.txt",
+    "year": 1990,
+    "month": 8,
+    "bytes": 0,
+    "path": "./data/changhua/hourly/19900899.auto_hr.txt"
+  },
+  {
+    "file": "19900999.auto_hr.txt",
+    "year": 1990,
+    "month": 9,
+    "bytes": 0,
+    "path": "./data/changhua/hourly/19900999.auto_hr.txt"
+  },
+  {
+    "file": "19901099.auto_hr.txt",
+    "year": 1990,
+    "month": 10,
+    "bytes": 0,
+    "path": "./data/changhua/hourly/19901099.auto_hr.txt"
+  },
+  {
+    "file": "19901199.auto_hr.txt",
+    "year": 1990,
+    "month": 11,
+    "bytes": 0,
+    "path": "./data/changhua/hourly/19901199.auto_hr.txt"
+  },
+  {
+    "file": "19901299.auto_hr.txt",
+    "year": 1990,
+    "month": 12,
+    "bytes": 0,
+    "path": "./data/changhua/hourly/19901299.auto_hr.txt"
+  },
+  {
+    "file": "19910199.auto_hr.txt",
+    "year": 1991,
+    "month": 1,
+    "bytes": 0,
+    "path": "./data/changhua/hourly/19910199.auto_hr.txt"
+  },
+  {
+    "file": "19910299.auto_hr.txt",
+    "year": 1991,
+    "month": 2,
+    "bytes": 0,
+    "path": "./data/changhua/hourly/19910299.auto_hr.txt"
+  },
+  {
+    "file": "19910399.auto_hr.txt",
+    "year": 1991,
+    "month": 3,
+    "bytes": 0,
+    "path": "./data/changhua/hourly/19910399.auto_hr.txt"
+  },
+  {
+    "file": "19910499.auto_hr.txt",
+    "year": 1991,
+    "month": 4,
+    "bytes": 0,
+    "path": "./data/changhua/hourly/19910499.auto_hr.txt"
+  },
+  {
+    "file": "19910599.auto_hr.txt",
+    "year": 1991,
+    "month": 5,
+    "bytes": 0,
+    "path": "./data/changhua/hourly/19910599.auto_hr.txt"
+  },
+  {
+    "file": "19910699.auto_hr.txt",
+    "year": 1991,
+    "month": 6,
+    "bytes": 0,
+    "path": "./data/changhua/hourly/19910699.auto_hr.txt"
+  },
+  {
+    "file": "19910799.auto_hr.txt",
+    "year": 1991,
+    "month": 7,
+    "bytes": 0,
+    "path": "./data/changhua/hourly/19910799.auto_hr.txt"
+  },
+  {
+    "file": "19910899.auto_hr.txt",
+    "year": 1991,
+    "month": 8,
+    "bytes": 0,
+    "path": "./data/changhua/hourly/19910899.auto_hr.txt"
+  },
+  {
+    "file": "19910999.auto_hr.txt",
+    "year": 1991,
+    "month": 9,
+    "bytes": 0,
+    "path": "./data/changhua/hourly/19910999.auto_hr.txt"
+  },
+  {
+    "file": "19911099.auto_hr.txt",
+    "year": 1991,
+    "month": 10,
+    "bytes": 0,
+    "path": "./data/changhua/hourly/19911099.auto_hr.txt"
+  },
+  {
+    "file": "19911199.auto_hr.txt",
+    "year": 1991,
+    "month": 11,
+    "bytes": 0,
+    "path": "./data/changhua/hourly/19911199.auto_hr.txt"
+  },
+  {
+    "file": "19911299.auto_hr.txt",
+    "year": 1991,
+    "month": 12,
+    "bytes": 0,
+    "path": "./data/changhua/hourly/19911299.auto_hr.txt"
+  },
+  {
+    "file": "19920199.auto_hr.txt",
+    "year": 1992,
+    "month": 1,
+    "bytes": 0,
+    "path": "./data/changhua/hourly/19920199.auto_hr.txt"
+  },
+  {
+    "file": "19920299.auto_hr.txt",
+    "year": 1992,
+    "month": 2,
+    "bytes": 0,
+    "path": "./data/changhua/hourly/19920299.auto_hr.txt"
+  },
+  {
+    "file": "19920399.auto_hr.txt",
+    "year": 1992,
+    "month": 3,
+    "bytes": 0,
+    "path": "./data/changhua/hourly/19920399.auto_hr.txt"
+  },
+  {
+    "file": "19920499.auto_hr.txt",
+    "year": 1992,
+    "month": 4,
+    "bytes": 0,
+    "path": "./data/changhua/hourly/19920499.auto_hr.txt"
+  },
+  {
+    "file": "19920599.auto_hr.txt",
+    "year": 1992,
+    "month": 5,
+    "bytes": 50592,
+    "path": "./data/changhua/hourly/19920599.auto_hr.txt"
+  },
+  {
+    "file": "19920699.auto_hr.txt",
+    "year": 1992,
+    "month": 6,
+    "bytes": 48960,
+    "path": "./data/changhua/hourly/19920699.auto_hr.txt"
+  },
+  {
+    "file": "19920799.auto_hr.txt",
+    "year": 1992,
+    "month": 7,
+    "bytes": 151776,
+    "path": "./data/changhua/hourly/19920799.auto_hr.txt"
+  },
+  {
+    "file": "19920899.auto_hr.txt",
+    "year": 1992,
+    "month": 8,
+    "bytes": 151776,
+    "path": "./data/changhua/hourly/19920899.auto_hr.txt"
+  },
+  {
+    "file": "19920999.auto_hr.txt",
+    "year": 1992,
+    "month": 9,
+    "bytes": 146880,
+    "path": "./data/changhua/hourly/19920999.auto_hr.txt"
+  },
+  {
+    "file": "19921099.auto_hr.txt",
+    "year": 1992,
+    "month": 10,
+    "bytes": 151776,
+    "path": "./data/changhua/hourly/19921099.auto_hr.txt"
+  },
+  {
+    "file": "19921199.auto_hr.txt",
+    "year": 1992,
+    "month": 11,
+    "bytes": 146880,
+    "path": "./data/changhua/hourly/19921199.auto_hr.txt"
+  },
+  {
+    "file": "19921299.auto_hr.txt",
+    "year": 1992,
+    "month": 12,
+    "bytes": 151776,
+    "path": "./data/changhua/hourly/19921299.auto_hr.txt"
+  },
+  {
+    "file": "19930199.auto_hr.txt",
+    "year": 1993,
+    "month": 1,
+    "bytes": 151776,
+    "path": "./data/changhua/hourly/19930199.auto_hr.txt"
+  },
+  {
+    "file": "19930299.auto_hr.txt",
+    "year": 1993,
+    "month": 2,
+    "bytes": 137088,
+    "path": "./data/changhua/hourly/19930299.auto_hr.txt"
+  },
+  {
+    "file": "19930399.auto_hr.txt",
+    "year": 1993,
+    "month": 3,
+    "bytes": 151776,
+    "path": "./data/changhua/hourly/19930399.auto_hr.txt"
+  },
+  {
+    "file": "19930499.auto_hr.txt",
+    "year": 1993,
+    "month": 4,
+    "bytes": 146880,
+    "path": "./data/changhua/hourly/19930499.auto_hr.txt"
+  },
+  {
+    "file": "19930599.auto_hr.txt",
+    "year": 1993,
+    "month": 5,
+    "bytes": 151776,
+    "path": "./data/changhua/hourly/19930599.auto_hr.txt"
+  },
+  {
+    "file": "19930699.auto_hr.txt",
+    "year": 1993,
+    "month": 6,
+    "bytes": 146880,
+    "path": "./data/changhua/hourly/19930699.auto_hr.txt"
+  },
+  {
+    "file": "19930799.auto_hr.txt",
+    "year": 1993,
+    "month": 7,
+    "bytes": 151776,
+    "path": "./data/changhua/hourly/19930799.auto_hr.txt"
+  },
+  {
+    "file": "19930899.auto_hr.txt",
+    "year": 1993,
+    "month": 8,
+    "bytes": 151776,
+    "path": "./data/changhua/hourly/19930899.auto_hr.txt"
+  },
+  {
+    "file": "19930999.auto_hr.txt",
+    "year": 1993,
+    "month": 9,
+    "bytes": 146880,
+    "path": "./data/changhua/hourly/19930999.auto_hr.txt"
+  },
+  {
+    "file": "19931099.auto_hr.txt",
+    "year": 1993,
+    "month": 10,
+    "bytes": 151776,
+    "path": "./data/changhua/hourly/19931099.auto_hr.txt"
+  },
+  {
+    "file": "19931199.auto_hr.txt",
+    "year": 1993,
+    "month": 11,
+    "bytes": 146880,
+    "path": "./data/changhua/hourly/19931199.auto_hr.txt"
+  },
+  {
+    "file": "19931299.auto_hr.txt",
+    "year": 1993,
+    "month": 12,
+    "bytes": 151776,
+    "path": "./data/changhua/hourly/19931299.auto_hr.txt"
+  },
+  {
+    "file": "19940199.auto_hr.txt",
+    "year": 1994,
+    "month": 1,
+    "bytes": 151776,
+    "path": "./data/changhua/hourly/19940199.auto_hr.txt"
+  },
+  {
+    "file": "19940299.auto_hr.txt",
+    "year": 1994,
+    "month": 2,
+    "bytes": 137088,
+    "path": "./data/changhua/hourly/19940299.auto_hr.txt"
+  },
+  {
+    "file": "19940399.auto_hr.txt",
+    "year": 1994,
+    "month": 3,
+    "bytes": 151776,
+    "path": "./data/changhua/hourly/19940399.auto_hr.txt"
+  },
+  {
+    "file": "19940499.auto_hr.txt",
+    "year": 1994,
+    "month": 4,
+    "bytes": 146880,
+    "path": "./data/changhua/hourly/19940499.auto_hr.txt"
+  },
+  {
+    "file": "19940599.auto_hr.txt",
+    "year": 1994,
+    "month": 5,
+    "bytes": 151776,
+    "path": "./data/changhua/hourly/19940599.auto_hr.txt"
+  },
+  {
+    "file": "19940699.auto_hr.txt",
+    "year": 1994,
+    "month": 6,
+    "bytes": 146880,
+    "path": "./data/changhua/hourly/19940699.auto_hr.txt"
+  },
+  {
+    "file": "19940799.auto_hr.txt",
+    "year": 1994,
+    "month": 7,
+    "bytes": 151776,
+    "path": "./data/changhua/hourly/19940799.auto_hr.txt"
+  },
+  {
+    "file": "19940899.auto_hr.txt",
+    "year": 1994,
+    "month": 8,
+    "bytes": 151776,
+    "path": "./data/changhua/hourly/19940899.auto_hr.txt"
+  },
+  {
+    "file": "19940999.auto_hr.txt",
+    "year": 1994,
+    "month": 9,
+    "bytes": 146880,
+    "path": "./data/changhua/hourly/19940999.auto_hr.txt"
+  },
+  {
+    "file": "19941099.auto_hr.txt",
+    "year": 1994,
+    "month": 10,
+    "bytes": 151776,
+    "path": "./data/changhua/hourly/19941099.auto_hr.txt"
+  },
+  {
+    "file": "19941199.auto_hr.txt",
+    "year": 1994,
+    "month": 11,
+    "bytes": 146880,
+    "path": "./data/changhua/hourly/19941199.auto_hr.txt"
+  },
+  {
+    "file": "19941299.auto_hr.txt",
+    "year": 1994,
+    "month": 12,
+    "bytes": 151776,
+    "path": "./data/changhua/hourly/19941299.auto_hr.txt"
+  },
+  {
+    "file": "19950199.auto_hr.txt",
+    "year": 1995,
+    "month": 1,
+    "bytes": 151776,
+    "path": "./data/changhua/hourly/19950199.auto_hr.txt"
+  },
+  {
+    "file": "19950299.auto_hr.txt",
+    "year": 1995,
+    "month": 2,
+    "bytes": 137088,
+    "path": "./data/changhua/hourly/19950299.auto_hr.txt"
+  },
+  {
+    "file": "19950399.auto_hr.txt",
+    "year": 1995,
+    "month": 3,
+    "bytes": 151776,
+    "path": "./data/changhua/hourly/19950399.auto_hr.txt"
+  },
+  {
+    "file": "19950499.auto_hr.txt",
+    "year": 1995,
+    "month": 4,
+    "bytes": 146880,
+    "path": "./data/changhua/hourly/19950499.auto_hr.txt"
+  },
+  {
+    "file": "19950599.auto_hr.txt",
+    "year": 1995,
+    "month": 5,
+    "bytes": 151776,
+    "path": "./data/changhua/hourly/19950599.auto_hr.txt"
+  },
+  {
+    "file": "19950699.auto_hr.txt",
+    "year": 1995,
+    "month": 6,
+    "bytes": 146880,
+    "path": "./data/changhua/hourly/19950699.auto_hr.txt"
+  },
+  {
+    "file": "19950799.auto_hr.txt",
+    "year": 1995,
+    "month": 7,
+    "bytes": 151776,
+    "path": "./data/changhua/hourly/19950799.auto_hr.txt"
+  },
+  {
+    "file": "19950899.auto_hr.txt",
+    "year": 1995,
+    "month": 8,
+    "bytes": 151776,
+    "path": "./data/changhua/hourly/19950899.auto_hr.txt"
+  },
+  {
+    "file": "19950999.auto_hr.txt",
+    "year": 1995,
+    "month": 9,
+    "bytes": 146880,
+    "path": "./data/changhua/hourly/19950999.auto_hr.txt"
+  },
+  {
+    "file": "19951099.auto_hr.txt",
+    "year": 1995,
+    "month": 10,
+    "bytes": 151776,
+    "path": "./data/changhua/hourly/19951099.auto_hr.txt"
+  },
+  {
+    "file": "19951199.auto_hr.txt",
+    "year": 1995,
+    "month": 11,
+    "bytes": 146880,
+    "path": "./data/changhua/hourly/19951199.auto_hr.txt"
+  },
+  {
+    "file": "19951299.auto_hr.txt",
+    "year": 1995,
+    "month": 12,
+    "bytes": 151776,
+    "path": "./data/changhua/hourly/19951299.auto_hr.txt"
+  },
+  {
+    "file": "19960199.auto_hr.txt",
+    "year": 1996,
+    "month": 1,
+    "bytes": 151776,
+    "path": "./data/changhua/hourly/19960199.auto_hr.txt"
+  },
+  {
+    "file": "19960299.auto_hr.txt",
+    "year": 1996,
+    "month": 2,
+    "bytes": 141984,
+    "path": "./data/changhua/hourly/19960299.auto_hr.txt"
+  },
+  {
+    "file": "19960399.auto_hr.txt",
+    "year": 1996,
+    "month": 3,
+    "bytes": 151776,
+    "path": "./data/changhua/hourly/19960399.auto_hr.txt"
+  },
+  {
+    "file": "19960499.auto_hr.txt",
+    "year": 1996,
+    "month": 4,
+    "bytes": 146880,
+    "path": "./data/changhua/hourly/19960499.auto_hr.txt"
+  },
+  {
+    "file": "19960599.auto_hr.txt",
+    "year": 1996,
+    "month": 5,
+    "bytes": 151776,
+    "path": "./data/changhua/hourly/19960599.auto_hr.txt"
+  },
+  {
+    "file": "19960699.auto_hr.txt",
+    "year": 1996,
+    "month": 6,
+    "bytes": 146880,
+    "path": "./data/changhua/hourly/19960699.auto_hr.txt"
+  },
+  {
+    "file": "19960799.auto_hr.txt",
+    "year": 1996,
+    "month": 7,
+    "bytes": 151776,
+    "path": "./data/changhua/hourly/19960799.auto_hr.txt"
+  },
+  {
+    "file": "19960899.auto_hr.txt",
+    "year": 1996,
+    "month": 8,
+    "bytes": 151776,
+    "path": "./data/changhua/hourly/19960899.auto_hr.txt"
+  },
+  {
+    "file": "19960999.auto_hr.txt",
+    "year": 1996,
+    "month": 9,
+    "bytes": 146880,
+    "path": "./data/changhua/hourly/19960999.auto_hr.txt"
+  },
+  {
+    "file": "19961099.auto_hr.txt",
+    "year": 1996,
+    "month": 10,
+    "bytes": 151776,
+    "path": "./data/changhua/hourly/19961099.auto_hr.txt"
+  },
+  {
+    "file": "19961199.auto_hr.txt",
+    "year": 1996,
+    "month": 11,
+    "bytes": 146880,
+    "path": "./data/changhua/hourly/19961199.auto_hr.txt"
+  },
+  {
+    "file": "19961299.auto_hr.txt",
+    "year": 1996,
+    "month": 12,
+    "bytes": 151776,
+    "path": "./data/changhua/hourly/19961299.auto_hr.txt"
+  },
+  {
+    "file": "19970199.auto_hr.txt",
+    "year": 1997,
+    "month": 1,
+    "bytes": 151776,
+    "path": "./data/changhua/hourly/19970199.auto_hr.txt"
+  },
+  {
+    "file": "19970299.auto_hr.txt",
+    "year": 1997,
+    "month": 2,
+    "bytes": 137088,
+    "path": "./data/changhua/hourly/19970299.auto_hr.txt"
+  },
+  {
+    "file": "19970399.auto_hr.txt",
+    "year": 1997,
+    "month": 3,
+    "bytes": 151776,
+    "path": "./data/changhua/hourly/19970399.auto_hr.txt"
+  },
+  {
+    "file": "19970499.auto_hr.txt",
+    "year": 1997,
+    "month": 4,
+    "bytes": 146880,
+    "path": "./data/changhua/hourly/19970499.auto_hr.txt"
+  },
+  {
+    "file": "19970599.auto_hr.txt",
+    "year": 1997,
+    "month": 5,
+    "bytes": 151776,
+    "path": "./data/changhua/hourly/19970599.auto_hr.txt"
+  },
+  {
+    "file": "19970699.auto_hr.txt",
+    "year": 1997,
+    "month": 6,
+    "bytes": 146880,
+    "path": "./data/changhua/hourly/19970699.auto_hr.txt"
+  },
+  {
+    "file": "19970799.auto_hr.txt",
+    "year": 1997,
+    "month": 7,
+    "bytes": 151776,
+    "path": "./data/changhua/hourly/19970799.auto_hr.txt"
+  },
+  {
+    "file": "19970899.auto_hr.txt",
+    "year": 1997,
+    "month": 8,
+    "bytes": 151776,
+    "path": "./data/changhua/hourly/19970899.auto_hr.txt"
+  },
+  {
+    "file": "19970999.auto_hr.txt",
+    "year": 1997,
+    "month": 9,
+    "bytes": 146880,
+    "path": "./data/changhua/hourly/19970999.auto_hr.txt"
+  },
+  {
+    "file": "19971099.auto_hr.txt",
+    "year": 1997,
+    "month": 10,
+    "bytes": 132192,
+    "path": "./data/changhua/hourly/19971099.auto_hr.txt"
+  },
+  {
+    "file": "19971199.auto_hr.txt",
+    "year": 1997,
+    "month": 11,
+    "bytes": 97920,
+    "path": "./data/changhua/hourly/19971199.auto_hr.txt"
+  },
+  {
+    "file": "19971299.auto_hr.txt",
+    "year": 1997,
+    "month": 12,
+    "bytes": 101184,
+    "path": "./data/changhua/hourly/19971299.auto_hr.txt"
+  },
+  {
+    "file": "19980199.auto_hr.txt",
+    "year": 1998,
+    "month": 1,
+    "bytes": 101184,
+    "path": "./data/changhua/hourly/19980199.auto_hr.txt"
+  },
+  {
+    "file": "19980299.auto_hr.txt",
+    "year": 1998,
+    "month": 2,
+    "bytes": 91392,
+    "path": "./data/changhua/hourly/19980299.auto_hr.txt"
+  },
+  {
+    "file": "19980399.auto_hr.txt",
+    "year": 1998,
+    "month": 3,
+    "bytes": 101184,
+    "path": "./data/changhua/hourly/19980399.auto_hr.txt"
+  },
+  {
+    "file": "19980499.auto_hr.txt",
+    "year": 1998,
+    "month": 4,
+    "bytes": 97920,
+    "path": "./data/changhua/hourly/19980499.auto_hr.txt"
+  },
+  {
+    "file": "19980599.auto_hr.txt",
+    "year": 1998,
+    "month": 5,
+    "bytes": 101184,
+    "path": "./data/changhua/hourly/19980599.auto_hr.txt"
+  },
+  {
+    "file": "19980699.auto_hr.txt",
+    "year": 1998,
+    "month": 6,
+    "bytes": 97920,
+    "path": "./data/changhua/hourly/19980699.auto_hr.txt"
+  },
+  {
+    "file": "19980799.auto_hr.txt",
+    "year": 1998,
+    "month": 7,
+    "bytes": 101184,
+    "path": "./data/changhua/hourly/19980799.auto_hr.txt"
+  },
+  {
+    "file": "19980899.auto_hr.txt",
+    "year": 1998,
+    "month": 8,
+    "bytes": 101184,
+    "path": "./data/changhua/hourly/19980899.auto_hr.txt"
+  },
+  {
+    "file": "19980999.auto_hr.txt",
+    "year": 1998,
+    "month": 9,
+    "bytes": 97920,
+    "path": "./data/changhua/hourly/19980999.auto_hr.txt"
+  },
+  {
+    "file": "19981099.auto_hr.txt",
+    "year": 1998,
+    "month": 10,
+    "bytes": 101184,
+    "path": "./data/changhua/hourly/19981099.auto_hr.txt"
+  },
+  {
+    "file": "19981199.auto_hr.txt",
+    "year": 1998,
+    "month": 11,
+    "bytes": 97920,
+    "path": "./data/changhua/hourly/19981199.auto_hr.txt"
+  },
+  {
+    "file": "19981299.auto_hr.txt",
+    "year": 1998,
+    "month": 12,
+    "bytes": 101184,
+    "path": "./data/changhua/hourly/19981299.auto_hr.txt"
+  },
+  {
+    "file": "19990199.auto_hr.txt",
+    "year": 1999,
+    "month": 1,
+    "bytes": 101184,
+    "path": "./data/changhua/hourly/19990199.auto_hr.txt"
+  },
+  {
+    "file": "19990299.auto_hr.txt",
+    "year": 1999,
+    "month": 2,
+    "bytes": 91392,
+    "path": "./data/changhua/hourly/19990299.auto_hr.txt"
+  },
+  {
+    "file": "19990399.auto_hr.txt",
+    "year": 1999,
+    "month": 3,
+    "bytes": 101184,
+    "path": "./data/changhua/hourly/19990399.auto_hr.txt"
+  },
+  {
+    "file": "19990499.auto_hr.txt",
+    "year": 1999,
+    "month": 4,
+    "bytes": 97920,
+    "path": "./data/changhua/hourly/19990499.auto_hr.txt"
+  },
+  {
+    "file": "19990599.auto_hr.txt",
+    "year": 1999,
+    "month": 5,
+    "bytes": 101184,
+    "path": "./data/changhua/hourly/19990599.auto_hr.txt"
+  },
+  {
+    "file": "19990699.auto_hr.txt",
+    "year": 1999,
+    "month": 6,
+    "bytes": 97920,
+    "path": "./data/changhua/hourly/19990699.auto_hr.txt"
+  },
+  {
+    "file": "19990799.auto_hr.txt",
+    "year": 1999,
+    "month": 7,
+    "bytes": 101184,
+    "path": "./data/changhua/hourly/19990799.auto_hr.txt"
+  },
+  {
+    "file": "19990899.auto_hr.txt",
+    "year": 1999,
+    "month": 8,
+    "bytes": 101184,
+    "path": "./data/changhua/hourly/19990899.auto_hr.txt"
+  },
+  {
+    "file": "19990999.auto_hr.txt",
+    "year": 1999,
+    "month": 9,
+    "bytes": 97920,
+    "path": "./data/changhua/hourly/19990999.auto_hr.txt"
+  },
+  {
+    "file": "19991099.auto_hr.txt",
+    "year": 1999,
+    "month": 10,
+    "bytes": 101184,
+    "path": "./data/changhua/hourly/19991099.auto_hr.txt"
+  },
+  {
+    "file": "19991199.auto_hr.txt",
+    "year": 1999,
+    "month": 11,
+    "bytes": 97920,
+    "path": "./data/changhua/hourly/19991199.auto_hr.txt"
+  },
+  {
+    "file": "19991299.auto_hr.txt",
+    "year": 1999,
+    "month": 12,
+    "bytes": 101184,
+    "path": "./data/changhua/hourly/19991299.auto_hr.txt"
+  },
+  {
+    "file": "20000199.auto_hr.txt",
+    "year": 2000,
+    "month": 1,
+    "bytes": 101184,
+    "path": "./data/changhua/hourly/20000199.auto_hr.txt"
+  },
+  {
+    "file": "20000299.auto_hr.txt",
+    "year": 2000,
+    "month": 2,
+    "bytes": 94656,
+    "path": "./data/changhua/hourly/20000299.auto_hr.txt"
+  },
+  {
+    "file": "20000399.auto_hr.txt",
+    "year": 2000,
+    "month": 3,
+    "bytes": 101184,
+    "path": "./data/changhua/hourly/20000399.auto_hr.txt"
+  },
+  {
+    "file": "20000499.auto_hr.txt",
+    "year": 2000,
+    "month": 4,
+    "bytes": 97920,
+    "path": "./data/changhua/hourly/20000499.auto_hr.txt"
+  },
+  {
+    "file": "20000599.auto_hr.txt",
+    "year": 2000,
+    "month": 5,
+    "bytes": 101184,
+    "path": "./data/changhua/hourly/20000599.auto_hr.txt"
+  },
+  {
+    "file": "20000699.auto_hr.txt",
+    "year": 2000,
+    "month": 6,
+    "bytes": 97920,
+    "path": "./data/changhua/hourly/20000699.auto_hr.txt"
+  },
+  {
+    "file": "20000799.auto_hr.txt",
+    "year": 2000,
+    "month": 7,
+    "bytes": 101184,
+    "path": "./data/changhua/hourly/20000799.auto_hr.txt"
+  },
+  {
+    "file": "20000899.auto_hr.txt",
+    "year": 2000,
+    "month": 8,
+    "bytes": 101184,
+    "path": "./data/changhua/hourly/20000899.auto_hr.txt"
+  },
+  {
+    "file": "20000999.auto_hr.txt",
+    "year": 2000,
+    "month": 9,
+    "bytes": 97920,
+    "path": "./data/changhua/hourly/20000999.auto_hr.txt"
+  },
+  {
+    "file": "20001099.auto_hr.txt",
+    "year": 2000,
+    "month": 10,
+    "bytes": 101184,
+    "path": "./data/changhua/hourly/20001099.auto_hr.txt"
+  },
+  {
+    "file": "20001199.auto_hr.txt",
+    "year": 2000,
+    "month": 11,
+    "bytes": 97920,
+    "path": "./data/changhua/hourly/20001199.auto_hr.txt"
+  },
+  {
+    "file": "20001299.auto_hr.txt",
+    "year": 2000,
+    "month": 12,
+    "bytes": 101184,
+    "path": "./data/changhua/hourly/20001299.auto_hr.txt"
+  },
+  {
+    "file": "20010199.auto_hr.txt",
+    "year": 2001,
+    "month": 1,
+    "bytes": 101184,
+    "path": "./data/changhua/hourly/20010199.auto_hr.txt"
+  },
+  {
+    "file": "20010299.auto_hr.txt",
+    "year": 2001,
+    "month": 2,
+    "bytes": 91392,
+    "path": "./data/changhua/hourly/20010299.auto_hr.txt"
+  },
+  {
+    "file": "20010399.auto_hr.txt",
+    "year": 2001,
+    "month": 3,
+    "bytes": 101184,
+    "path": "./data/changhua/hourly/20010399.auto_hr.txt"
+  },
+  {
+    "file": "20010499.auto_hr.txt",
+    "year": 2001,
+    "month": 4,
+    "bytes": 97920,
+    "path": "./data/changhua/hourly/20010499.auto_hr.txt"
+  },
+  {
+    "file": "20010599.auto_hr.txt",
+    "year": 2001,
+    "month": 5,
+    "bytes": 101184,
+    "path": "./data/changhua/hourly/20010599.auto_hr.txt"
+  },
+  {
+    "file": "20010699.auto_hr.txt",
+    "year": 2001,
+    "month": 6,
+    "bytes": 97920,
+    "path": "./data/changhua/hourly/20010699.auto_hr.txt"
+  },
+  {
+    "file": "20010799.auto_hr.txt",
+    "year": 2001,
+    "month": 7,
+    "bytes": 101184,
+    "path": "./data/changhua/hourly/20010799.auto_hr.txt"
+  },
+  {
+    "file": "20010899.auto_hr.txt",
+    "year": 2001,
+    "month": 8,
+    "bytes": 101184,
+    "path": "./data/changhua/hourly/20010899.auto_hr.txt"
+  },
+  {
+    "file": "20010999.auto_hr.txt",
+    "year": 2001,
+    "month": 9,
+    "bytes": 97920,
+    "path": "./data/changhua/hourly/20010999.auto_hr.txt"
+  },
+  {
+    "file": "20011099.auto_hr.txt",
+    "year": 2001,
+    "month": 10,
+    "bytes": 101184,
+    "path": "./data/changhua/hourly/20011099.auto_hr.txt"
+  },
+  {
+    "file": "20011199.auto_hr.txt",
+    "year": 2001,
+    "month": 11,
+    "bytes": 97920,
+    "path": "./data/changhua/hourly/20011199.auto_hr.txt"
+  },
+  {
+    "file": "20011299.auto_hr.txt",
+    "year": 2001,
+    "month": 12,
+    "bytes": 101184,
+    "path": "./data/changhua/hourly/20011299.auto_hr.txt"
+  },
+  {
+    "file": "20020199.auto_hr.txt",
+    "year": 2002,
+    "month": 1,
+    "bytes": 151776,
+    "path": "./data/changhua/hourly/20020199.auto_hr.txt"
+  },
+  {
+    "file": "20020299.auto_hr.txt",
+    "year": 2002,
+    "month": 2,
+    "bytes": 137088,
+    "path": "./data/changhua/hourly/20020299.auto_hr.txt"
+  },
+  {
+    "file": "20020399.auto_hr.txt",
+    "year": 2002,
+    "month": 3,
+    "bytes": 151776,
+    "path": "./data/changhua/hourly/20020399.auto_hr.txt"
+  },
+  {
+    "file": "20020499.auto_hr.txt",
+    "year": 2002,
+    "month": 4,
+    "bytes": 146880,
+    "path": "./data/changhua/hourly/20020499.auto_hr.txt"
+  },
+  {
+    "file": "20020599.auto_hr.txt",
+    "year": 2002,
+    "month": 5,
+    "bytes": 151776,
+    "path": "./data/changhua/hourly/20020599.auto_hr.txt"
+  },
+  {
+    "file": "20020699.auto_hr.txt",
+    "year": 2002,
+    "month": 6,
+    "bytes": 146880,
+    "path": "./data/changhua/hourly/20020699.auto_hr.txt"
+  },
+  {
+    "file": "20020799.auto_hr.txt",
+    "year": 2002,
+    "month": 7,
+    "bytes": 151776,
+    "path": "./data/changhua/hourly/20020799.auto_hr.txt"
+  },
+  {
+    "file": "20020899.auto_hr.txt",
+    "year": 2002,
+    "month": 8,
+    "bytes": 151776,
+    "path": "./data/changhua/hourly/20020899.auto_hr.txt"
+  },
+  {
+    "file": "20020999.auto_hr.txt",
+    "year": 2002,
+    "month": 9,
+    "bytes": 146880,
+    "path": "./data/changhua/hourly/20020999.auto_hr.txt"
+  },
+  {
+    "file": "20021099.auto_hr.txt",
+    "year": 2002,
+    "month": 10,
+    "bytes": 151776,
+    "path": "./data/changhua/hourly/20021099.auto_hr.txt"
+  },
+  {
+    "file": "20021199.auto_hr.txt",
+    "year": 2002,
+    "month": 11,
+    "bytes": 146880,
+    "path": "./data/changhua/hourly/20021199.auto_hr.txt"
+  },
+  {
+    "file": "20021299.auto_hr.txt",
+    "year": 2002,
+    "month": 12,
+    "bytes": 151776,
+    "path": "./data/changhua/hourly/20021299.auto_hr.txt"
+  },
+  {
+    "file": "20030199.auto_hr.txt",
+    "year": 2003,
+    "month": 1,
+    "bytes": 101184,
+    "path": "./data/changhua/hourly/20030199.auto_hr.txt"
+  },
+  {
+    "file": "20030299.auto_hr.txt",
+    "year": 2003,
+    "month": 2,
+    "bytes": 91392,
+    "path": "./data/changhua/hourly/20030299.auto_hr.txt"
+  },
+  {
+    "file": "20030399.auto_hr.txt",
+    "year": 2003,
+    "month": 3,
+    "bytes": 101184,
+    "path": "./data/changhua/hourly/20030399.auto_hr.txt"
+  },
+  {
+    "file": "20030499.auto_hr.txt",
+    "year": 2003,
+    "month": 4,
+    "bytes": 97920,
+    "path": "./data/changhua/hourly/20030499.auto_hr.txt"
+  },
+  {
+    "file": "20030599.auto_hr.txt",
+    "year": 2003,
+    "month": 5,
+    "bytes": 101184,
+    "path": "./data/changhua/hourly/20030599.auto_hr.txt"
+  },
+  {
+    "file": "20030699.auto_hr.txt",
+    "year": 2003,
+    "month": 6,
+    "bytes": 97920,
+    "path": "./data/changhua/hourly/20030699.auto_hr.txt"
+  },
+  {
+    "file": "20030799.auto_hr.txt",
+    "year": 2003,
+    "month": 7,
+    "bytes": 101184,
+    "path": "./data/changhua/hourly/20030799.auto_hr.txt"
+  },
+  {
+    "file": "20030899.auto_hr.txt",
+    "year": 2003,
+    "month": 8,
+    "bytes": 101184,
+    "path": "./data/changhua/hourly/20030899.auto_hr.txt"
+  },
+  {
+    "file": "20030999.auto_hr.txt",
+    "year": 2003,
+    "month": 9,
+    "bytes": 97920,
+    "path": "./data/changhua/hourly/20030999.auto_hr.txt"
+  },
+  {
+    "file": "20031099.auto_hr.txt",
+    "year": 2003,
+    "month": 10,
+    "bytes": 101184,
+    "path": "./data/changhua/hourly/20031099.auto_hr.txt"
+  },
+  {
+    "file": "20031199.auto_hr.txt",
+    "year": 2003,
+    "month": 11,
+    "bytes": 97920,
+    "path": "./data/changhua/hourly/20031199.auto_hr.txt"
+  },
+  {
+    "file": "20031299.auto_hr.txt",
+    "year": 2003,
+    "month": 12,
+    "bytes": 101184,
+    "path": "./data/changhua/hourly/20031299.auto_hr.txt"
+  },
+  {
+    "file": "20040199.auto_hr.txt",
+    "year": 2004,
+    "month": 1,
+    "bytes": 101184,
+    "path": "./data/changhua/hourly/20040199.auto_hr.txt"
+  },
+  {
+    "file": "20040299.auto_hr.txt",
+    "year": 2004,
+    "month": 2,
+    "bytes": 94656,
+    "path": "./data/changhua/hourly/20040299.auto_hr.txt"
+  },
+  {
+    "file": "20040399.auto_hr.txt",
+    "year": 2004,
+    "month": 3,
+    "bytes": 101184,
+    "path": "./data/changhua/hourly/20040399.auto_hr.txt"
+  },
+  {
+    "file": "20040499.auto_hr.txt",
+    "year": 2004,
+    "month": 4,
+    "bytes": 97920,
+    "path": "./data/changhua/hourly/20040499.auto_hr.txt"
+  },
+  {
+    "file": "20040599.auto_hr.txt",
+    "year": 2004,
+    "month": 5,
+    "bytes": 101184,
+    "path": "./data/changhua/hourly/20040599.auto_hr.txt"
+  },
+  {
+    "file": "20040699.auto_hr.txt",
+    "year": 2004,
+    "month": 6,
+    "bytes": 97920,
+    "path": "./data/changhua/hourly/20040699.auto_hr.txt"
+  },
+  {
+    "file": "20040799.auto_hr.txt",
+    "year": 2004,
+    "month": 7,
+    "bytes": 101184,
+    "path": "./data/changhua/hourly/20040799.auto_hr.txt"
+  },
+  {
+    "file": "20040899.auto_hr.txt",
+    "year": 2004,
+    "month": 8,
+    "bytes": 101184,
+    "path": "./data/changhua/hourly/20040899.auto_hr.txt"
+  },
+  {
+    "file": "20040999.auto_hr.txt",
+    "year": 2004,
+    "month": 9,
+    "bytes": 97920,
+    "path": "./data/changhua/hourly/20040999.auto_hr.txt"
+  },
+  {
+    "file": "20041099.auto_hr.txt",
+    "year": 2004,
+    "month": 10,
+    "bytes": 101184,
+    "path": "./data/changhua/hourly/20041099.auto_hr.txt"
+  },
+  {
+    "file": "20041199.auto_hr.txt",
+    "year": 2004,
+    "month": 11,
+    "bytes": 97920,
+    "path": "./data/changhua/hourly/20041199.auto_hr.txt"
+  },
+  {
+    "file": "20041299.auto_hr.txt",
+    "year": 2004,
+    "month": 12,
+    "bytes": 101184,
+    "path": "./data/changhua/hourly/20041299.auto_hr.txt"
+  },
+  {
+    "file": "20050199.auto_hr.txt",
+    "year": 2005,
+    "month": 1,
+    "bytes": 101184,
+    "path": "./data/changhua/hourly/20050199.auto_hr.txt"
+  },
+  {
+    "file": "20050299.auto_hr.txt",
+    "year": 2005,
+    "month": 2,
+    "bytes": 91392,
+    "path": "./data/changhua/hourly/20050299.auto_hr.txt"
+  },
+  {
+    "file": "20050399.auto_hr.txt",
+    "year": 2005,
+    "month": 3,
+    "bytes": 101184,
+    "path": "./data/changhua/hourly/20050399.auto_hr.txt"
+  },
+  {
+    "file": "20050499.auto_hr.txt",
+    "year": 2005,
+    "month": 4,
+    "bytes": 97920,
+    "path": "./data/changhua/hourly/20050499.auto_hr.txt"
+  },
+  {
+    "file": "20050599.auto_hr.txt",
+    "year": 2005,
+    "month": 5,
+    "bytes": 101184,
+    "path": "./data/changhua/hourly/20050599.auto_hr.txt"
+  },
+  {
+    "file": "20050699.auto_hr.txt",
+    "year": 2005,
+    "month": 6,
+    "bytes": 97920,
+    "path": "./data/changhua/hourly/20050699.auto_hr.txt"
+  },
+  {
+    "file": "20050799.auto_hr.txt",
+    "year": 2005,
+    "month": 7,
+    "bytes": 101184,
+    "path": "./data/changhua/hourly/20050799.auto_hr.txt"
+  },
+  {
+    "file": "20050899.auto_hr.txt",
+    "year": 2005,
+    "month": 8,
+    "bytes": 101184,
+    "path": "./data/changhua/hourly/20050899.auto_hr.txt"
+  },
+  {
+    "file": "20050999.auto_hr.txt",
+    "year": 2005,
+    "month": 9,
+    "bytes": 97920,
+    "path": "./data/changhua/hourly/20050999.auto_hr.txt"
+  },
+  {
+    "file": "20051099.auto_hr.txt",
+    "year": 2005,
+    "month": 10,
+    "bytes": 101184,
+    "path": "./data/changhua/hourly/20051099.auto_hr.txt"
+  },
+  {
+    "file": "20051199.auto_hr.txt",
+    "year": 2005,
+    "month": 11,
+    "bytes": 97920,
+    "path": "./data/changhua/hourly/20051199.auto_hr.txt"
+  },
+  {
+    "file": "20051299.auto_hr.txt",
+    "year": 2005,
+    "month": 12,
+    "bytes": 101184,
+    "path": "./data/changhua/hourly/20051299.auto_hr.txt"
+  },
+  {
+    "file": "20060199.auto_hr.txt",
+    "year": 2006,
+    "month": 1,
+    "bytes": 101184,
+    "path": "./data/changhua/hourly/20060199.auto_hr.txt"
+  },
+  {
+    "file": "20060299.auto_hr.txt",
+    "year": 2006,
+    "month": 2,
+    "bytes": 91392,
+    "path": "./data/changhua/hourly/20060299.auto_hr.txt"
+  },
+  {
+    "file": "20060399.auto_hr.txt",
+    "year": 2006,
+    "month": 3,
+    "bytes": 101184,
+    "path": "./data/changhua/hourly/20060399.auto_hr.txt"
+  },
+  {
+    "file": "20060499.auto_hr.txt",
+    "year": 2006,
+    "month": 4,
+    "bytes": 97920,
+    "path": "./data/changhua/hourly/20060499.auto_hr.txt"
+  },
+  {
+    "file": "20060599.auto_hr.txt",
+    "year": 2006,
+    "month": 5,
+    "bytes": 101184,
+    "path": "./data/changhua/hourly/20060599.auto_hr.txt"
+  },
+  {
+    "file": "20060699.auto_hr.txt",
+    "year": 2006,
+    "month": 6,
+    "bytes": 97920,
+    "path": "./data/changhua/hourly/20060699.auto_hr.txt"
+  },
+  {
+    "file": "20060799.auto_hr.txt",
+    "year": 2006,
+    "month": 7,
+    "bytes": 101184,
+    "path": "./data/changhua/hourly/20060799.auto_hr.txt"
+  },
+  {
+    "file": "20060899.auto_hr.txt",
+    "year": 2006,
+    "month": 8,
+    "bytes": 101184,
+    "path": "./data/changhua/hourly/20060899.auto_hr.txt"
+  },
+  {
+    "file": "20060999.auto_hr.txt",
+    "year": 2006,
+    "month": 9,
+    "bytes": 97920,
+    "path": "./data/changhua/hourly/20060999.auto_hr.txt"
+  },
+  {
+    "file": "20061099.auto_hr.txt",
+    "year": 2006,
+    "month": 10,
+    "bytes": 101184,
+    "path": "./data/changhua/hourly/20061099.auto_hr.txt"
+  },
+  {
+    "file": "20061199.auto_hr.txt",
+    "year": 2006,
+    "month": 11,
+    "bytes": 97920,
+    "path": "./data/changhua/hourly/20061199.auto_hr.txt"
+  },
+  {
+    "file": "20061299.auto_hr.txt",
+    "year": 2006,
+    "month": 12,
+    "bytes": 101184,
+    "path": "./data/changhua/hourly/20061299.auto_hr.txt"
+  },
+  {
+    "file": "20070199.auto_hr.txt",
+    "year": 2007,
+    "month": 1,
+    "bytes": 101184,
+    "path": "./data/changhua/hourly/20070199.auto_hr.txt"
+  },
+  {
+    "file": "20070299.auto_hr.txt",
+    "year": 2007,
+    "month": 2,
+    "bytes": 91392,
+    "path": "./data/changhua/hourly/20070299.auto_hr.txt"
+  },
+  {
+    "file": "20070399.auto_hr.txt",
+    "year": 2007,
+    "month": 3,
+    "bytes": 101184,
+    "path": "./data/changhua/hourly/20070399.auto_hr.txt"
+  },
+  {
+    "file": "20070499.auto_hr.txt",
+    "year": 2007,
+    "month": 4,
+    "bytes": 97920,
+    "path": "./data/changhua/hourly/20070499.auto_hr.txt"
+  },
+  {
+    "file": "20070599.auto_hr.txt",
+    "year": 2007,
+    "month": 5,
+    "bytes": 101184,
+    "path": "./data/changhua/hourly/20070599.auto_hr.txt"
+  },
+  {
+    "file": "20070699.auto_hr.txt",
+    "year": 2007,
+    "month": 6,
+    "bytes": 97920,
+    "path": "./data/changhua/hourly/20070699.auto_hr.txt"
+  },
+  {
+    "file": "20070799.auto_hr.txt",
+    "year": 2007,
+    "month": 7,
+    "bytes": 101184,
+    "path": "./data/changhua/hourly/20070799.auto_hr.txt"
+  },
+  {
+    "file": "20070899.auto_hr.txt",
+    "year": 2007,
+    "month": 8,
+    "bytes": 101184,
+    "path": "./data/changhua/hourly/20070899.auto_hr.txt"
+  },
+  {
+    "file": "20070999.auto_hr.txt",
+    "year": 2007,
+    "month": 9,
+    "bytes": 97920,
+    "path": "./data/changhua/hourly/20070999.auto_hr.txt"
+  },
+  {
+    "file": "20071099.auto_hr.txt",
+    "year": 2007,
+    "month": 10,
+    "bytes": 101184,
+    "path": "./data/changhua/hourly/20071099.auto_hr.txt"
+  },
+  {
+    "file": "20071199.auto_hr.txt",
+    "year": 2007,
+    "month": 11,
+    "bytes": 97920,
+    "path": "./data/changhua/hourly/20071199.auto_hr.txt"
+  },
+  {
+    "file": "20071299.auto_hr.txt",
+    "year": 2007,
+    "month": 12,
+    "bytes": 101184,
+    "path": "./data/changhua/hourly/20071299.auto_hr.txt"
+  },
+  {
+    "file": "20080199.auto_hr.txt",
+    "year": 2008,
+    "month": 1,
+    "bytes": 101184,
+    "path": "./data/changhua/hourly/20080199.auto_hr.txt"
+  },
+  {
+    "file": "20080299.auto_hr.txt",
+    "year": 2008,
+    "month": 2,
+    "bytes": 94656,
+    "path": "./data/changhua/hourly/20080299.auto_hr.txt"
+  },
+  {
+    "file": "20080399.auto_hr.txt",
+    "year": 2008,
+    "month": 3,
+    "bytes": 101184,
+    "path": "./data/changhua/hourly/20080399.auto_hr.txt"
+  },
+  {
+    "file": "20080499.auto_hr.txt",
+    "year": 2008,
+    "month": 4,
+    "bytes": 97920,
+    "path": "./data/changhua/hourly/20080499.auto_hr.txt"
+  },
+  {
+    "file": "20080599.auto_hr.txt",
+    "year": 2008,
+    "month": 5,
+    "bytes": 101184,
+    "path": "./data/changhua/hourly/20080599.auto_hr.txt"
+  },
+  {
+    "file": "20080699.auto_hr.txt",
+    "year": 2008,
+    "month": 6,
+    "bytes": 97920,
+    "path": "./data/changhua/hourly/20080699.auto_hr.txt"
+  },
+  {
+    "file": "20080799.auto_hr.txt",
+    "year": 2008,
+    "month": 7,
+    "bytes": 101184,
+    "path": "./data/changhua/hourly/20080799.auto_hr.txt"
+  },
+  {
+    "file": "20080899.auto_hr.txt",
+    "year": 2008,
+    "month": 8,
+    "bytes": 101184,
+    "path": "./data/changhua/hourly/20080899.auto_hr.txt"
+  },
+  {
+    "file": "20080999.auto_hr.txt",
+    "year": 2008,
+    "month": 9,
+    "bytes": 97920,
+    "path": "./data/changhua/hourly/20080999.auto_hr.txt"
+  },
+  {
+    "file": "20081099.auto_hr.txt",
+    "year": 2008,
+    "month": 10,
+    "bytes": 101184,
+    "path": "./data/changhua/hourly/20081099.auto_hr.txt"
+  },
+  {
+    "file": "20081199.auto_hr.txt",
+    "year": 2008,
+    "month": 11,
+    "bytes": 97920,
+    "path": "./data/changhua/hourly/20081199.auto_hr.txt"
+  },
+  {
+    "file": "20081299.auto_hr.txt",
+    "year": 2008,
+    "month": 12,
+    "bytes": 101184,
+    "path": "./data/changhua/hourly/20081299.auto_hr.txt"
+  },
+  {
+    "file": "20090199.auto_hr.txt",
+    "year": 2009,
+    "month": 1,
+    "bytes": 101184,
+    "path": "./data/changhua/hourly/20090199.auto_hr.txt"
+  },
+  {
+    "file": "20090299.auto_hr.txt",
+    "year": 2009,
+    "month": 2,
+    "bytes": 91392,
+    "path": "./data/changhua/hourly/20090299.auto_hr.txt"
+  },
+  {
+    "file": "20090399.auto_hr.txt",
+    "year": 2009,
+    "month": 3,
+    "bytes": 101184,
+    "path": "./data/changhua/hourly/20090399.auto_hr.txt"
+  },
+  {
+    "file": "20090499.auto_hr.txt",
+    "year": 2009,
+    "month": 4,
+    "bytes": 97920,
+    "path": "./data/changhua/hourly/20090499.auto_hr.txt"
+  },
+  {
+    "file": "20090599.auto_hr.txt",
+    "year": 2009,
+    "month": 5,
+    "bytes": 101184,
+    "path": "./data/changhua/hourly/20090599.auto_hr.txt"
+  },
+  {
+    "file": "20090699.auto_hr.txt",
+    "year": 2009,
+    "month": 6,
+    "bytes": 97920,
+    "path": "./data/changhua/hourly/20090699.auto_hr.txt"
+  },
+  {
+    "file": "20090799.auto_hr.txt",
+    "year": 2009,
+    "month": 7,
+    "bytes": 101184,
+    "path": "./data/changhua/hourly/20090799.auto_hr.txt"
+  },
+  {
+    "file": "20090899.auto_hr.txt",
+    "year": 2009,
+    "month": 8,
+    "bytes": 101184,
+    "path": "./data/changhua/hourly/20090899.auto_hr.txt"
+  },
+  {
+    "file": "20090999.auto_hr.txt",
+    "year": 2009,
+    "month": 9,
+    "bytes": 97920,
+    "path": "./data/changhua/hourly/20090999.auto_hr.txt"
+  },
+  {
+    "file": "20091099.auto_hr.txt",
+    "year": 2009,
+    "month": 10,
+    "bytes": 101184,
+    "path": "./data/changhua/hourly/20091099.auto_hr.txt"
+  },
+  {
+    "file": "20091199.auto_hr.txt",
+    "year": 2009,
+    "month": 11,
+    "bytes": 97920,
+    "path": "./data/changhua/hourly/20091199.auto_hr.txt"
+  },
+  {
+    "file": "20091299.auto_hr.txt",
+    "year": 2009,
+    "month": 12,
+    "bytes": 101184,
+    "path": "./data/changhua/hourly/20091299.auto_hr.txt"
+  },
+  {
+    "file": "20100199.auto_hr.txt",
+    "year": 2010,
+    "month": 1,
+    "bytes": 101184,
+    "path": "./data/changhua/hourly/20100199.auto_hr.txt"
+  },
+  {
+    "file": "20100299.auto_hr.txt",
+    "year": 2010,
+    "month": 2,
+    "bytes": 91392,
+    "path": "./data/changhua/hourly/20100299.auto_hr.txt"
+  },
+  {
+    "file": "20100399.auto_hr.txt",
+    "year": 2010,
+    "month": 3,
+    "bytes": 101184,
+    "path": "./data/changhua/hourly/20100399.auto_hr.txt"
+  },
+  {
+    "file": "20100499.auto_hr.txt",
+    "year": 2010,
+    "month": 4,
+    "bytes": 97920,
+    "path": "./data/changhua/hourly/20100499.auto_hr.txt"
+  },
+  {
+    "file": "20100599.auto_hr.txt",
+    "year": 2010,
+    "month": 5,
+    "bytes": 101184,
+    "path": "./data/changhua/hourly/20100599.auto_hr.txt"
+  },
+  {
+    "file": "20100699.auto_hr.txt",
+    "year": 2010,
+    "month": 6,
+    "bytes": 97920,
+    "path": "./data/changhua/hourly/20100699.auto_hr.txt"
+  },
+  {
+    "file": "20100799.auto_hr.txt",
+    "year": 2010,
+    "month": 7,
+    "bytes": 101184,
+    "path": "./data/changhua/hourly/20100799.auto_hr.txt"
+  },
+  {
+    "file": "20100899.auto_hr.txt",
+    "year": 2010,
+    "month": 8,
+    "bytes": 101184,
+    "path": "./data/changhua/hourly/20100899.auto_hr.txt"
+  },
+  {
+    "file": "20100999.auto_hr.txt",
+    "year": 2010,
+    "month": 9,
+    "bytes": 99552,
+    "path": "./data/changhua/hourly/20100999.auto_hr.txt"
+  },
+  {
+    "file": "20101099.auto_hr.txt",
+    "year": 2010,
+    "month": 10,
+    "bytes": 151776,
+    "path": "./data/changhua/hourly/20101099.auto_hr.txt"
+  },
+  {
+    "file": "20101199.auto_hr.txt",
+    "year": 2010,
+    "month": 11,
+    "bytes": 146880,
+    "path": "./data/changhua/hourly/20101199.auto_hr.txt"
+  },
+  {
+    "file": "20101299.auto_hr.txt",
+    "year": 2010,
+    "month": 12,
+    "bytes": 151776,
+    "path": "./data/changhua/hourly/20101299.auto_hr.txt"
+  },
+  {
+    "file": "20110199.auto_hr.txt",
+    "year": 2011,
+    "month": 1,
+    "bytes": 151776,
+    "path": "./data/changhua/hourly/20110199.auto_hr.txt"
+  },
+  {
+    "file": "20110299.auto_hr.txt",
+    "year": 2011,
+    "month": 2,
+    "bytes": 137088,
+    "path": "./data/changhua/hourly/20110299.auto_hr.txt"
+  },
+  {
+    "file": "20110399.auto_hr.txt",
+    "year": 2011,
+    "month": 3,
+    "bytes": 115872,
+    "path": "./data/changhua/hourly/20110399.auto_hr.txt"
+  },
+  {
+    "file": "20110499.auto_hr.txt",
+    "year": 2011,
+    "month": 4,
+    "bytes": 97920,
+    "path": "./data/changhua/hourly/20110499.auto_hr.txt"
+  },
+  {
+    "file": "20110599.auto_hr.txt",
+    "year": 2011,
+    "month": 5,
+    "bytes": 101184,
+    "path": "./data/changhua/hourly/20110599.auto_hr.txt"
+  },
+  {
+    "file": "20110699.auto_hr.txt",
+    "year": 2011,
+    "month": 6,
+    "bytes": 70176,
+    "path": "./data/changhua/hourly/20110699.auto_hr.txt"
+  },
+  {
+    "file": "20110799.auto_hr.txt",
+    "year": 2011,
+    "month": 7,
+    "bytes": 40800,
+    "path": "./data/changhua/hourly/20110799.auto_hr.txt"
+  },
+  {
+    "file": "20110899.auto_hr.txt",
+    "year": 2011,
+    "month": 8,
+    "bytes": 0,
+    "path": "./data/changhua/hourly/20110899.auto_hr.txt"
+  },
+  {
+    "file": "20110999.auto_hr.txt",
+    "year": 2011,
+    "month": 9,
+    "bytes": 0,
+    "path": "./data/changhua/hourly/20110999.auto_hr.txt"
+  },
+  {
+    "file": "20111099.auto_hr.txt",
+    "year": 2011,
+    "month": 10,
+    "bytes": 0,
+    "path": "./data/changhua/hourly/20111099.auto_hr.txt"
+  },
+  {
+    "file": "20111199.auto_hr.txt",
+    "year": 2011,
+    "month": 11,
+    "bytes": 587520,
+    "path": "./data/changhua/hourly/20111199.auto_hr.txt"
+  },
+  {
+    "file": "20111299.auto_hr.txt",
+    "year": 2011,
+    "month": 12,
+    "bytes": 607104,
+    "path": "./data/changhua/hourly/20111299.auto_hr.txt"
+  },
+  {
+    "file": "20120199.auto_hr.txt",
+    "year": 2012,
+    "month": 1,
+    "bytes": 607104,
+    "path": "./data/changhua/hourly/20120199.auto_hr.txt"
+  },
+  {
+    "file": "20120299.auto_hr.txt",
+    "year": 2012,
+    "month": 2,
+    "bytes": 567936,
+    "path": "./data/changhua/hourly/20120299.auto_hr.txt"
+  },
+  {
+    "file": "20120399.auto_hr.txt",
+    "year": 2012,
+    "month": 3,
+    "bytes": 607104,
+    "path": "./data/changhua/hourly/20120399.auto_hr.txt"
+  },
+  {
+    "file": "20120499.auto_hr.txt",
+    "year": 2012,
+    "month": 4,
+    "bytes": 587520,
+    "path": "./data/changhua/hourly/20120499.auto_hr.txt"
+  },
+  {
+    "file": "20120599.auto_hr.txt",
+    "year": 2012,
+    "month": 5,
+    "bytes": 607104,
+    "path": "./data/changhua/hourly/20120599.auto_hr.txt"
+  },
+  {
+    "file": "20120699.auto_hr.txt",
+    "year": 2012,
+    "month": 6,
+    "bytes": 587520,
+    "path": "./data/changhua/hourly/20120699.auto_hr.txt"
+  },
+  {
+    "file": "20120799.auto_hr.txt",
+    "year": 2012,
+    "month": 7,
+    "bytes": 607104,
+    "path": "./data/changhua/hourly/20120799.auto_hr.txt"
+  },
+  {
+    "file": "20120899.auto_hr.txt",
+    "year": 2012,
+    "month": 8,
+    "bytes": 607104,
+    "path": "./data/changhua/hourly/20120899.auto_hr.txt"
+  },
+  {
+    "file": "20120999.auto_hr.txt",
+    "year": 2012,
+    "month": 9,
+    "bytes": 587520,
+    "path": "./data/changhua/hourly/20120999.auto_hr.txt"
+  },
+  {
+    "file": "20121099.auto_hr.txt",
+    "year": 2012,
+    "month": 10,
+    "bytes": 607104,
+    "path": "./data/changhua/hourly/20121099.auto_hr.txt"
+  },
+  {
+    "file": "20121199.auto_hr.txt",
+    "year": 2012,
+    "month": 11,
+    "bytes": 587520,
+    "path": "./data/changhua/hourly/20121199.auto_hr.txt"
+  },
+  {
+    "file": "20121299.auto_hr.txt",
+    "year": 2012,
+    "month": 12,
+    "bytes": 607104,
+    "path": "./data/changhua/hourly/20121299.auto_hr.txt"
+  },
+  {
+    "file": "20130199.auto_hr.txt",
+    "year": 2013,
+    "month": 1,
+    "bytes": 607104,
+    "path": "./data/changhua/hourly/20130199.auto_hr.txt"
+  },
+  {
+    "file": "20130299.auto_hr.txt",
+    "year": 2013,
+    "month": 2,
+    "bytes": 548352,
+    "path": "./data/changhua/hourly/20130299.auto_hr.txt"
+  },
+  {
+    "file": "20130399.auto_hr.txt",
+    "year": 2013,
+    "month": 3,
+    "bytes": 607104,
+    "path": "./data/changhua/hourly/20130399.auto_hr.txt"
+  },
+  {
+    "file": "20130499.auto_hr.txt",
+    "year": 2013,
+    "month": 4,
+    "bytes": 587520,
+    "path": "./data/changhua/hourly/20130499.auto_hr.txt"
+  },
+  {
+    "file": "20130599.auto_hr.txt",
+    "year": 2013,
+    "month": 5,
+    "bytes": 607104,
+    "path": "./data/changhua/hourly/20130599.auto_hr.txt"
+  },
+  {
+    "file": "20130699.auto_hr.txt",
+    "year": 2013,
+    "month": 6,
+    "bytes": 587520,
+    "path": "./data/changhua/hourly/20130699.auto_hr.txt"
+  },
+  {
+    "file": "20130799.auto_hr.txt",
+    "year": 2013,
+    "month": 7,
+    "bytes": 607104,
+    "path": "./data/changhua/hourly/20130799.auto_hr.txt"
+  },
+  {
+    "file": "20130899.auto_hr.txt",
+    "year": 2013,
+    "month": 8,
+    "bytes": 607104,
+    "path": "./data/changhua/hourly/20130899.auto_hr.txt"
+  },
+  {
+    "file": "20130999.auto_hr.txt",
+    "year": 2013,
+    "month": 9,
+    "bytes": 587520,
+    "path": "./data/changhua/hourly/20130999.auto_hr.txt"
+  },
+  {
+    "file": "20131099.auto_hr.txt",
+    "year": 2013,
+    "month": 10,
+    "bytes": 607104,
+    "path": "./data/changhua/hourly/20131099.auto_hr.txt"
+  },
+  {
+    "file": "20131199.auto_hr.txt",
+    "year": 2013,
+    "month": 11,
+    "bytes": 587520,
+    "path": "./data/changhua/hourly/20131199.auto_hr.txt"
+  },
+  {
+    "file": "20131299.auto_hr.txt",
+    "year": 2013,
+    "month": 12,
+    "bytes": 607104,
+    "path": "./data/changhua/hourly/20131299.auto_hr.txt"
+  },
+  {
+    "file": "20140199.auto_hr.txt",
+    "year": 2014,
+    "month": 1,
+    "bytes": 607104,
+    "path": "./data/changhua/hourly/20140199.auto_hr.txt"
+  },
+  {
+    "file": "20140299.auto_hr.txt",
+    "year": 2014,
+    "month": 2,
+    "bytes": 548352,
+    "path": "./data/changhua/hourly/20140299.auto_hr.txt"
+  },
+  {
+    "file": "20140399.auto_hr.txt",
+    "year": 2014,
+    "month": 3,
+    "bytes": 607104,
+    "path": "./data/changhua/hourly/20140399.auto_hr.txt"
+  },
+  {
+    "file": "20140499.auto_hr.txt",
+    "year": 2014,
+    "month": 4,
+    "bytes": 587520,
+    "path": "./data/changhua/hourly/20140499.auto_hr.txt"
+  },
+  {
+    "file": "20140599.auto_hr.txt",
+    "year": 2014,
+    "month": 5,
+    "bytes": 607104,
+    "path": "./data/changhua/hourly/20140599.auto_hr.txt"
+  },
+  {
+    "file": "20140699.auto_hr.txt",
+    "year": 2014,
+    "month": 6,
+    "bytes": 587520,
+    "path": "./data/changhua/hourly/20140699.auto_hr.txt"
+  },
+  {
+    "file": "20140799.auto_hr.txt",
+    "year": 2014,
+    "month": 7,
+    "bytes": 607104,
+    "path": "./data/changhua/hourly/20140799.auto_hr.txt"
+  },
+  {
+    "file": "20140899.auto_hr.txt",
+    "year": 2014,
+    "month": 8,
+    "bytes": 607104,
+    "path": "./data/changhua/hourly/20140899.auto_hr.txt"
+  },
+  {
+    "file": "20140999.auto_hr.txt",
+    "year": 2014,
+    "month": 9,
+    "bytes": 587520,
+    "path": "./data/changhua/hourly/20140999.auto_hr.txt"
+  },
+  {
+    "file": "20141099.auto_hr.txt",
+    "year": 2014,
+    "month": 10,
+    "bytes": 607104,
+    "path": "./data/changhua/hourly/20141099.auto_hr.txt"
+  },
+  {
+    "file": "20141199.auto_hr.txt",
+    "year": 2014,
+    "month": 11,
+    "bytes": 587520,
+    "path": "./data/changhua/hourly/20141199.auto_hr.txt"
+  },
+  {
+    "file": "20141299.auto_hr.txt",
+    "year": 2014,
+    "month": 12,
+    "bytes": 607104,
+    "path": "./data/changhua/hourly/20141299.auto_hr.txt"
+  },
+  {
+    "file": "20150199.auto_hr.txt",
+    "year": 2015,
+    "month": 1,
+    "bytes": 607104,
+    "path": "./data/changhua/hourly/20150199.auto_hr.txt"
+  },
+  {
+    "file": "20150299.auto_hr.txt",
+    "year": 2015,
+    "month": 2,
+    "bytes": 548352,
+    "path": "./data/changhua/hourly/20150299.auto_hr.txt"
+  },
+  {
+    "file": "20150399.auto_hr.txt",
+    "year": 2015,
+    "month": 3,
+    "bytes": 677280,
+    "path": "./data/changhua/hourly/20150399.auto_hr.txt"
+  },
+  {
+    "file": "20150499.auto_hr.txt",
+    "year": 2015,
+    "month": 4,
+    "bytes": 685440,
+    "path": "./data/changhua/hourly/20150499.auto_hr.txt"
+  },
+  {
+    "file": "20150599.auto_hr.txt",
+    "year": 2015,
+    "month": 5,
+    "bytes": 708288,
+    "path": "./data/changhua/hourly/20150599.auto_hr.txt"
+  },
+  {
+    "file": "20150699.auto_hr.txt",
+    "year": 2015,
+    "month": 6,
+    "bytes": 685440,
+    "path": "./data/changhua/hourly/20150699.auto_hr.txt"
+  },
+  {
+    "file": "20150799.auto_hr.txt",
+    "year": 2015,
+    "month": 7,
+    "bytes": 757248,
+    "path": "./data/changhua/hourly/20150799.auto_hr.txt"
+  },
+  {
+    "file": "20150899.auto_hr.txt",
+    "year": 2015,
+    "month": 8,
+    "bytes": 758880,
+    "path": "./data/changhua/hourly/20150899.auto_hr.txt"
+  },
+  {
+    "file": "20150999.auto_hr.txt",
+    "year": 2015,
+    "month": 9,
+    "bytes": 734400,
+    "path": "./data/changhua/hourly/20150999.auto_hr.txt"
+  },
+  {
+    "file": "20151099.auto_hr.txt",
+    "year": 2015,
+    "month": 10,
+    "bytes": 758880,
+    "path": "./data/changhua/hourly/20151099.auto_hr.txt"
+  },
+  {
+    "file": "20151199.auto_hr.txt",
+    "year": 2015,
+    "month": 11,
+    "bytes": 734400,
+    "path": "./data/changhua/hourly/20151199.auto_hr.txt"
+  },
+  {
+    "file": "20151299.auto_hr.txt",
+    "year": 2015,
+    "month": 12,
+    "bytes": 758880,
+    "path": "./data/changhua/hourly/20151299.auto_hr.txt"
+  },
+  {
+    "file": "20160199.auto_hr.txt",
+    "year": 2016,
+    "month": 1,
+    "bytes": 758880,
+    "path": "./data/changhua/hourly/20160199.auto_hr.txt"
+  },
+  {
+    "file": "20160299.auto_hr.txt",
+    "year": 2016,
+    "month": 2,
+    "bytes": 709920,
+    "path": "./data/changhua/hourly/20160299.auto_hr.txt"
+  },
+  {
+    "file": "20160399.auto_hr.txt",
+    "year": 2016,
+    "month": 3,
+    "bytes": 758880,
+    "path": "./data/changhua/hourly/20160399.auto_hr.txt"
+  },
+  {
+    "file": "20160499.auto_hr.txt",
+    "year": 2016,
+    "month": 4,
+    "bytes": 734400,
+    "path": "./data/changhua/hourly/20160499.auto_hr.txt"
+  },
+  {
+    "file": "20160599.auto_hr.txt",
+    "year": 2016,
+    "month": 5,
+    "bytes": 758880,
+    "path": "./data/changhua/hourly/20160599.auto_hr.txt"
+  },
+  {
+    "file": "20160699.auto_hr.txt",
+    "year": 2016,
+    "month": 6,
+    "bytes": 734400,
+    "path": "./data/changhua/hourly/20160699.auto_hr.txt"
+  },
+  {
+    "file": "20160799.auto_hr.txt",
+    "year": 2016,
+    "month": 7,
+    "bytes": 758880,
+    "path": "./data/changhua/hourly/20160799.auto_hr.txt"
+  },
+  {
+    "file": "20160899.auto_hr.txt",
+    "year": 2016,
+    "month": 8,
+    "bytes": 758880,
+    "path": "./data/changhua/hourly/20160899.auto_hr.txt"
+  },
+  {
+    "file": "20160999.auto_hr.txt",
+    "year": 2016,
+    "month": 9,
+    "bytes": 734400,
+    "path": "./data/changhua/hourly/20160999.auto_hr.txt"
+  },
+  {
+    "file": "20161099.auto_hr.txt",
+    "year": 2016,
+    "month": 10,
+    "bytes": 758880,
+    "path": "./data/changhua/hourly/20161099.auto_hr.txt"
+  },
+  {
+    "file": "20161199.auto_hr.txt",
+    "year": 2016,
+    "month": 11,
+    "bytes": 734400,
+    "path": "./data/changhua/hourly/20161199.auto_hr.txt"
+  },
+  {
+    "file": "20161299.auto_hr.txt",
+    "year": 2016,
+    "month": 12,
+    "bytes": 758880,
+    "path": "./data/changhua/hourly/20161299.auto_hr.txt"
+  },
+  {
+    "file": "20170199.auto_hr.txt",
+    "year": 2017,
+    "month": 1,
+    "bytes": 758880,
+    "path": "./data/changhua/hourly/20170199.auto_hr.txt"
+  },
+  {
+    "file": "20170299.auto_hr.txt",
+    "year": 2017,
+    "month": 2,
+    "bytes": 685440,
+    "path": "./data/changhua/hourly/20170299.auto_hr.txt"
+  },
+  {
+    "file": "20170399.auto_hr.txt",
+    "year": 2017,
+    "month": 3,
+    "bytes": 758880,
+    "path": "./data/changhua/hourly/20170399.auto_hr.txt"
+  },
+  {
+    "file": "20170499.auto_hr.txt",
+    "year": 2017,
+    "month": 4,
+    "bytes": 734400,
+    "path": "./data/changhua/hourly/20170499.auto_hr.txt"
+  },
+  {
+    "file": "20170599.auto_hr.txt",
+    "year": 2017,
+    "month": 5,
+    "bytes": 758880,
+    "path": "./data/changhua/hourly/20170599.auto_hr.txt"
+  },
+  {
+    "file": "20170699.auto_hr.txt",
+    "year": 2017,
+    "month": 6,
+    "bytes": 734400,
+    "path": "./data/changhua/hourly/20170699.auto_hr.txt"
+  },
+  {
+    "file": "20170799.auto_hr.txt",
+    "year": 2017,
+    "month": 7,
+    "bytes": 758880,
+    "path": "./data/changhua/hourly/20170799.auto_hr.txt"
+  },
+  {
+    "file": "20170899.auto_hr.txt",
+    "year": 2017,
+    "month": 8,
+    "bytes": 758880,
+    "path": "./data/changhua/hourly/20170899.auto_hr.txt"
+  },
+  {
+    "file": "20170999.auto_hr.txt",
+    "year": 2017,
+    "month": 9,
+    "bytes": 734400,
+    "path": "./data/changhua/hourly/20170999.auto_hr.txt"
+  },
+  {
+    "file": "20171099.auto_hr.txt",
+    "year": 2017,
+    "month": 10,
+    "bytes": 758880,
+    "path": "./data/changhua/hourly/20171099.auto_hr.txt"
+  },
+  {
+    "file": "20171199.auto_hr.txt",
+    "year": 2017,
+    "month": 11,
+    "bytes": 734400,
+    "path": "./data/changhua/hourly/20171199.auto_hr.txt"
+  },
+  {
+    "file": "20171299.auto_hr.txt",
+    "year": 2017,
+    "month": 12,
+    "bytes": 758880,
+    "path": "./data/changhua/hourly/20171299.auto_hr.txt"
+  },
+  {
+    "file": "20180199.auto_hr.txt",
+    "year": 2018,
+    "month": 1,
+    "bytes": 758880,
+    "path": "./data/changhua/hourly/20180199.auto_hr.txt"
+  },
+  {
+    "file": "20180299.auto_hr.txt",
+    "year": 2018,
+    "month": 2,
+    "bytes": 685440,
+    "path": "./data/changhua/hourly/20180299.auto_hr.txt"
+  },
+  {
+    "file": "20180399.auto_hr.txt",
+    "year": 2018,
+    "month": 3,
+    "bytes": 758880,
+    "path": "./data/changhua/hourly/20180399.auto_hr.txt"
+  },
+  {
+    "file": "20180499.auto_hr.txt",
+    "year": 2018,
+    "month": 4,
+    "bytes": 734400,
+    "path": "./data/changhua/hourly/20180499.auto_hr.txt"
+  },
+  {
+    "file": "20180599.auto_hr.txt",
+    "year": 2018,
+    "month": 5,
+    "bytes": 758880,
+    "path": "./data/changhua/hourly/20180599.auto_hr.txt"
+  },
+  {
+    "file": "20180699.auto_hr.txt",
+    "year": 2018,
+    "month": 6,
+    "bytes": 734400,
+    "path": "./data/changhua/hourly/20180699.auto_hr.txt"
+  },
+  {
+    "file": "20180799.auto_hr.txt",
+    "year": 2018,
+    "month": 7,
+    "bytes": 758880,
+    "path": "./data/changhua/hourly/20180799.auto_hr.txt"
+  },
+  {
+    "file": "20180899.auto_hr.txt",
+    "year": 2018,
+    "month": 8,
+    "bytes": 758880,
+    "path": "./data/changhua/hourly/20180899.auto_hr.txt"
+  },
+  {
+    "file": "20180999.auto_hr.txt",
+    "year": 2018,
+    "month": 9,
+    "bytes": 734400,
+    "path": "./data/changhua/hourly/20180999.auto_hr.txt"
+  },
+  {
+    "file": "20181099.auto_hr.txt",
+    "year": 2018,
+    "month": 10,
+    "bytes": 758880,
+    "path": "./data/changhua/hourly/20181099.auto_hr.txt"
+  },
+  {
+    "file": "20181199.auto_hr.txt",
+    "year": 2018,
+    "month": 11,
+    "bytes": 734400,
+    "path": "./data/changhua/hourly/20181199.auto_hr.txt"
+  },
+  {
+    "file": "20181299.auto_hr.txt",
+    "year": 2018,
+    "month": 12,
+    "bytes": 758880,
+    "path": "./data/changhua/hourly/20181299.auto_hr.txt"
+  },
+  {
+    "file": "20190199.auto_hr.txt",
+    "year": 2019,
+    "month": 1,
+    "bytes": 758880,
+    "path": "./data/changhua/hourly/20190199.auto_hr.txt"
+  },
+  {
+    "file": "20190299.auto_hr.txt",
+    "year": 2019,
+    "month": 2,
+    "bytes": 685440,
+    "path": "./data/changhua/hourly/20190299.auto_hr.txt"
+  },
+  {
+    "file": "20190399.auto_hr.txt",
+    "year": 2019,
+    "month": 3,
+    "bytes": 758880,
+    "path": "./data/changhua/hourly/20190399.auto_hr.txt"
+  },
+  {
+    "file": "20190499.auto_hr.txt",
+    "year": 2019,
+    "month": 4,
+    "bytes": 734400,
+    "path": "./data/changhua/hourly/20190499.auto_hr.txt"
+  },
+  {
+    "file": "20190599.auto_hr.txt",
+    "year": 2019,
+    "month": 5,
+    "bytes": 758880,
+    "path": "./data/changhua/hourly/20190599.auto_hr.txt"
+  },
+  {
+    "file": "20190699.auto_hr.txt",
+    "year": 2019,
+    "month": 6,
+    "bytes": 783360,
+    "path": "./data/changhua/hourly/20190699.auto_hr.txt"
+  },
+  {
+    "file": "20190799.auto_hr.txt",
+    "year": 2019,
+    "month": 7,
+    "bytes": 809472,
+    "path": "./data/changhua/hourly/20190799.auto_hr.txt"
+  },
+  {
+    "file": "20190899.auto_hr.txt",
+    "year": 2019,
+    "month": 8,
+    "bytes": 809472,
+    "path": "./data/changhua/hourly/20190899.auto_hr.txt"
+  },
+  {
+    "file": "20190999.auto_hr.txt",
+    "year": 2019,
+    "month": 9,
+    "bytes": 783360,
+    "path": "./data/changhua/hourly/20190999.auto_hr.txt"
+  },
+  {
+    "file": "20191099.auto_hr.txt",
+    "year": 2019,
+    "month": 10,
+    "bytes": 809472,
+    "path": "./data/changhua/hourly/20191099.auto_hr.txt"
+  },
+  {
+    "file": "20191199.auto_hr.txt",
+    "year": 2019,
+    "month": 11,
+    "bytes": 783360,
+    "path": "./data/changhua/hourly/20191199.auto_hr.txt"
+  },
+  {
+    "file": "20191299.auto_hr.txt",
+    "year": 2019,
+    "month": 12,
+    "bytes": 830688,
+    "path": "./data/changhua/hourly/20191299.auto_hr.txt"
+  },
+  {
+    "file": "20200199.auto_hr.txt",
+    "year": 2020,
+    "month": 1,
+    "bytes": 860064,
+    "path": "./data/changhua/hourly/20200199.auto_hr.txt"
+  },
+  {
+    "file": "20200299.auto_hr.txt",
+    "year": 2020,
+    "month": 2,
+    "bytes": 804576,
+    "path": "./data/changhua/hourly/20200299.auto_hr.txt"
+  },
+  {
+    "file": "20200399.auto_hr.txt",
+    "year": 2020,
+    "month": 3,
+    "bytes": 860064,
+    "path": "./data/changhua/hourly/20200399.auto_hr.txt"
+  },
+  {
+    "file": "20200499.auto_hr.txt",
+    "year": 2020,
+    "month": 4,
+    "bytes": 832320,
+    "path": "./data/changhua/hourly/20200499.auto_hr.txt"
+  },
+  {
+    "file": "20200599.auto_hr.txt",
+    "year": 2020,
+    "month": 5,
+    "bytes": 860064,
+    "path": "./data/changhua/hourly/20200599.auto_hr.txt"
+  },
+  {
+    "file": "20200699.auto_hr.txt",
+    "year": 2020,
+    "month": 6,
+    "bytes": 832320,
+    "path": "./data/changhua/hourly/20200699.auto_hr.txt"
+  },
+  {
+    "file": "20200799.auto_hr.txt",
+    "year": 2020,
+    "month": 7,
+    "bytes": 860064,
+    "path": "./data/changhua/hourly/20200799.auto_hr.txt"
+  },
+  {
+    "file": "20200899.auto_hr.txt",
+    "year": 2020,
+    "month": 8,
+    "bytes": 832320,
+    "path": "./data/changhua/hourly/20200899.auto_hr.txt"
+  },
+  {
+    "file": "20200999.auto_hr.txt",
+    "year": 2020,
+    "month": 9,
+    "bytes": 832320,
+    "path": "./data/changhua/hourly/20200999.auto_hr.txt"
+  },
+  {
+    "file": "20201099.auto_hr.txt",
+    "year": 2020,
+    "month": 10,
+    "bytes": 860064,
+    "path": "./data/changhua/hourly/20201099.auto_hr.txt"
+  },
+  {
+    "file": "20201199.auto_hr.txt",
+    "year": 2020,
+    "month": 11,
+    "bytes": 832320,
+    "path": "./data/changhua/hourly/20201199.auto_hr.txt"
+  },
+  {
+    "file": "20201299.auto_hr.txt",
+    "year": 2020,
+    "month": 12,
+    "bytes": 860064,
+    "path": "./data/changhua/hourly/20201299.auto_hr.txt"
+  },
+  {
+    "file": "20210199.auto_hr.txt",
+    "year": 2021,
+    "month": 1,
+    "bytes": 860064,
+    "path": "./data/changhua/hourly/20210199.auto_hr.txt"
+  },
+  {
+    "file": "20210299.auto_hr.txt",
+    "year": 2021,
+    "month": 2,
+    "bytes": 776832,
+    "path": "./data/changhua/hourly/20210299.auto_hr.txt"
+  },
+  {
+    "file": "20210399.auto_hr.txt",
+    "year": 2021,
+    "month": 3,
+    "bytes": 860064,
+    "path": "./data/changhua/hourly/20210399.auto_hr.txt"
+  },
+  {
+    "file": "20210499.auto_hr.txt",
+    "year": 2021,
+    "month": 4,
+    "bytes": 832320,
+    "path": "./data/changhua/hourly/20210499.auto_hr.txt"
+  },
+  {
+    "file": "20210599.auto_hr.txt",
+    "year": 2021,
+    "month": 5,
+    "bytes": 860064,
+    "path": "./data/changhua/hourly/20210599.auto_hr.txt"
+  },
+  {
+    "file": "20210699.auto_hr.txt",
+    "year": 2021,
+    "month": 6,
+    "bytes": 832320,
+    "path": "./data/changhua/hourly/20210699.auto_hr.txt"
+  },
+  {
+    "file": "20210799.auto_hr.txt",
+    "year": 2021,
+    "month": 7,
+    "bytes": 860064,
+    "path": "./data/changhua/hourly/20210799.auto_hr.txt"
+  },
+  {
+    "file": "20210899.auto_hr.txt",
+    "year": 2021,
+    "month": 8,
+    "bytes": 860064,
+    "path": "./data/changhua/hourly/20210899.auto_hr.txt"
+  },
+  {
+    "file": "20210999.auto_hr.txt",
+    "year": 2021,
+    "month": 9,
+    "bytes": 832320,
+    "path": "./data/changhua/hourly/20210999.auto_hr.txt"
+  },
+  {
+    "file": "20211099.auto_hr.txt",
+    "year": 2021,
+    "month": 10,
+    "bytes": 860064,
+    "path": "./data/changhua/hourly/20211099.auto_hr.txt"
+  },
+  {
+    "file": "20211199.auto_hr.txt",
+    "year": 2021,
+    "month": 11,
+    "bytes": 832320,
+    "path": "./data/changhua/hourly/20211199.auto_hr.txt"
+  },
+  {
+    "file": "20211299.auto_hr.txt",
+    "year": 2021,
+    "month": 12,
+    "bytes": 860064,
+    "path": "./data/changhua/hourly/20211299.auto_hr.txt"
+  },
+  {
+    "file": "20220199.auto_hr.txt",
+    "year": 2022,
+    "month": 1,
+    "bytes": 931872,
+    "path": "./data/changhua/hourly/20220199.auto_hr.txt"
+  },
+  {
+    "file": "20220299.auto_hr.txt",
+    "year": 2022,
+    "month": 2,
+    "bytes": 868224,
+    "path": "./data/changhua/hourly/20220299.auto_hr.txt"
+  },
+  {
+    "file": "20220399.auto_hr.txt",
+    "year": 2022,
+    "month": 3,
+    "bytes": 961248,
+    "path": "./data/changhua/hourly/20220399.auto_hr.txt"
+  },
+  {
+    "file": "20220499.auto_hr.txt",
+    "year": 2022,
+    "month": 4,
+    "bytes": 930240,
+    "path": "./data/changhua/hourly/20220499.auto_hr.txt"
+  },
+  {
+    "file": "20220599.auto_hr.txt",
+    "year": 2022,
+    "month": 5,
+    "bytes": 961248,
+    "path": "./data/changhua/hourly/20220599.auto_hr.txt"
+  },
+  {
+    "file": "20220699.auto_hr.txt",
+    "year": 2022,
+    "month": 6,
+    "bytes": 930240,
+    "path": "./data/changhua/hourly/20220699.auto_hr.txt"
+  },
+  {
+    "file": "20220799.auto_hr.txt",
+    "year": 2022,
+    "month": 7,
+    "bytes": 961248,
+    "path": "./data/changhua/hourly/20220799.auto_hr.txt"
+  },
+  {
+    "file": "20220899.auto_hr.txt",
+    "year": 2022,
+    "month": 8,
+    "bytes": 961248,
+    "path": "./data/changhua/hourly/20220899.auto_hr.txt"
+  },
+  {
+    "file": "20220999.auto_hr.txt",
+    "year": 2022,
+    "month": 9,
+    "bytes": 930240,
+    "path": "./data/changhua/hourly/20220999.auto_hr.txt"
+  },
+  {
+    "file": "20221099.auto_hr.txt",
+    "year": 2022,
+    "month": 10,
+    "bytes": 961248,
+    "path": "./data/changhua/hourly/20221099.auto_hr.txt"
+  },
+  {
+    "file": "20221199.auto_hr.txt",
+    "year": 2022,
+    "month": 11,
+    "bytes": 930240,
+    "path": "./data/changhua/hourly/20221199.auto_hr.txt"
+  },
+  {
+    "file": "20221299.auto_hr.txt",
+    "year": 2022,
+    "month": 12,
+    "bytes": 995520,
+    "path": "./data/changhua/hourly/20221299.auto_hr.txt"
+  },
+  {
+    "file": "20230199.auto_hr.txt",
+    "year": 2023,
+    "month": 1,
+    "bytes": 1113024,
+    "path": "./data/changhua/hourly/20230199.auto_hr.txt"
+  },
+  {
+    "file": "20230299.auto_hr.txt",
+    "year": 2023,
+    "month": 2,
+    "bytes": 1005312,
+    "path": "./data/changhua/hourly/20230299.auto_hr.txt"
+  },
+  {
+    "file": "20230399.auto_hr.txt",
+    "year": 2023,
+    "month": 3,
+    "bytes": 1113024,
+    "path": "./data/changhua/hourly/20230399.auto_hr.txt"
+  },
+  {
+    "file": "20230499.auto_hr.txt",
+    "year": 2023,
+    "month": 4,
+    "bytes": 1077120,
+    "path": "./data/changhua/hourly/20230499.auto_hr.txt"
+  },
+  {
+    "file": "20230599.auto_hr.txt",
+    "year": 2023,
+    "month": 5,
+    "bytes": 1113024,
+    "path": "./data/changhua/hourly/20230599.auto_hr.txt"
+  },
+  {
+    "file": "20230699.auto_hr.txt",
+    "year": 2023,
+    "month": 6,
+    "bytes": 1077120,
+    "path": "./data/changhua/hourly/20230699.auto_hr.txt"
+  },
+  {
+    "file": "20230799.auto_hr.txt",
+    "year": 2023,
+    "month": 7,
+    "bytes": 1113024,
+    "path": "./data/changhua/hourly/20230799.auto_hr.txt"
+  },
+  {
+    "file": "20230899.auto_hr.txt",
+    "year": 2023,
+    "month": 8,
+    "bytes": 1113024,
+    "path": "./data/changhua/hourly/20230899.auto_hr.txt"
+  },
+  {
+    "file": "20230999.auto_hr.txt",
+    "year": 2023,
+    "month": 9,
+    "bytes": 1077120,
+    "path": "./data/changhua/hourly/20230999.auto_hr.txt"
+  },
+  {
+    "file": "20231099.auto_hr.txt",
+    "year": 2023,
+    "month": 10,
+    "bytes": 1113024,
+    "path": "./data/changhua/hourly/20231099.auto_hr.txt"
+  },
+  {
+    "file": "20231199.auto_hr.txt",
+    "year": 2023,
+    "month": 11,
+    "bytes": 1077120,
+    "path": "./data/changhua/hourly/20231199.auto_hr.txt"
+  },
+  {
+    "file": "20231299.auto_hr.txt",
+    "year": 2023,
+    "month": 12,
+    "bytes": 2962608,
+    "path": "./data/changhua/hourly/20231299.auto_hr.txt"
+  },
+  {
+    "file": "20240199.auto_hr.txt",
+    "year": 2024,
+    "month": 1,
+    "bytes": 2962608,
+    "path": "./data/changhua/hourly/20240199.auto_hr.txt"
+  },
+  {
+    "file": "20240299.auto_hr.txt",
+    "year": 2024,
+    "month": 2,
+    "bytes": 2771472,
+    "path": "./data/changhua/hourly/20240299.auto_hr.txt"
+  },
+  {
+    "file": "20240399.auto_hr.txt",
+    "year": 2024,
+    "month": 3,
+    "bytes": 2962608,
+    "path": "./data/changhua/hourly/20240399.auto_hr.txt"
+  },
+  {
+    "file": "20240499.auto_hr.txt",
+    "year": 2024,
+    "month": 4,
+    "bytes": 2867040,
+    "path": "./data/changhua/hourly/20240499.auto_hr.txt"
+  },
+  {
+    "file": "20240599.auto_hr.txt",
+    "year": 2024,
+    "month": 5,
+    "bytes": 2962608,
+    "path": "./data/changhua/hourly/20240599.auto_hr.txt"
+  },
+  {
+    "file": "20240699.auto_hr.txt",
+    "year": 2024,
+    "month": 6,
+    "bytes": 2867040,
+    "path": "./data/changhua/hourly/20240699.auto_hr.txt"
+  },
+  {
+    "file": "20240799.auto_hr.txt",
+    "year": 2024,
+    "month": 7,
+    "bytes": 2962608,
+    "path": "./data/changhua/hourly/20240799.auto_hr.txt"
+  },
+  {
+    "file": "20240899.auto_hr.txt",
+    "year": 2024,
+    "month": 8,
+    "bytes": 2962608,
+    "path": "./data/changhua/hourly/20240899.auto_hr.txt"
+  },
+  {
+    "file": "20240999.auto_hr.txt",
+    "year": 2024,
+    "month": 9,
+    "bytes": 2867040,
+    "path": "./data/changhua/hourly/20240999.auto_hr.txt"
+  },
+  {
+    "file": "20241099.auto_hr.txt",
+    "year": 2024,
+    "month": 10,
+    "bytes": 2962608,
+    "path": "./data/changhua/hourly/20241099.auto_hr.txt"
+  },
+  {
+    "file": "20241199.auto_hr.txt",
+    "year": 2024,
+    "month": 11,
+    "bytes": 2867040,
+    "path": "./data/changhua/hourly/20241199.auto_hr.txt"
+  },
+  {
+    "file": "20241299.auto_hr.txt",
+    "year": 2024,
+    "month": 12,
+    "bytes": 2962608,
+    "path": "./data/changhua/hourly/20241299.auto_hr.txt"
+  },
+  {
+    "file": "20250199.auto_hr.txt",
+    "year": 2025,
+    "month": 1,
+    "bytes": 2962608,
+    "path": "./data/changhua/hourly/20250199.auto_hr.txt"
+  },
+  {
+    "file": "20250299.auto_hr.txt",
+    "year": 2025,
+    "month": 2,
+    "bytes": 2780160,
+    "path": "./data/changhua/hourly/20250299.auto_hr.txt"
+  },
+  {
+    "file": "20250399.auto_hr.txt",
+    "year": 2025,
+    "month": 3,
+    "bytes": 3097272,
+    "path": "./data/changhua/hourly/20250399.auto_hr.txt"
+  },
+  {
+    "file": "20250499.auto_hr.txt",
+    "year": 2025,
+    "month": 4,
+    "bytes": 2997360,
+    "path": "./data/changhua/hourly/20250499.auto_hr.txt"
+  },
+  {
+    "file": "20250599.auto_hr.txt",
+    "year": 2025,
+    "month": 5,
+    "bytes": 3097272,
+    "path": "./data/changhua/hourly/20250599.auto_hr.txt"
+  },
+  {
+    "file": "20250699.auto_hr.txt",
+    "year": 2025,
+    "month": 6,
+    "bytes": 2997360,
+    "path": "./data/changhua/hourly/20250699.auto_hr.txt"
+  },
+  {
+    "file": "20250799.auto_hr.txt",
+    "year": 2025,
+    "month": 7,
+    "bytes": 3097272,
+    "path": "./data/changhua/hourly/20250799.auto_hr.txt"
+  },
+  {
+    "file": "20250899.auto_hr.txt",
+    "year": 2025,
+    "month": 8,
+    "bytes": 3097272,
+    "path": "./data/changhua/hourly/20250899.auto_hr.txt"
+  },
+  {
+    "file": "20250999.auto_hr.txt",
+    "year": 2025,
+    "month": 9,
+    "bytes": 2997360,
+    "path": "./data/changhua/hourly/20250999.auto_hr.txt"
+  },
+  {
+    "file": "20251099.auto_hr.txt",
+    "year": 2025,
+    "month": 10,
+    "bytes": 3097272,
+    "path": "./data/changhua/hourly/20251099.auto_hr.txt"
+  },
+  {
+    "file": "20251199.auto_hr.txt",
+    "year": 2025,
+    "month": 11,
+    "bytes": 2997360,
+    "path": "./data/changhua/hourly/20251199.auto_hr.txt"
+  }
+]

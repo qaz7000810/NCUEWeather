@@ -29,10 +29,6 @@
   <main class="tab-panel active" data-tab="realtime">
     <section class="panel">
       <div class="controls">
-        <div class="control">
-          <label for="realtimeCounty">縣市</label>
-          <select id="realtimeCounty"></select>
-        </div>
         <div class="control buttons">
           <button id="refreshRealtimeBtn" class="primary">更新全部</button>
           <button id="clearRealtimeBtn" class="ghost">清空</button>
@@ -110,21 +106,17 @@
     <section class="panel">
       <div class="controls">
         <div class="control">
-          <label for="countySelect">縣市</label>
-          <select id="countySelect"></select>
-        </div>
-        <div class="control">
           <label for="stationSelect">測站</label>
           <select id="stationSelect"></select>
         </div>
         <div class="control">
           <label>指標</label>
-          <div class="pill">一次載入 5 個指標：氣溫、降雨量、濕度、風速、日照</div>
+          <div class="pill">一次載入4個指標：氣溫、降雨量、濕度、風速</div>
         </div>
         <div class="control">
           <label for="rollupSelect">彙整尺度</label>
           <select id="rollupSelect">
-            <option value="day">日尺度（如需日均溫/總雨量）</option>
+            <option value="day">日尺度</option>
             <option value="hour">小時尺度</option>
           </select>
         </div>

@@ -1,0 +1,286 @@
+[
+  {
+    "id": "467270",
+    "name": "田中",
+    "county": "彰化縣",
+    "alt": 48.6,
+    "lon": 120.581286,
+    "lat": 23.873803,
+    "status": "existing"
+  },
+  {
+    "id": "72G600",
+    "name": "臺中農改場",
+    "county": "彰化縣",
+    "alt": 19.0,
+    "lon": 120.534389,
+    "lat": 24.003028,
+    "status": "existing"
+  },
+  {
+    "id": "C0G620",
+    "name": "芬園",
+    "county": "彰化縣",
+    "alt": 110.0,
+    "lon": 120.6213,
+    "lat": 24.015678,
+    "status": "existing"
+  },
+  {
+    "id": "C0G650",
+    "name": "員林",
+    "county": "彰化縣",
+    "alt": 34.0,
+    "lon": 120.585597,
+    "lat": 23.946503,
+    "status": "existing"
+  },
+  {
+    "id": "C0G660",
+    "name": "溪湖",
+    "county": "彰化縣",
+    "alt": 27.0,
+    "lon": 120.479122,
+    "lat": 23.94835,
+    "status": "existing"
+  },
+  {
+    "id": "C0G720",
+    "name": "溪州",
+    "county": "彰化縣",
+    "alt": 50.0,
+    "lon": 120.499093,
+    "lat": 23.851589,
+    "status": "existing"
+  },
+  {
+    "id": "C0G730",
+    "name": "二林",
+    "county": "彰化縣",
+    "alt": 27.0,
+    "lon": 120.376081,
+    "lat": 23.903325,
+    "status": "existing"
+  },
+  {
+    "id": "C0G740",
+    "name": "大城",
+    "county": "彰化縣",
+    "alt": 24.0,
+    "lon": 120.320935,
+    "lat": 23.852487,
+    "status": "existing"
+  },
+  {
+    "id": "C0G770",
+    "name": "福興",
+    "county": "彰化縣",
+    "alt": 15.0,
+    "lon": 120.437669,
+    "lat": 24.041289,
+    "status": "existing"
+  },
+  {
+    "id": "C0G780",
+    "name": "秀水",
+    "county": "彰化縣",
+    "alt": 27.0,
+    "lon": 120.503869,
+    "lat": 24.03405,
+    "status": "existing"
+  },
+  {
+    "id": "C0G800",
+    "name": "埔鹽",
+    "county": "彰化縣",
+    "alt": 15.0,
+    "lon": 120.431683,
+    "lat": 24.000394,
+    "status": "existing"
+  },
+  {
+    "id": "C0G810",
+    "name": "埔心",
+    "county": "彰化縣",
+    "alt": 26.0,
+    "lon": 120.525456,
+    "lat": 23.947633,
+    "status": "existing"
+  },
+  {
+    "id": "C0G820",
+    "name": "田尾",
+    "county": "彰化縣",
+    "alt": 29.0,
+    "lon": 120.509389,
+    "lat": 23.901669,
+    "status": "existing"
+  },
+  {
+    "id": "C0G830",
+    "name": "埤頭",
+    "county": "彰化縣",
+    "alt": 27.0,
+    "lon": 120.452806,
+    "lat": 23.866003,
+    "status": "existing"
+  },
+  {
+    "id": "C0G860",
+    "name": "社頭",
+    "county": "彰化縣",
+    "alt": 45.0,
+    "lon": 120.5862,
+    "lat": 23.897647,
+    "status": "existing"
+  },
+  {
+    "id": "C0G880",
+    "name": "二水",
+    "county": "彰化縣",
+    "alt": 92.0,
+    "lon": 120.6173,
+    "lat": 23.810742,
+    "status": "existing"
+  },
+  {
+    "id": "C0G890",
+    "name": "伸港",
+    "county": "彰化縣",
+    "alt": 24.0,
+    "lon": 120.484403,
+    "lat": 24.148933,
+    "status": "existing"
+  },
+  {
+    "id": "C0G900",
+    "name": "線西",
+    "county": "彰化縣",
+    "alt": 20.0,
+    "lon": 120.443536,
+    "lat": 24.143358,
+    "status": "existing"
+  },
+  {
+    "id": "C0G910",
+    "name": "花壇",
+    "county": "彰化縣",
+    "alt": 42.0,
+    "lon": 120.549461,
+    "lat": 24.032076,
+    "status": "existing"
+  },
+  {
+    "id": "C0G920",
+    "name": "永靖",
+    "county": "彰化縣",
+    "alt": 42.0,
+    "lon": 120.547533,
+    "lat": 23.924703,
+    "status": "existing"
+  },
+  {
+    "id": "C0G940",
+    "name": "竹塘",
+    "county": "彰化縣",
+    "alt": 21.0,
+    "lon": 120.386764,
+    "lat": 23.848253,
+    "status": "existing"
+  },
+  {
+    "id": "C0G950",
+    "name": "防潮門",
+    "county": "彰化縣",
+    "alt": 23.0,
+    "lon": 120.4871,
+    "lat": 24.1835,
+    "status": "existing"
+  },
+  {
+    "id": "C0G960",
+    "name": "福寶",
+    "county": "彰化縣",
+    "alt": 5.0,
+    "lon": 120.3814,
+    "lat": 24.0443,
+    "status": "existing"
+  },
+  {
+    "id": "C0G970",
+    "name": "三豐",
+    "county": "彰化縣",
+    "alt": 19.0,
+    "lon": 120.2895,
+    "lat": 23.882,
+    "status": "existing"
+  },
+  {
+    "id": "C0G9B0",
+    "name": "和美",
+    "county": "彰化縣",
+    "alt": 26.0,
+    "lon": 120.492131,
+    "lat": 24.105169,
+    "status": "existing"
+  },
+  {
+    "id": "C2G640",
+    "name": "鹿港",
+    "county": "彰化縣",
+    "alt": 17.0,
+    "lon": 120.430481,
+    "lat": 24.0753,
+    "status": "existing"
+  },
+  {
+    "id": "C2G840",
+    "name": "北斗",
+    "county": "彰化縣",
+    "alt": 32.0,
+    "lon": 120.514222,
+    "lat": 23.877586,
+    "status": "existing"
+  },
+  {
+    "id": "C2G870",
+    "name": "芳苑",
+    "county": "彰化縣",
+    "alt": 12.0,
+    "lon": 120.320025,
+    "lat": 23.922303,
+    "status": "existing"
+  },
+  {
+    "id": "C2G980",
+    "name": "田頭村",
+    "county": "彰化縣",
+    "alt": 27.0,
+    "lon": 120.444175,
+    "lat": 23.8263,
+    "status": "existing"
+  },
+  {
+    "id": "C2G9A0",
+    "name": "畜試所彰化",
+    "county": "彰化縣",
+    "alt": 51.0,
+    "lon": 120.557964,
+    "lat": 23.86045,
+    "status": "existing"
+  },
+  {
+    "id": "CAG100",
+    "name": "王功漁港",
+    "county": "彰化縣",
+    "alt": 7.0,
+    "lon": 120.32586,
+    "lat": 23.96824,
+    "status": "existing"
+  },
+  {
+    "id": "A0G720",
+    "name": "彰師大",
+    "county": "彰化縣"
+  }
+]
