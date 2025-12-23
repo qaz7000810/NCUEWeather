@@ -1278,17 +1278,23 @@ function renderAqi(record) {
     so2: toNumber(record.so2),
     co: toNumber(record.co),
   };
+  const pm25Val = toNumber(record["pm2.5"] ?? record.pm25);
+  const pm10Val = toNumber(record.pm10);
+  const o3Val = toNumber(record.o3);
+  const no2Val = toNumber(record.no2);
+  const so2Val = toNumber(record.so2);
+  const coVal = toNumber(record.co);
   const rows = [
     { label: "測站", value: record.sitename || record.siteName || record.SiteName || "彰化" },
     { label: "發布時間", value: record.publishtime || record.PublishTime || "—" },
     { label: "AQI", value: record.aqi ?? record.AQI ?? "—" },
     { label: "狀態", value: record.status || record.Status || "—" },
-    { label: "PM2.5", value: record["pm2.5"] ?? record.pm25 ?? "—" },
-    { label: "PM10", value: record.pm10 ?? "—" },
-    { label: "O3", value: record.o3 ?? "—" },
-    { label: "NO2", value: record.no2 ?? "—" },
-    { label: "SO2", value: record.so2 ?? "—" },
-    { label: "CO", value: record.co ?? "—" },
+    { label: "PM2.5", value: pm25Val != null ? `${pm25Val} μg/m3` : "—" },
+    { label: "PM10", value: pm10Val != null ? `${pm10Val} μg/m3` : "—" },
+    { label: "O3", value: o3Val != null ? `${o3Val} ppb` : "—" },
+    { label: "NO2", value: no2Val != null ? `${no2Val} ppb` : "—" },
+    { label: "SO2", value: so2Val != null ? `${so2Val} ppb` : "—" },
+    { label: "CO", value: coVal != null ? `${coVal} ppm` : "—" },
   ];
   dom.aqiObservation.innerHTML = rows
     .map((r) => `<div class="data-row"><span>${sanitizeText(r.label)}</span><strong>${sanitizeText(r.value)}</strong></div>`)
