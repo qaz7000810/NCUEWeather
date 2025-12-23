@@ -1289,12 +1289,12 @@ function renderAqi(record) {
     { label: "發布時間", value: record.publishtime || record.PublishTime || "—" },
     { label: "AQI", value: record.aqi ?? record.AQI ?? "—" },
     { label: "狀態", value: record.status || record.Status || "—" },
-    { label: "PM2.5", value: pm25Val != null ? `${pm25Val} μg/m3` : "—" },
-    { label: "PM10", value: pm10Val != null ? `${pm10Val} μg/m3` : "—" },
-    { label: "O3", value: o3Val != null ? `${o3Val} ppb` : "—" },
-    { label: "NO2", value: no2Val != null ? `${no2Val} ppb` : "—" },
-    { label: "SO2", value: so2Val != null ? `${so2Val} ppb` : "—" },
-    { label: "CO", value: coVal != null ? `${coVal} ppm` : "—" },
+    { label: "PM2.5", value: pm25Val != null ? `${pm25Val} (μg/m3)` : "—" },
+    { label: "PM10", value: pm10Val != null ? `${pm10Val} (μg/m3)` : "—" },
+    { label: "O3", value: o3Val != null ? `${o3Val} (ppb)` : "—" },
+    { label: "NO2", value: no2Val != null ? `${no2Val} (ppb)` : "—" },
+    { label: "SO2", value: so2Val != null ? `${so2Val} (ppb)` : "—" },
+    { label: "CO", value: coVal != null ? `${coVal} (ppm)` : "—" },
   ];
   dom.aqiObservation.innerHTML = rows
     .map((r) => `<div class="data-row"><span>${sanitizeText(r.label)}</span><strong>${sanitizeText(r.value)}</strong></div>`)
