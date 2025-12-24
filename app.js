@@ -1619,8 +1619,8 @@ function renderRankingMap(entries, metricKey) {
       return {
         color: "#2b3a55",
         weight: 1,
-        fillOpacity: 0.28,
-        fillColor: best ? getMetricColor(metric, best.value) : "#eef2ff",
+        fillOpacity: 0,
+        fillColor: "transparent",
       };
     },
     onEachFeature: (feature, layer) => {
@@ -1695,7 +1695,7 @@ function renderRankingTable(entries, metricKey) {
     const unitText = metric.unit ? `(${metric.unit})` : "";
     dom.rankingValueHeader.textContent = `${label}${unitText}`.trim();
   }
-  const rows = entries.slice(0, 30).map((entry, idx) => {
+  const rows = entries.map((entry, idx) => {
     const valueText = formatRankingValue(metricKey, entry.value, metric.unit);
     const windText =
       metric.colorScale === "wind" && Number.isFinite(entry.direction)
@@ -1762,8 +1762,8 @@ function formatRankingValue(metricKey, value, unit) {
   if (value == null || !Number.isFinite(value)) return "—";
   const digits = metricKey === "humidity" ? 0 : 1;
   if (metricKey === "wind" || metricKey === "gust") {
-    const level = windToBeaufortLevel(value);
-    return `${level}級 (${Number(value).toFixed(1)}${unit})`;
+    const label = windToBeaufort(value);
+    return `${label} (${Number(value).toFixed(1)}${unit})`;
   }
   if (metricKey === "thi") {
     return `${Number(value).toFixed(digits)}`;
@@ -1939,7 +1939,7 @@ function buildColorbarConfig(metricKey, metric) {
         "#6b1c82",
       ],
       legend: [
-        { label: "0", color: "#5f6266" },
+        { label: "靜風", color: "#5f6266" },
         { label: "1-3", color: "#3177dc" },
         { label: "4-6", color: "#3fa514" },
         { label: "7-9", color: "#ffdd00" },
