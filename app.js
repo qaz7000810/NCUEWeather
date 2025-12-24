@@ -1644,7 +1644,7 @@ function renderRankingMap(entries, metricKey) {
   entries.forEach((entry, idx) => {
     const fill = getMetricColor(metric, entry.value);
     let marker = null;
-    if (metric.colorScale === "wind" && Number.isFinite(entry.direction)) {
+    if (metric.colorScale === "wind" && Number.isFinite(entry.direction) && entry.value > 0.2) {
       const rotate = ((Number(entry.direction) + 180) % 360).toFixed(0);
       const icon = L.divIcon({
         className: "",
