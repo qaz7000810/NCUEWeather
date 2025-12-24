@@ -450,6 +450,26 @@ table tbody tr:nth-child(odd) {
   border-color: rgba(255, 180, 100, 0.4);
 }
 
+.alert-item.local-alert.local-alert--aqi-orange {
+  background: linear-gradient(135deg, #fff2e0, #ffe7c2);
+  border-color: rgba(255, 180, 100, 0.5);
+}
+
+.alert-item.local-alert.local-alert--aqi-red {
+  background: linear-gradient(135deg, #ffe6e6, #ffd1d1);
+  border-color: rgba(220, 80, 80, 0.45);
+}
+
+.alert-item.local-alert.local-alert--aqi-purple {
+  background: linear-gradient(135deg, #f1e6ff, #e5d2ff);
+  border-color: rgba(140, 90, 200, 0.45);
+}
+
+.alert-item.local-alert.local-alert--aqi-maroon {
+  background: linear-gradient(135deg, #f2e2e0, #e8c7c2);
+  border-color: rgba(140, 70, 60, 0.5);
+}
+
 .alert-title {
   margin: 0 0 6px 0;
 }

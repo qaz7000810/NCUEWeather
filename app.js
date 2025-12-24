@@ -745,14 +745,74 @@ function buildLocalAlerts() {
   const alerts = [];
   const obs = realtimeState.latestObservation;
   const aqi = realtimeState.latestAqi;
-  const add = (title) => {
+  const add = (title, options = {}) => {
     alerts.push({
       area: "彰師大",
       title: "即時提醒",
       desc: title,
       severity: "提醒",
       isLocal: true,
+      levelClass: options.levelClass || "",
     });
+  };
+  const getAqiLevel = (value) => {
+    const v = Number(value);
+    if (!Number.isFinite(v)) return null;
+    if (v >= 301) return { label: "危害標準", className: "local-alert--aqi-maroon" };
+    if (v >= 201) return { label: "影響人體健康", className: "local-alert--aqi-purple" };
+    if (v >= 151) return { label: "過高", className: "local-alert--aqi-red" };
+    if (v >= 101) return { label: "偏高", className: "local-alert--aqi-orange" };
+    return null;
+  };
+  const getPollutantLevel = (value, thresholds) => {
+    const v = Number(value);
+    if (!Number.isFinite(v)) return null;
+    for (const t of thresholds) {
+      if (v >= t.min && v <= t.max) return t.level;
+    }
+    if (v > thresholds[thresholds.length - 1].max) {
+      return thresholds[thresholds.length - 1].level;
+    }
+    return null;
+  };
+  const aqiLevel = aqi ? getAqiLevel(aqi.aqi) : null;
+  const pollutantLevels = {
+    pm25: [
+      { min: 30.5, max: 50.4, level: { label: "偏高", className: "local-alert--aqi-orange" } },
+      { min: 50.5, max: 125.4, level: { label: "過高", className: "local-alert--aqi-red" } },
+      { min: 125.5, max: 225.4, level: { label: "影響人體健康", className: "local-alert--aqi-purple" } },
+      { min: 225.5, max: 325.4, level: { label: "危害標準", className: "local-alert--aqi-maroon" } },
+    ],
+    pm10: [
+      { min: 76, max: 190, level: { label: "偏高", className: "local-alert--aqi-orange" } },
+      { min: 191, max: 354, level: { label: "過高", className: "local-alert--aqi-red" } },
+      { min: 355, max: 424, level: { label: "影響人體健康", className: "local-alert--aqi-purple" } },
+      { min: 425, max: 504, level: { label: "危害標準", className: "local-alert--aqi-maroon" } },
+    ],
+    o3: [
+      { min: 71, max: 85, level: { label: "偏高", className: "local-alert--aqi-orange" } },
+      { min: 86, max: 105, level: { label: "過高", className: "local-alert--aqi-red" } },
+      { min: 106, max: 200, level: { label: "影響人體健康", className: "local-alert--aqi-purple" } },
+      { min: 201, max: 10000, level: { label: "危害標準", className: "local-alert--aqi-maroon" } },
+    ],
+    co: [
+      { min: 9.5, max: 12.4, level: { label: "偏高", className: "local-alert--aqi-orange" } },
+      { min: 12.5, max: 15.4, level: { label: "過高", className: "local-alert--aqi-red" } },
+      { min: 15.5, max: 30.4, level: { label: "影響人體健康", className: "local-alert--aqi-purple" } },
+      { min: 30.5, max: 40.4, level: { label: "危害標準", className: "local-alert--aqi-maroon" } },
+    ],
+    so2: [
+      { min: 66, max: 160, level: { label: "偏高", className: "local-alert--aqi-orange" } },
+      { min: 161, max: 304, level: { label: "過高", className: "local-alert--aqi-red" } },
+      { min: 305, max: 604, level: { label: "影響人體健康", className: "local-alert--aqi-purple" } },
+      { min: 605, max: 804, level: { label: "危害標準", className: "local-alert--aqi-maroon" } },
+    ],
+    no2: [
+      { min: 101, max: 360, level: { label: "偏高", className: "local-alert--aqi-orange" } },
+      { min: 361, max: 649, level: { label: "過高", className: "local-alert--aqi-red" } },
+      { min: 650, max: 1249, level: { label: "影響人體健康", className: "local-alert--aqi-purple" } },
+      { min: 1250, max: 1649, level: { label: "危害標準", className: "local-alert--aqi-maroon" } },
+    ],
   };
 
   if (obs) {
@@ -769,13 +829,21 @@ function buildLocalAlerts() {
   }
 
   if (aqi) {
-    if (Number.isFinite(aqi.aqi) && aqi.aqi >= 101) add("AQI ≥ 101（目前空氣品質較差）");
-    if (Number.isFinite(aqi.pm25) && aqi.pm25 >= 30) add("PM2.5 ≥ 30（目前細懸浮微粒值偏高）");
-    if (Number.isFinite(aqi.pm10) && aqi.pm10 >= 76) add("PM10 ≥ 76（目前懸浮微粒值偏高）");
-    if (Number.isFinite(aqi.o3) && aqi.o3 >= 101) add("O3 ≥ 101（目前臭氧濃度偏高）");
-    if (Number.isFinite(aqi.so2) && aqi.so2 >= 66) add("SO2 ≥ 66（目前二氧化硫偏高）");
-    if (Number.isFinite(aqi.no2) && aqi.no2 >= 101) add("NO2 ≥ 101（目前氮氧化物偏高）");
-    if (Number.isFinite(aqi.co) && aqi.co >= 9.5) add("CO ≥ 9.5（目前一氧化碳偏高）");
+    if (aqiLevel) {
+      add(`空氣品質${aqiLevel.label}（AQI ${aqi.aqi}）`, { levelClass: aqiLevel.className });
+    }
+    const pm25Level = getPollutantLevel(aqi.pm25, pollutantLevels.pm25);
+    if (pm25Level) add(`PM2.5 ${pm25Level.label}（${aqi.pm25} μg/m3）`, { levelClass: pm25Level.className });
+    const pm10Level = getPollutantLevel(aqi.pm10, pollutantLevels.pm10);
+    if (pm10Level) add(`PM10 ${pm10Level.label}（${aqi.pm10} μg/m3）`, { levelClass: pm10Level.className });
+    const o3Level = getPollutantLevel(aqi.o3, pollutantLevels.o3);
+    if (o3Level) add(`O3 ${o3Level.label}（${aqi.o3} ppb）`, { levelClass: o3Level.className });
+    const so2Level = getPollutantLevel(aqi.so2, pollutantLevels.so2);
+    if (so2Level) add(`SO2 ${so2Level.label}（${aqi.so2} ppb）`, { levelClass: so2Level.className });
+    const no2Level = getPollutantLevel(aqi.no2, pollutantLevels.no2);
+    if (no2Level) add(`NO2 ${no2Level.label}（${aqi.no2} ppb）`, { levelClass: no2Level.className });
+    const coLevel = getPollutantLevel(aqi.co, pollutantLevels.co);
+    if (coLevel) add(`CO ${coLevel.label}（${aqi.co} ppm）`, { levelClass: coLevel.className });
   }
 
   return alerts;
@@ -808,7 +876,9 @@ function renderAlerts(list) {
     .map((a) => {
       const range = formatTimeRange(a.start, a.end);
       const descText = range ? `持續時間：${range}` : formatAlertDesc(a.desc, a.raw);
-      const itemClass = a.isLocal ? "alert-item local-alert" : "alert-item";
+      const itemClass = a.isLocal
+        ? `alert-item local-alert ${a.levelClass || ""}`.trim()
+        : "alert-item";
       return `<div class="${itemClass}">
         <h4 class="alert-title">${sanitizeText(a.title || "警特報")}</h4>
         <div class="alert-meta">
