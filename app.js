@@ -113,6 +113,19 @@ const rankingMetrics = {
     direction: null,
     colorScale: "temp",
   },
+  apparent: {
+    label: "體感溫度",
+    unit: "°C",
+    value: (station) => {
+      const temp = toNumber(readWeatherElement(station, "AirTemperature"));
+      let humidity = toNumber(readWeatherElement(station, "RelativeHumidity"));
+      if (humidity != null && humidity <= 1) humidity *= 100;
+      const windSpeed = toNumber(readWeatherElement(station, "WindSpeed"));
+      return calcApparentTemp(temp, humidity, windSpeed);
+    },
+    direction: null,
+    colorScale: "temp",
+  },
   humidity: {
     label: "相對濕度",
     unit: "%",
