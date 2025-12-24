@@ -747,10 +747,11 @@ function buildLocalAlerts() {
   const aqi = realtimeState.latestAqi;
   const add = (title) => {
     alerts.push({
-      area: REALTIME_COUNTY,
+      area: "彰師大",
       title: "即時提醒",
       desc: title,
       severity: "提醒",
+      isLocal: true,
     });
   };
 
@@ -807,7 +808,8 @@ function renderAlerts(list) {
     .map((a) => {
       const range = formatTimeRange(a.start, a.end);
       const descText = range ? `持續時間：${range}` : formatAlertDesc(a.desc, a.raw);
-      return `<div class="alert-item">
+      const itemClass = a.isLocal ? "alert-item local-alert" : "alert-item";
+      return `<div class="${itemClass}">
         <h4 class="alert-title">${sanitizeText(a.title || "警特報")}</h4>
         <div class="alert-meta">
           ${a.area ? `<span class="badge">影響區：${sanitizeText(a.area)}</span>` : ""}

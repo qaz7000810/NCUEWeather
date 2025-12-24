@@ -445,6 +445,11 @@ table tbody tr:nth-child(odd) {
   box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.7);
 }
 
+.alert-item.local-alert {
+  background: linear-gradient(135deg, #fff2e0, #ffe7c2);
+  border-color: rgba(255, 180, 100, 0.4);
+}
+
 .alert-title {
   margin: 0 0 6px 0;
 }
