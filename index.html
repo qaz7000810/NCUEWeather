@@ -23,6 +23,7 @@
 
   <nav class="tabs">
     <button class="tab-btn active" data-tab-target="realtime">即時天氣</button>
+    <button class="tab-btn" data-tab-target="rankings">彰化縣氣象地圖</button>
 <button class="tab-btn" data-tab-target="historical">歷史資料</button>
   </nav>
 
@@ -169,6 +170,51 @@
       </div>
       <div class="hint">
         <p>提示：若有日彙整檔（<code>web/data/daily/*.daily.json</code>）會優先採用，載入較快；若需逐小時則改用原始 <code>*.auto_hr.txt</code>。</p>
+      </div>
+    </section>
+  </main>
+
+  <main class="tab-panel" data-tab="rankings">
+    <section class="panel">
+      <div class="controls">
+        <div class="control">
+          <label for="rankingMetric">排名指標</label>
+          <select id="rankingMetric"></select>
+        </div>
+        <div class="control buttons">
+          <button id="reloadRankingBtn" class="primary">更新排名</button>
+        </div>
+        <div class="control">
+          <label>狀態</label>
+          <div class="status" id="rankingStatus">尚未載入</div>
+        </div>
+      </div>
+    </section>
+
+    <section class="panel ranking-layout">
+      <div class="ranking-map">
+        <div id="rankingMap" class="map-shell"></div>
+        <div class="hint">滑鼠移到鄉鎮可查看排行，點擊測站標記可對應表格。</div>
+        <div id="rankingColorbar" class="colorbar-card"></div>
+      </div>
+      <div class="ranking-table">
+        <div class="table-card">
+          <div class="table-header">彰化測站即時排行</div>
+          <table id="rankingTable">
+            <thead>
+              <tr>
+                <th>排序</th>
+                <th>鄉鎮</th>
+                <th>測站</th>
+                <th>風向</th>
+                <th>溫度</th>
+                <th>濕度</th>
+                <th id="rankingValueHeader">數值</th>
+              </tr>
+            </thead>
+            <tbody id="rankingTableBody"></tbody>
+          </table>
+        </div>
       </div>
     </section>
   </main>

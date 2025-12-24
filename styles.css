@@ -407,6 +407,157 @@ table tbody tr:nth-child(odd) {
   background: rgba(247, 249, 255, 0.6);
 }
 
+.ranking-table--no-wind th:nth-child(4),
+.ranking-table--no-wind td:nth-child(4) {
+  display: none;
+}
+
+.ranking-table--thi th:nth-child(5),
+.ranking-table--thi th:nth-child(6),
+.ranking-table--thi td:nth-child(5),
+.ranking-table--thi td:nth-child(6) {
+  display: table-cell;
+}
+
+.ranking-table--no-wind:not(.ranking-table--thi) th:nth-child(5),
+.ranking-table--no-wind:not(.ranking-table--thi) th:nth-child(6),
+.ranking-table--no-wind:not(.ranking-table--thi) td:nth-child(5),
+.ranking-table--no-wind:not(.ranking-table--thi) td:nth-child(6) {
+  display: none;
+}
+
+.ranking-table--wind th:nth-child(5),
+.ranking-table--wind th:nth-child(6),
+.ranking-table--wind td:nth-child(5),
+.ranking-table--wind td:nth-child(6) {
+  display: none;
+}
+
+.ranking-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1.2fr) minmax(0, 0.8fr);
+  gap: 16px;
+  align-items: start;
+}
+
+.ranking-map .map-shell {
+  min-height: 520px;
+}
+
+.ranking-table table tbody tr {
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+
+.ranking-table table tbody tr:hover {
+  background: var(--row-hover, rgba(47, 190, 130, 0.12));
+}
+
+.ranking-row--active {
+  background: var(--row-hover, rgba(47, 190, 130, 0.2)) !important;
+}
+
+.town-tooltip {
+  background: #ffffff;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 6px 8px;
+  color: var(--text);
+  box-shadow: var(--shadow);
+}
+
+.town-tooltip strong {
+  display: block;
+  font-size: 13px;
+  margin-bottom: 2px;
+}
+
+.wind-marker {
+  width: 22px;
+  height: 22px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.wind-arrow {
+  width: 0;
+  height: 0;
+  border-left: 7px solid transparent;
+  border-right: 7px solid transparent;
+  border-bottom: 14px solid var(--arrow-color, #111);
+  transform: rotate(var(--arrow-rotate, 0deg));
+  transform-origin: 50% 60%;
+  filter:
+    drop-shadow(0 0 1px rgba(0, 0, 0, 0.55))
+    drop-shadow(0 0 2px rgba(0, 0, 0, 0.35))
+    drop-shadow(0 0 0 #000);
+}
+
+.colorbar-card {
+  margin-top: 12px;
+  background: #ffffff;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 10px 12px;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.6);
+}
+
+.colorbar-title {
+  font-size: 13px;
+  color: var(--muted);
+  margin-bottom: 6px;
+  font-weight: 600;
+}
+
+.colorbar-strip {
+  height: 14px;
+  border-radius: 999px;
+  border: 1px solid #d1d9ea;
+  overflow: hidden;
+  background: #e5e7eb;
+}
+
+.colorbar-stops {
+  display: grid;
+  height: 100%;
+}
+
+.colorbar-stops span {
+  display: block;
+  height: 100%;
+}
+
+.colorbar-ticks {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 6px;
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.colorbar-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 12px;
+  margin-top: 6px;
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.colorbar-legend span {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.colorbar-swatch {
+  width: 12px;
+  height: 10px;
+  border-radius: 4px;
+  border: 1px solid #d1d9ea;
+}
+
 .realtime-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
@@ -576,5 +727,9 @@ table tbody tr:nth-child(odd) {
 
   .map-shell {
     min-height: 360px;
+  }
+
+  .ranking-layout {
+    grid-template-columns: 1fr;
   }
 }
