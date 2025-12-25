@@ -1508,7 +1508,7 @@ function setRankingStatus(text) {
 
 function initRankingMap() {
   if (!dom.rankingMap || rankingState.map) return;
-  rankingState.map = L.map("rankingMap", { zoomControl: true }).setView([24.0, 120.5], 10);
+  rankingState.map = L.map("rankingMap", { zoomControl: true }).setView([24, 120.46], 11);
   L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
     maxZoom: 12,
     attribution: "&copy; OpenStreetMap contributors",
@@ -1688,11 +1688,7 @@ function renderRankingMap(entries, metricKey) {
     entry.marker = marker;
   });
 
-  const group = L.featureGroup(rankingState.stationLayer.getLayers());
-  const bounds = group.getBounds();
-  if (bounds.isValid()) {
-    map.fitBounds(bounds, { padding: [20, 20] });
-  }
+  // Keep the initial viewport; avoid auto-fit so the map stays zoomed out.
 }
 
 function renderRankingTable(entries, metricKey) {
