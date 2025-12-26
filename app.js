@@ -1901,7 +1901,13 @@ function renderRankingColorbar(metricKey) {
     .map((stop) => `<span style="background:${stop};"></span>`)
     .join("");
   const ticksHtml = config.ticks?.length
-    ? `<div class="colorbar-ticks">${config.ticks.map((t) => `<span>${t}</span>`).join("")}</div>`
+    ? `<div class="colorbar-ticks">${config.ticks
+        .map((t, i) => {
+          const pos = config.tickPositions?.[i] ?? 0;
+          const cls = pos === 0 ? "tick-left" : pos === 1 ? "tick-right" : "";
+          return `<span class="${cls}" style="left:${pos * 100}%;">${t}</span>`;
+        })
+        .join("")}</div>`
     : "";
   const legendHtml = config.legend?.length
     ? `<div class="colorbar-legend">${config.legend
@@ -1953,29 +1959,36 @@ function buildColorbarConfig(metricKey, metric) {
         { label: "4-6", color: "#3fa514" },
         { label: "7-9", color: "#ffdd00" },
         { label: "10-12", color: "#f16a3a" },
-        { label: "13+", color: "#6b1c82" },
+        { label: "13-15", color: "#c7372f" },
+        { label: "16-17", color: "#6b1c82" },
       ],
     };
   }
   if (metric.colorScale === "humidity") {
+    const gradient = buildGradientTicks(30, 100, 3, false);
     return {
       title: `${metric.label} (${metric.unit})`,
       stops: ["#dbeafe", "#60a5fa", "#1d4ed8"],
-      ticks: ["30", "60", "100"],
+      ticks: gradient.labels,
+      tickPositions: gradient.positions,
     };
   }
   if (metric.colorScale === "rain") {
+    const gradient = buildGradientTicks(0, 50, 4, true);
     return {
       title: `${metric.label} (${metric.unit})`,
       stops: ["#e0f2fe", "#7dd3fc", "#0ea5e9", "#0369a1"],
-      ticks: ["0", "20", "40", "50+"],
+      ticks: gradient.labels,
+      tickPositions: gradient.positions,
     };
   }
   if (metric.colorScale === "temp") {
+    const gradient = buildGradientTicks(6, 36, 6, true);
     return {
       title: `${metric.label} (${metric.unit})`,
       stops: ["#1b6fd1", "#26b16f", "#e6e447", "#f4a13d", "#e04a3b", "#8a2bd8"],
-      ticks: ["6", "12", "18", "24", "30", "36+"],
+      ticks: gradient.labels,
+      tickPositions: gradient.positions,
     };
   }
   if (metric.colorScale === "thi") {
@@ -1999,12 +2012,27 @@ function buildColorbarConfig(metricKey, metric) {
         "#a50026",
       ],
       ticks: ["40", "50", "60", "70", "80", "90"],
+      tickPositions: [0, 0.2, 0.4, 0.6, 0.8, 1],
     };
   }
   return {
     title: `${metric.label} (${metric.unit})`,
     stops: ["#e2e8f0", "#94a3b8"],
   };
+}
+
+function buildGradientTicks(min, max, segments, lastPlus) {
+  const labels = [];
+  const positions = [];
+  const step = (max - min) / segments;
+  for (let i = 0; i <= segments; i += 1) {
+    const raw = min + step * i;
+    const value = Math.round(raw * 10) / 10;
+    const label = i === segments && lastPlus ? `${value}+` : String(value);
+    labels.push(label);
+    positions.push(i / segments);
+  }
+  return { labels, positions };
 }
 
 async function loadLiveTyphoon() {
