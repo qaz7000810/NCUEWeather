@@ -510,6 +510,12 @@ table tbody tr:nth-child(odd) {
   font-weight: 600;
 }
 
+.colorbar-vertical {
+  display: flex;
+  align-items: stretch;
+  gap: 12px;
+}
+
 .colorbar-strip {
   height: 14px;
   border-radius: 999px;
@@ -518,9 +524,37 @@ table tbody tr:nth-child(odd) {
   background: #e5e7eb;
 }
 
+.colorbar-scale {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.colorbar-marks {
+  position: relative;
+  height: 6px;
+}
+
+.colorbar-marks span {
+  position: absolute;
+  width: 1px;
+  height: 6px;
+  background: #94a3b8;
+}
+
+.colorbar-strip.vertical {
+  width: 18px;
+  height: 260px;
+  border-radius: 10px;
+}
+
 .colorbar-stops {
   display: grid;
   height: 100%;
+}
+
+.colorbar-stops.vertical {
+  grid-auto-flow: row;
 }
 
 .colorbar-stops span {
@@ -536,10 +570,22 @@ table tbody tr:nth-child(odd) {
   color: var(--muted);
 }
 
+.colorbar-ticks.vertical {
+  height: 260px;
+  min-width: 44px;
+  margin-top: 0;
+}
+
 .colorbar-ticks span {
   position: absolute;
   transform: translateX(-50%);
   white-space: nowrap;
+}
+
+.colorbar-ticks.vertical span {
+  transform: translateY(-50%);
+  right: 0;
+  left: auto;
 }
 
 .colorbar-ticks .tick-left {
@@ -550,6 +596,16 @@ table tbody tr:nth-child(odd) {
 .colorbar-ticks .tick-right {
   left: 100%;
   transform: translateX(-100%);
+}
+
+.colorbar-ticks.vertical .tick-bottom {
+  bottom: 0;
+  transform: translateY(0);
+}
+
+.colorbar-ticks.vertical .tick-top {
+  top: 0;
+  transform: translateY(-100%);
 }
 
 .colorbar-legend {

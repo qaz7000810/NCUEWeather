@@ -79,6 +79,7 @@ const AQI_SITE_KEYWORDS = ["彰化"];
 const AQI_API_KEY = "";
 const REALTIME_COUNTY = "彰化縣";
 const RANKING_DATASET = "O-A0001-001";
+const RAIN_DATASET = "O-A0002-001";
 const TOWN_NAME_FIELD = "名稱";
 const CWA_COUNTIES = [
   "基隆市",
@@ -104,6 +105,36 @@ const CWA_COUNTIES = [
   "金門縣",
   "連江縣",
 ];
+
+const RAIN_COLORS_BASE = [
+  "#ffffff",
+  "#f0f0f0",
+  "#e3f6ff",
+  "#bdeaff",
+  "#8fd5ff",
+  "#64c2ff",
+  "#3bb1ff",
+  "#18a1f5",
+  "#07a9cf",
+  "#0fbfbf",
+  "#10cfa2",
+  "#4fdc56",
+  "#8ddc34",
+  "#ace82a",
+  "#e4f014",
+  "#ffe000",
+  "#ffbb00",
+  "#ff8a00",
+  "#ff5d00",
+  "#ff2800",
+  "#d80080",
+  "#8e00c9",
+  "#a200c6",
+];
+
+const RAIN_LEVELS_24HR = [0, 1, 2, 6, 10, 15, 20, 25, 30, 40, 50, 60, 80, 100, 130, 160, 200, 250, 300, 350, 400, 500];
+const RAIN_LEVELS_3HR = [0, 1, 2, 6, 10, 15, 20, 25, 30, 35, 40, 50, 60, 70, 80, 90, 100, 120, 140, 160, 180, 200];
+const RAIN_LEVELS_1HR = [0, 1, 2, 6, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 100];
 
 const rankingMetrics = {
   temp: {
@@ -157,13 +188,25 @@ const rankingMetrics = {
     colorScale: "wind",
   },
   rain: {
-    label: "時雨量",
+    label: "1小時雨量",
     unit: "mm",
     value: (station) =>
-      toNumber(readWeatherElement(station, "HourlyPrecipitation")) ??
-      toNumber(readWeatherElement(station, "NowPrecipitation")) ??
-      toNumber(readWeatherElement(station, "Precipitation")) ??
-      toNumber(readWeatherElement(station, "DailyRainfall")),
+      toNumber(readRainElement(station, "Past1hr")) ??
+      toNumber(readRainElement(station, "Now")),
+    direction: null,
+    colorScale: "rain",
+  },
+  rain3hr: {
+    label: "3小時雨量",
+    unit: "mm",
+    value: (station) => toNumber(readRainElement(station, "Past3hr")),
+    direction: null,
+    colorScale: "rain",
+  },
+  rain24hr: {
+    label: "24小時雨量",
+    unit: "mm",
+    value: (station) => toNumber(readRainElement(station, "Past24hr")),
     direction: null,
     colorScale: "rain",
   },
@@ -1210,6 +1253,22 @@ function readWeatherNested(station, path) {
   return cursor;
 }
 
+function readRainElement(station, key) {
+  const el =
+    station?.RainfallElement ||
+    station?.rainfallElement ||
+    station?.RainElement ||
+    station?.rainElement ||
+    null;
+  if (!el) return null;
+  const node = el[key] ?? el[key.toLowerCase?.() ?? key];
+  if (node == null) return null;
+  if (typeof node === "object") {
+    return node.Precipitation ?? node.precipitation ?? node.Value ?? node.value ?? null;
+  }
+  return node;
+}
+
 function toNumber(value) {
   if (value == null) return null;
   const n = Number(value);
@@ -1533,7 +1592,8 @@ async function loadRankingData() {
   const metricKey = dom.rankingMetric.value;
   setRankingStatus("讀取即時資料...");
   try {
-    const data = await fetchCwaDataset(RANKING_DATASET);
+    const datasetId = metricKey.startsWith("rain") ? RAIN_DATASET : RANKING_DATASET;
+    const data = await fetchCwaDataset(datasetId);
     const stations = extractCwaStations(data);
     const entries = buildRankingEntries(stations, metricKey);
     rankingState.entries = entries;
@@ -1655,7 +1715,7 @@ function renderRankingMap(entries, metricKey) {
 
   rankingState.stationLayer = L.layerGroup().addTo(map);
   entries.forEach((entry, idx) => {
-    const fill = getMetricColor(metric, entry.value);
+    const fill = getMetricColor(metricKey, metric, entry.value);
     let marker = null;
     if (metric.colorScale === "wind" && Number.isFinite(entry.direction) && entry.value > 0.2) {
       const rotate = ((Number(entry.direction) + 180) % 360).toFixed(0);
@@ -1714,7 +1774,7 @@ function renderRankingTable(entries, metricKey) {
       metricKey === "thi" && Number.isFinite(entry.temperature) ? `${Number(entry.temperature).toFixed(1)}°C` : "—";
     const humidityText =
       metricKey === "thi" && Number.isFinite(entry.humidity) ? `${Number(entry.humidity).toFixed(0)}%` : "—";
-    const rowColor = getMetricColor(metric, entry.value);
+    const rowColor = getMetricColor(metricKey, metric, entry.value);
     const rowHover = toRgba(rowColor, 0.16);
     return `<tr data-rank-idx="${idx}" style="--row-hover:${rowHover};">
       <td>${idx + 1}</td>
@@ -1781,7 +1841,7 @@ function formatRankingValue(metricKey, value, unit) {
   return `${Number(value).toFixed(digits)}${suffix}`;
 }
 
-function getMetricColor(metric, value) {
+function getMetricColor(metricKey, metric, value) {
   if (value == null || !Number.isFinite(value)) return "#cbd5f5";
   switch (metric.colorScale) {
     case "temp":
@@ -1791,7 +1851,7 @@ function getMetricColor(metric, value) {
     case "humidity":
       return gradientColor(value, 30, 100, ["#dbeafe", "#60a5fa", "#1d4ed8"]);
     case "rain":
-      return gradientColor(value, 0, 50, ["#e0f2fe", "#7dd3fc", "#0ea5e9", "#0369a1"]);
+      return rainColor(metricKey, value);
     case "thi":
       return gradientColor(value, 40, 90, [
         "#273995",
@@ -1839,6 +1899,22 @@ function windColor(value) {
     if (value <= step.max) return step.color;
   }
   return "#6b1c82";
+}
+
+function rainColor(metricKey, value) {
+  const levels =
+    metricKey === "rain24hr"
+      ? RAIN_LEVELS_24HR
+      : metricKey === "rain3hr"
+        ? RAIN_LEVELS_3HR
+        : RAIN_LEVELS_1HR;
+  const colors = RAIN_COLORS_BASE;
+  if (value == null || !Number.isFinite(value)) return colors[0];
+  const idx = levels.findIndex((v) => value < v);
+  if (idx === -1) {
+    return colors[Math.min(colors.length - 1, levels.length)];
+  }
+  return colors[Math.max(0, idx - 1)];
 }
 
 function gradientColor(value, min, max, stops) {
@@ -1900,14 +1976,34 @@ function renderRankingColorbar(metricKey) {
   const stopsHtml = config.stops
     .map((stop) => `<span style="background:${stop};"></span>`)
     .join("");
-  const ticksHtml = config.ticks?.length
-    ? `<div class="colorbar-ticks">${config.ticks
-        .map((t, i) => {
-          const pos = config.tickPositions?.[i] ?? 0;
-          const cls = pos === 0 ? "tick-left" : pos === 1 ? "tick-right" : "";
-          return `<span class="${cls}" style="left:${pos * 100}%;">${t}</span>`;
-        })
-        .join("")}</div>`
+  const tickData = config.ticks?.length
+    ? config.ticks
+        .map((label, idx) => ({
+          label,
+          pos: config.tickPositions?.[idx] ?? 0,
+        }))
+        .filter((item) => item.label !== "")
+    : [];
+  const marksHtml = tickData.length
+    ? `<div class="colorbar-marks">${tickData.map((item) => `<span style="left:${item.pos * 100}%;"></span>`).join("")}</div>`
+    : "";
+  const ticksHtml = tickData.length
+    ? config.orientation === "vertical"
+      ? `<div class="colorbar-ticks vertical">${tickData
+          .map((item) => {
+            const pos = item.pos;
+            const top = (1 - pos) * 100;
+            const cls = pos === 0 ? "tick-bottom" : pos === 1 ? "tick-top" : "";
+            return `<span class="${cls}" style="top:${top}%;">${item.label}</span>`;
+          })
+          .join("")}</div>`
+      : `<div class="colorbar-ticks">${tickData
+          .map((item) => {
+            const pos = item.pos;
+            const cls = pos === 0 ? "tick-left" : pos === 1 ? "tick-right" : "";
+            return `<span class="${cls}" style="left:${pos * 100}%;">${item.label}</span>`;
+          })
+          .join("")}</div>`
     : "";
   const legendHtml = config.legend?.length
     ? `<div class="colorbar-legend">${config.legend
@@ -1917,12 +2013,30 @@ function renderRankingColorbar(metricKey) {
         )
         .join("")}</div>`
     : "";
+  if (config.orientation === "vertical") {
+    dom.rankingColorbar.innerHTML = `
+      <div class="colorbar-title">${sanitizeText(config.title)}</div>
+      <div class="colorbar-vertical">
+        <div class="colorbar-strip vertical">
+          <div class="colorbar-stops vertical" style="grid-template-rows: repeat(${config.stops.length}, 1fr);">
+            ${stopsHtml}
+          </div>
+        </div>
+        ${ticksHtml}
+      </div>
+      ${legendHtml}
+    `;
+    return;
+  }
   dom.rankingColorbar.innerHTML = `
     <div class="colorbar-title">${sanitizeText(config.title)}</div>
-    <div class="colorbar-strip">
-      <div class="colorbar-stops" style="grid-template-columns: repeat(${config.stops.length}, 1fr);">
-        ${stopsHtml}
+    <div class="colorbar-scale">
+      <div class="colorbar-strip">
+        <div class="colorbar-stops" style="grid-template-columns: repeat(${config.stops.length}, 1fr);">
+          ${stopsHtml}
+        </div>
       </div>
+      ${marksHtml}
     </div>
     ${ticksHtml}
     ${legendHtml}
@@ -1965,54 +2079,75 @@ function buildColorbarConfig(metricKey, metric) {
     };
   }
   if (metric.colorScale === "humidity") {
-    const gradient = buildGradientTicks(30, 100, 3, false);
+    const blocks = 6;
     return {
       title: `${metric.label} (${metric.unit})`,
-      stops: ["#dbeafe", "#60a5fa", "#1d4ed8"],
-      ticks: gradient.labels,
-      tickPositions: gradient.positions,
+      stops: ["#dbeafe", "#bfdbfe", "#93c5fd", "#60a5fa", "#3b82f6", "#1d4ed8"],
+      ticks: ["<50", "50", "60", "70", "80", ">=90"],
+      tickPositions: [0, 1 / blocks, 2 / blocks, 3 / blocks, 4 / blocks, 5 / blocks],
+      legend: [
+        { label: "<50", color: "#dbeafe" },
+        { label: "50-59", color: "#bfdbfe" },
+        { label: "60-69", color: "#93c5fd" },
+        { label: "70-79", color: "#60a5fa" },
+        { label: "80-89", color: "#3b82f6" },
+        { label: ">=90", color: "#1d4ed8" },
+      ],
     };
   }
   if (metric.colorScale === "rain") {
-    const gradient = buildGradientTicks(0, 50, 4, true);
+    const { levels, lastLabel } =
+      metricKey === "rain24hr"
+        ? { levels: RAIN_LEVELS_24HR, lastLabel: ">500" }
+        : metricKey === "rain3hr"
+          ? { levels: RAIN_LEVELS_3HR, lastLabel: ">200" }
+          : { levels: RAIN_LEVELS_1HR, lastLabel: ">100" };
+    const ticks = levels.map((v) => String(v)).concat(lastLabel);
+    const blocks = RAIN_COLORS_BASE.length;
+    const positions = levels.map((_, idx) => idx / blocks).concat((blocks - 1) / blocks);
     return {
       title: `${metric.label} (${metric.unit})`,
-      stops: ["#e0f2fe", "#7dd3fc", "#0ea5e9", "#0369a1"],
-      ticks: gradient.labels,
-      tickPositions: gradient.positions,
+      stops: RAIN_COLORS_BASE,
+      ticks,
+      tickPositions: positions,
     };
   }
   if (metric.colorScale === "temp") {
-    const gradient = buildGradientTicks(6, 36, 6, true);
+    const tempBar = buildTempColorbar();
     return {
       title: `${metric.label} (${metric.unit})`,
-      stops: ["#1b6fd1", "#26b16f", "#e6e447", "#f4a13d", "#e04a3b", "#8a2bd8"],
-      ticks: gradient.labels,
-      tickPositions: gradient.positions,
+      stops: tempBar.stops,
+      ticks: tempBar.labels,
+      tickPositions: tempBar.positions,
     };
   }
   if (metric.colorScale === "thi") {
+    const thiTicks = ["40", "45", "50", "55", "60", "65", "70", "75", "80", "85", "90"];
+    const thiPositions = thiTicks.map((t) => (Number(t) - 40) / 50);
     return {
       title: `${metric.label}`,
-      stops: [
-        "#273995",
-        "#325bb3",
-        "#3f7bc8",
-        "#5197d6",
-        "#6caed3",
-        "#8ec5ca",
-        "#addac1",
-        "#cdeeb4",
-        "#f3f5a3",
-        "#fee08b",
-        "#fdae61",
-        "#f46d43",
-        "#e34a33",
-        "#d73027",
-        "#a50026",
-      ],
-      ticks: ["40", "50", "60", "70", "80", "90"],
-      tickPositions: [0, 0.2, 0.4, 0.6, 0.8, 1],
+      stops: buildGradientStops(
+        [
+          "#273995",
+          "#325bb3",
+          "#3f7bc8",
+          "#5197d6",
+          "#6caed3",
+          "#8ec5ca",
+          "#addac1",
+          "#cdeeb4",
+          "#f3f5a3",
+          "#fee08b",
+          "#fdae61",
+          "#f46d43",
+          "#e34a33",
+          "#d73027",
+          "#a50026",
+        ],
+        10
+      ),
+      ticks: thiTicks,
+      tickPositions: thiPositions,
     };
   }
   return {
@@ -2033,6 +2168,45 @@ function buildGradientTicks(min, max, segments, lastPlus) {
     positions.push(i / segments);
   }
   return { labels, positions };
+}
+
+function buildTempColorbar() {
+  const labels = [];
+  const positions = [];
+  const stops = [];
+  const min = 6;
+  const max = 36;
+  const palette = ["#1b6fd1", "#26b16f", "#e6e447", "#f4a13d", "#e04a3b", "#8a2bd8"];
+
+  stops.push(gradientColor(4, min, max, palette));
+  stops.push(gradientColor(5, min, max, palette));
+  for (let value = min; value <= max; value += 1) {
+    stops.push(gradientColor(value, min, max, palette));
+  }
+  stops.push(gradientColor(37, min, max, palette));
+
+  const blocks = stops.length;
+  labels.push("<6");
+  positions.push(1 / blocks);
+  let boundary = 2;
+  for (let value = min; value <= max; value += 1) {
+    labels.push(String(value));
+    positions.push(boundary / blocks);
+    boundary += 1;
+  }
+  labels.push(">36");
+  positions.push((blocks - 1) / blocks);
+  return { stops, labels, positions };
+}
+
+function buildGradientStops(colors, segments) {
+  const stops = [];
+  const count = Math.max(2, segments);
+  for (let i = 0; i < count; i += 1) {
+    const t = count === 1 ? 0 : i / (count - 1);
+    stops.push(gradientColor(t, 0, 1, colors));
+  }
+  return stops;
 }
 
 async function loadLiveTyphoon() {
