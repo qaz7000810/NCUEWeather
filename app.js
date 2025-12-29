@@ -1719,11 +1719,18 @@ function renderRankingMap(entries, metricKey) {
     let marker = null;
     if (metric.colorScale === "wind" && Number.isFinite(entry.direction) && entry.value > 0.2) {
       const rotate = ((Number(entry.direction) + 180) % 360).toFixed(0);
+      const svg = `
+        <svg width="28" height="28" viewBox="0 0 28 28" xmlns="http://www.w3.org/2000/svg">
+          <g transform="translate(14 14) rotate(${rotate}) translate(-14 -14)">
+            <circle cx="14" cy="14" r="12" fill="${fill}" stroke="rgba(0,0,0,0.45)" stroke-width="1.5"/>
+            <path d="M14 5 L20 18 L14 15 L8 18 Z" fill="#111" />
+          </g>
+        </svg>`;
       const icon = L.divIcon({
         className: "",
-        html: `<div class="wind-marker"><span class="wind-arrow" style="--arrow-color:${fill};--arrow-rotate:${rotate}deg;"></span></div>`,
-        iconSize: [22, 22],
-        iconAnchor: [11, 11],
+        html: svg,
+        iconSize: [28, 28],
+        iconAnchor: [14, 14],
       });
       marker = L.marker([entry.lat, entry.lon], { icon });
     } else {
