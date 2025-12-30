@@ -2052,6 +2052,9 @@ function renderRankingColorbar(metricKey) {
 
 function buildColorbarConfig(metricKey, metric) {
   if (metric.colorScale === "wind") {
+    const blocks = 18;
+    const windTicks = ["靜風", "1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "13", "14", "15", "16", "17"];
+    const windPositions = Array.from({ length: blocks }, (_, idx) => (idx + 0.5) / blocks);
     return {
       title: `${metric.label} (${metric.unit})`,
       stops: [
@@ -2074,15 +2077,8 @@ function buildColorbarConfig(metricKey, metric) {
         "#862377",
         "#6b1c82",
       ],
-      legend: [
-        { label: "靜風", color: "#5f6266" },
-        { label: "1-3", color: "#3177dc" },
-        { label: "4-6", color: "#3fa514" },
-        { label: "7-9", color: "#ffdd00" },
-        { label: "10-12", color: "#f16a3a" },
-        { label: "13-15", color: "#c7372f" },
-        { label: "16-17", color: "#6b1c82" },
-      ],
+      ticks: windTicks,
+      tickPositions: windPositions,
     };
   }
   if (metric.colorScale === "humidity") {
@@ -2090,7 +2086,7 @@ function buildColorbarConfig(metricKey, metric) {
     return {
       title: `${metric.label} (${metric.unit})`,
       stops: ["#dbeafe", "#bfdbfe", "#93c5fd", "#60a5fa", "#3b82f6", "#1d4ed8"],
-      ticks: ["<50", "50", "60", "70", "80", ">=90"],
+      ticks: ["", "50", "60", "70", "80", ">=90"],
       tickPositions: [0, 1 / blocks, 2 / blocks, 3 / blocks, 4 / blocks, 5 / blocks],
       legend: [
         { label: "<50", color: "#dbeafe" },
@@ -2105,10 +2101,10 @@ function buildColorbarConfig(metricKey, metric) {
   if (metric.colorScale === "rain") {
     const { levels, lastLabel } =
       metricKey === "rain24hr"
-        ? { levels: RAIN_LEVELS_24HR, lastLabel: ">500" }
+        ? { levels: RAIN_LEVELS_24HR, lastLabel: ">600" }
         : metricKey === "rain3hr"
-          ? { levels: RAIN_LEVELS_3HR, lastLabel: ">200" }
-          : { levels: RAIN_LEVELS_1HR, lastLabel: ">100" };
+          ? { levels: RAIN_LEVELS_3HR, lastLabel: ">240" }
+          : { levels: RAIN_LEVELS_1HR, lastLabel: ">120" };
     const ticks = levels.map((v) => String(v)).concat(lastLabel);
     const blocks = RAIN_COLORS_BASE.length;
     const positions = levels.map((_, idx) => idx / blocks).concat((blocks - 1) / blocks);
@@ -2129,7 +2125,7 @@ function buildColorbarConfig(metricKey, metric) {
     };
   }
   if (metric.colorScale === "thi") {
-    const thiTicks = ["40", "45", "50", "55", "60", "65", "70", "75", "80", "85", "90"];
+    const thiTicks = ["45", "50", "55", "60", "65", "70", "75", "80", "85"];
     const thiPositions = thiTicks.map((t) => (Number(t) - 40) / 50);
     return {
       title: `${metric.label}`,
@@ -2185,24 +2181,15 @@ function buildTempColorbar() {
   const max = 36;
   const palette = ["#1b6fd1", "#26b16f", "#e6e447", "#f4a13d", "#e04a3b", "#8a2bd8"];
 
-  stops.push(gradientColor(4, min, max, palette));
-  stops.push(gradientColor(5, min, max, palette));
   for (let value = min; value <= max; value += 1) {
     stops.push(gradientColor(value, min, max, palette));
   }
-  stops.push(gradientColor(37, min, max, palette));
-
+  stops.push(gradientColor(max + 1, min, max + 1, palette));
   const blocks = stops.length;
-  labels.push("<6");
-  positions.push(1 / blocks);
-  let boundary = 2;
   for (let value = min; value <= max; value += 1) {
     labels.push(String(value));
-    positions.push(boundary / blocks);
-    boundary += 1;
+    positions.push((value - min + 1) / blocks);
   }
-  labels.push(">36");
-  positions.push((blocks - 1) / blocks);
   return { stops, labels, positions };
 }
 
