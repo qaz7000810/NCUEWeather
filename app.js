@@ -2086,7 +2086,7 @@ function buildColorbarConfig(metricKey, metric) {
     return {
       title: `${metric.label} (${metric.unit})`,
       stops: ["#dbeafe", "#bfdbfe", "#93c5fd", "#60a5fa", "#3b82f6", "#1d4ed8"],
-      ticks: ["", "50", "60", "70", "80", ">=90"],
+      ticks: ["", "50", "60", "70", "80", "90"],
       tickPositions: [0, 1 / blocks, 2 / blocks, 3 / blocks, 4 / blocks, 5 / blocks],
       legend: [
         { label: "<50", color: "#dbeafe" },
@@ -2094,17 +2094,17 @@ function buildColorbarConfig(metricKey, metric) {
         { label: "60-69", color: "#93c5fd" },
         { label: "70-79", color: "#60a5fa" },
         { label: "80-89", color: "#3b82f6" },
-        { label: ">=90", color: "#1d4ed8" },
+        { label: "90+", color: "#1d4ed8" },
       ],
     };
   }
   if (metric.colorScale === "rain") {
     const { levels, lastLabel } =
       metricKey === "rain24hr"
-        ? { levels: RAIN_LEVELS_24HR, lastLabel: ">600" }
+        ? { levels: RAIN_LEVELS_24HR, lastLabel: "600" }
         : metricKey === "rain3hr"
-          ? { levels: RAIN_LEVELS_3HR, lastLabel: ">240" }
-          : { levels: RAIN_LEVELS_1HR, lastLabel: ">120" };
+          ? { levels: RAIN_LEVELS_3HR, lastLabel: "240" }
+          : { levels: RAIN_LEVELS_1HR, lastLabel: "120" };
     const ticks = levels.map((v) => String(v)).concat(lastLabel);
     const blocks = RAIN_COLORS_BASE.length;
     const positions = levels.map((_, idx) => idx / blocks).concat((blocks - 1) / blocks);
