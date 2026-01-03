@@ -40,6 +40,7 @@ const dom = {
   rankingTableBody: document.getElementById("rankingTableBody"),
   rankingValueHeader: document.getElementById("rankingValueHeader"),
   rankingTable: document.getElementById("rankingTable"),
+  rankingDataTime: document.getElementById("rankingDataTime"),
   rankingMap: document.getElementById("rankingMap"),
   reloadRankingBtn: document.getElementById("reloadRankingBtn"),
   rankingColorbar: document.getElementById("rankingColorbar"),
@@ -1598,6 +1599,7 @@ async function loadRankingData() {
     const entries = buildRankingEntries(stations, metricKey);
     rankingState.entries = entries;
     await renderRanking(entries, metricKey);
+    setRankingDataTime(stations);
     setRankingStatus(entries.length ? `已更新 ${entries.length} 筆測站` : "找不到有效測站資料");
   } catch (err) {
     console.error(err);
@@ -1637,6 +1639,7 @@ function buildRankingEntries(stations, metricKey) {
         if (h != null && h <= 1) h *= 100;
         return h;
       })(),
+      obsTimeRaw: obsTime,
       time: formatObsTime(obsTime),
     });
   });
@@ -1970,6 +1973,33 @@ function isValidObservation(value) {
   if (!Number.isFinite(num)) return false;
   if (num <= -90) return false;
   return true;
+}
+
+function setRankingDataTime(stations) {
+  if (!dom.rankingDataTime) return;
+  const latest = findLatestObsTimeFromStations(stations);
+  dom.rankingDataTime.textContent = latest ? latest : "";
+}
+
+function findLatestObsTimeFromStations(stations) {
+  let latest = null;
+  let latestMs = 0;
+  stations.forEach((station) => {
+    const raw =
+      station?.ObsTime?.DateTime ||
+      station?.obsTime?.DateTime ||
+      station?.ObsTime?.dateTime ||
+      station?.obsTime?.dateTime ||
+      "";
+    if (!raw) return;
+    const ts = Date.parse(raw);
+    if (!ts) return;
+    if (ts > latestMs) {
+      latestMs = ts;
+      latest = formatObsTime(raw) || raw;
+    }
+  });
+  return latest;
 }
 
 function renderRankingColorbar(metricKey) {
