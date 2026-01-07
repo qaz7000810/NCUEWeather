@@ -415,29 +415,71 @@ table tbody tr:nth-child(odd) {
   background: rgba(247, 249, 255, 0.6);
 }
 
-.ranking-table--no-wind th:nth-child(4),
-.ranking-table--no-wind td:nth-child(4) {
+.table-footer {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 10px;
+  padding: 10px;
+  border-top: 1px solid var(--border);
+  background: #f8faff;
+  font-size: 13px;
+  color: var(--muted);
+}
+
+.pager-total {
+  font-variant-numeric: tabular-nums;
+}
+
+.pager-btn {
+  padding: 6px 10px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: #ffffff;
+  color: var(--text);
+  font-size: 12px;
+}
+
+.pager-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.ranking-table--no-wind:not(.ranking-table--with-town) th:nth-child(4),
+.ranking-table--no-wind:not(.ranking-table--with-town) td:nth-child(4) {
   display: none;
 }
 
-.ranking-table--thi th:nth-child(5),
-.ranking-table--thi th:nth-child(6),
-.ranking-table--thi td:nth-child(5),
-.ranking-table--thi td:nth-child(6) {
-  display: table-cell;
-}
-
-.ranking-table--no-wind:not(.ranking-table--thi) th:nth-child(5),
-.ranking-table--no-wind:not(.ranking-table--thi) th:nth-child(6),
-.ranking-table--no-wind:not(.ranking-table--thi) td:nth-child(5),
-.ranking-table--no-wind:not(.ranking-table--thi) td:nth-child(6) {
+.ranking-table--no-wind.ranking-table--with-town th:nth-child(5),
+.ranking-table--no-wind.ranking-table--with-town td:nth-child(5) {
   display: none;
 }
 
-.ranking-table--wind th:nth-child(5),
-.ranking-table--wind th:nth-child(6),
-.ranking-table--wind td:nth-child(5),
-.ranking-table--wind td:nth-child(6) {
+.ranking-table--no-wind:not(.ranking-table--thi):not(.ranking-table--with-town) th:nth-child(5),
+.ranking-table--no-wind:not(.ranking-table--thi):not(.ranking-table--with-town) th:nth-child(6),
+.ranking-table--no-wind:not(.ranking-table--thi):not(.ranking-table--with-town) td:nth-child(5),
+.ranking-table--no-wind:not(.ranking-table--thi):not(.ranking-table--with-town) td:nth-child(6) {
+  display: none;
+}
+
+.ranking-table--no-wind.ranking-table--with-town:not(.ranking-table--thi) th:nth-child(6),
+.ranking-table--no-wind.ranking-table--with-town:not(.ranking-table--thi) th:nth-child(7),
+.ranking-table--no-wind.ranking-table--with-town:not(.ranking-table--thi) td:nth-child(6),
+.ranking-table--no-wind.ranking-table--with-town:not(.ranking-table--thi) td:nth-child(7) {
+  display: none;
+}
+
+.ranking-table--wind:not(.ranking-table--with-town) th:nth-child(5),
+.ranking-table--wind:not(.ranking-table--with-town) th:nth-child(6),
+.ranking-table--wind:not(.ranking-table--with-town) td:nth-child(5),
+.ranking-table--wind:not(.ranking-table--with-town) td:nth-child(6) {
+  display: none;
+}
+
+.ranking-table--wind.ranking-table--with-town th:nth-child(6),
+.ranking-table--wind.ranking-table--with-town th:nth-child(7),
+.ranking-table--wind.ranking-table--with-town td:nth-child(6),
+.ranking-table--wind.ranking-table--with-town td:nth-child(7) {
   display: none;
 }
 

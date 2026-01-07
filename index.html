@@ -24,6 +24,7 @@
   <nav class="tabs">
     <button class="tab-btn active" data-tab-target="realtime">即時天氣</button>
     <button class="tab-btn" data-tab-target="rankings">彰化縣氣象地圖</button>
+    <button class="tab-btn" data-tab-target="taiwan-rankings">台灣氣象地圖</button>
 <button class="tab-btn" data-tab-target="historical">歷史資料</button>
   </nav>
 
@@ -217,6 +218,61 @@
             </thead>
             <tbody id="rankingTableBody"></tbody>
           </table>
+          <div class="table-footer" id="rankingPager"></div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <main class="tab-panel" data-tab="taiwan-rankings">
+    <section class="panel">
+      <div class="controls">
+        <div class="control">
+          <label for="taiwanRankingMetric">排名指標</label>
+          <select id="taiwanRankingMetric"></select>
+        </div>
+        <div class="control">
+          <label for="taiwanRankingCounty">縣市</label>
+          <select id="taiwanRankingCounty"></select>
+        </div>
+        <div class="control buttons">
+          <button id="taiwanReloadRankingBtn" class="primary">更新排名</button>
+        </div>
+        <div class="control">
+          <label>狀態</label>
+          <div class="status" id="taiwanRankingStatus">尚未載入</div>
+        </div>
+      </div>
+    </section>
+
+    <section class="panel ranking-layout">
+      <div class="ranking-map">
+        <div id="taiwanRankingMap" class="map-shell"></div>
+        <div class="hint">滑鼠移到縣市可查看排行，點擊測站標記可對應表格。</div>
+        <div id="taiwanRankingColorbar" class="colorbar-card"></div>
+      </div>
+      <div class="ranking-table">
+        <div class="table-card">
+          <div class="table-header">
+            <span>台灣測站即時排行</span>
+            <span id="taiwanRankingDataTime" class="table-header-time"></span>
+          </div>
+          <table id="taiwanRankingTable">
+            <thead>
+              <tr>
+                <th>排序</th>
+                <th>縣市</th>
+                <th>鄉鎮</th>
+                <th>測站</th>
+                <th>風向</th>
+                <th>溫度</th>
+                <th>濕度</th>
+                <th id="taiwanRankingValueHeader">數值</th>
+              </tr>
+            </thead>
+            <tbody id="taiwanRankingTableBody"></tbody>
+          </table>
+          <div class="table-footer" id="taiwanRankingPager"></div>
         </div>
       </div>
     </section>

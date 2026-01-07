@@ -38,12 +38,25 @@ const dom = {
   rankingMetric: document.getElementById("rankingMetric"),
   rankingStatus: document.getElementById("rankingStatus"),
   rankingTableBody: document.getElementById("rankingTableBody"),
+  rankingCounty: document.getElementById("rankingCounty"),
   rankingValueHeader: document.getElementById("rankingValueHeader"),
   rankingTable: document.getElementById("rankingTable"),
   rankingDataTime: document.getElementById("rankingDataTime"),
+  rankingPager: document.getElementById("rankingPager"),
   rankingMap: document.getElementById("rankingMap"),
   reloadRankingBtn: document.getElementById("reloadRankingBtn"),
   rankingColorbar: document.getElementById("rankingColorbar"),
+  taiwanRankingMetric: document.getElementById("taiwanRankingMetric"),
+  taiwanRankingStatus: document.getElementById("taiwanRankingStatus"),
+  taiwanRankingTableBody: document.getElementById("taiwanRankingTableBody"),
+  taiwanRankingCounty: document.getElementById("taiwanRankingCounty"),
+  taiwanRankingValueHeader: document.getElementById("taiwanRankingValueHeader"),
+  taiwanRankingTable: document.getElementById("taiwanRankingTable"),
+  taiwanRankingDataTime: document.getElementById("taiwanRankingDataTime"),
+  taiwanRankingPager: document.getElementById("taiwanRankingPager"),
+  taiwanRankingMap: document.getElementById("taiwanRankingMap"),
+  taiwanReloadRankingBtn: document.getElementById("taiwanReloadRankingBtn"),
+  taiwanRankingColorbar: document.getElementById("taiwanRankingColorbar"),
 };
 
 let fileIndex = [];
@@ -70,6 +83,22 @@ const rankingState = {
   entries: [],
   activeRow: null,
   activeMarker: null,
+  sortDir: "desc",
+  page: 1,
+  countyCodeMap: null,
+};
+
+const taiwanRankingState = {
+  map: null,
+  townLayer: null,
+  stationLayer: null,
+  townGeo: null,
+  entries: [],
+  activeRow: null,
+  activeMarker: null,
+  sortDir: "desc",
+  page: 1,
+  countyCodeMap: null,
 };
 
 const CWA_BASE = "https://faein.climate-quiz-yuchen.workers.dev/api/v1/rest/datastore";
@@ -137,6 +166,10 @@ const RAIN_LEVELS_24HR = [0, 1, 2, 6, 10, 15, 20, 25, 30, 40, 50, 60, 80, 100, 1
 const RAIN_LEVELS_3HR = [0, 1, 2, 6, 10, 15, 20, 25, 30, 35, 40, 50, 60, 70, 80, 90, 100, 120, 140, 160, 180, 200];
 const RAIN_LEVELS_1HR = [0, 1, 2, 6, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 100];
 
+const COUNTY_CODE_MAP = {
+  彰化縣: "10007",
+};
+
 const rankingMetrics = {
   temp: {
     label: "即時氣溫",
@@ -151,7 +184,7 @@ const rankingMetrics = {
     value: (station) => {
       const temp = toNumber(readWeatherElement(station, "AirTemperature"));
       let humidity = toNumber(readWeatherElement(station, "RelativeHumidity"));
-      if (humidity != null && humidity <= 1) humidity *= 100;
+      if (humidity != null && humidity >= 0 && humidity <= 1) humidity *= 100;
       const windSpeed = toNumber(readWeatherElement(station, "WindSpeed"));
       return calcApparentTemp(temp, humidity, windSpeed);
     },
@@ -225,6 +258,57 @@ const rankingMetrics = {
   },
 };
 
+const rankingViews = {
+  changhua: {
+    key: "changhua",
+    dom: {
+      metric: dom.rankingMetric,
+      status: dom.rankingStatus,
+      tableBody: dom.rankingTableBody,
+      countySelect: dom.rankingCounty,
+      valueHeader: dom.rankingValueHeader,
+      table: dom.rankingTable,
+      dataTime: dom.rankingDataTime,
+      pager: dom.rankingPager,
+      map: dom.rankingMap,
+      reloadBtn: dom.reloadRankingBtn,
+      colorbar: dom.rankingColorbar,
+    },
+    state: rankingState,
+    geojsonUrl: "./data/changhua/changhua_townships.geojson",
+    areaProp: "名稱",
+    areaType: "town",
+    showTownColumn: false,
+    countyFilter: REALTIME_COUNTY,
+    mapCenter: [23.98, 120.46],
+    mapZoom: 10,
+  },
+  taiwan: {
+    key: "taiwan",
+    dom: {
+      metric: dom.taiwanRankingMetric,
+      status: dom.taiwanRankingStatus,
+      tableBody: dom.taiwanRankingTableBody,
+      countySelect: dom.taiwanRankingCounty,
+      valueHeader: dom.taiwanRankingValueHeader,
+      table: dom.taiwanRankingTable,
+      dataTime: dom.taiwanRankingDataTime,
+      pager: dom.taiwanRankingPager,
+      map: dom.taiwanRankingMap,
+      reloadBtn: dom.taiwanReloadRankingBtn,
+      colorbar: dom.taiwanRankingColorbar,
+    },
+    state: taiwanRankingState,
+    geojsonUrl: "./data/taiwan/townships.geojson",
+    areaProp: "TOWNNAME",
+    areaType: "town",
+    showTownColumn: true,
+    countyFilter: null,
+    mapCenter: [23.7, 121],
+    mapZoom: 7,
+  },
+};
+
 document.addEventListener("DOMContentLoaded", init);
 
 async function init() {
@@ -237,7 +321,7 @@ async function init() {
   updateLoadButtonState();
   setStatus("請先選測站或縣市與時間區間，再點重新載入。");
   initRealtimeView();
-  initRankingView();
+  initRankingViews();
 }
 
 function bindTabs() {
@@ -253,7 +337,12 @@ function bindTabs() {
       }
       if (target === "rankings") {
         requestAnimationFrame(() => {
-          ensureRankingMapSized();
+          ensureRankingMapSized(rankingViews.changhua);
+        });
+      }
+      if (target === "taiwan-rankings") {
+        requestAnimationFrame(() => {
+          ensureRankingMapSized(rankingViews.taiwan);
         });
       }
     });
@@ -281,10 +370,8 @@ function bindEvents() {
   dom.reloadNCUEBtn?.addEventListener("click", loadNCUEObservation);
   dom.reloadAqiBtn?.addEventListener("click", loadAqiData);
   dom.clearRealtimeBtn?.addEventListener("click", clearRealtimeDisplay);
-  dom.reloadRankingBtn?.addEventListener("click", loadRankingData);
-  dom.rankingMetric?.addEventListener("change", () => {
-    loadRankingData();
-  });
+  bindRankingViewEvents(rankingViews.changhua);
+  bindRankingViewEvents(rankingViews.taiwan);
 }
 async function loadIndex() {
   try {
@@ -1377,12 +1464,15 @@ function windToBeaufortLevel(mps) {
 }
 
 function calcApparentTemp(temperature, humidity, windMps) {
+  if (!isValidObservation(temperature)) return null;
+  if (!isValidObservation(humidity)) return null;
+  if (!isValidObservation(windMps)) return null;
   const T = Number(temperature);
   const RH = Number(humidity);
   const V = Number(windMps);
-  if (!Number.isFinite(T) || !Number.isFinite(RH) || !Number.isFinite(V)) {
-    return temperature;
-  }
+  if (!Number.isFinite(T) || !Number.isFinite(RH) || !Number.isFinite(V)) return null;
+  if (RH < 0 || RH > 100) return null;
+  if (V < 0) return null;
   const e = (RH / 100) * 6.105 * Math.exp((17.27 * T) / (237.7 + T));
   const at = 1.04 * T + 0.2 * e - 0.65 * V - 2.7;
   return Math.round(at * 10) / 10;
@@ -1544,76 +1634,124 @@ function renderAqi(record) {
 
 // ----------------- 即時排名 -----------------
 
-function initRankingView() {
-  if (!dom.rankingMetric || !dom.rankingMap) return;
-  buildRankingMetricOptions();
-  initRankingMap();
-  loadRankingData();
+function initRankingView(view) {
+  if (!view?.dom?.metric || !view?.dom?.map) return;
+  buildRankingMetricOptions(view.dom.metric);
+  buildCountySelect(view);
+  initRankingMap(view);
+  loadRankingData(view);
 }
 
-function buildRankingMetricOptions() {
-  if (!dom.rankingMetric) return;
+function initRankingViews() {
+  Object.values(rankingViews).forEach((view) => initRankingView(view));
+}
+
+function bindRankingViewEvents(view) {
+  if (!view?.dom) return;
+  view.dom.reloadBtn?.addEventListener("click", () => loadRankingData(view));
+  view.dom.metric?.addEventListener("change", () => {
+    view.state.page = 1;
+    loadRankingData(view);
+  });
+  view.dom.countySelect?.addEventListener("change", () => {
+    view.state.page = 1;
+    loadRankingData(view);
+  });
+  view.dom.valueHeader?.addEventListener("click", () => {
+    view.state.sortDir = view.state.sortDir === "desc" ? "asc" : "desc";
+    view.state.page = 1;
+    renderRankingTable(view.state.entries, view.dom.metric.value, view);
+  });
+}
+
+function buildRankingMetricOptions(selectEl) {
+  if (!selectEl) return;
   const options = Object.entries(rankingMetrics).map(
     ([key, cfg]) => `<option value="${key}">${cfg.label}</option>`
   );
-  dom.rankingMetric.innerHTML = options.join("");
-  dom.rankingMetric.value = "temp";
+  selectEl.innerHTML = options.join("");
+  selectEl.value = "temp";
 }
 
-function setRankingStatus(text) {
-  if (dom.rankingStatus) {
-    dom.rankingStatus.textContent = text;
+function buildCountySelect(view) {
+  if (!view?.dom?.countySelect) return;
+  const opts = ['<option value="*">全台灣</option>']
+    .concat(CWA_COUNTIES.map((c) => `<option value="${c}">${c}</option>`));
+  view.dom.countySelect.innerHTML = opts.join("");
+  if (view.countyFilter) {
+    view.dom.countySelect.value = view.countyFilter;
+  } else {
+    view.dom.countySelect.value = "*";
   }
 }
 
-function initRankingMap() {
-  if (!dom.rankingMap || rankingState.map) return;
-  rankingState.map = L.map("rankingMap", { zoomControl: true }).setView([24, 120.46], 11);
+function setRankingStatus(view, text) {
+  if (view?.dom?.status) {
+    view.dom.status.textContent = text;
+  }
+}
+
+function initRankingMap(view) {
+  if (!view?.dom?.map || view.state.map) return;
+  view.state.map = L.map(view.dom.map.id, { zoomControl: true }).setView(view.mapCenter, view.mapZoom);
   L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
     maxZoom: 12,
     attribution: "&copy; OpenStreetMap contributors",
-  }).addTo(rankingState.map);
+  }).addTo(view.state.map);
 }
 
-function ensureRankingMapSized() {
-  if (!rankingState.map) return;
-  rankingState.map.invalidateSize();
+function ensureRankingMapSized(view) {
+  if (!view?.state?.map) return;
+  view.state.map.invalidateSize();
 }
 
-async function ensureRankingTownGeo() {
-  if (rankingState.townGeo) return rankingState.townGeo;
-  const res = await fetch("./data/changhua/changhua_townships.geojson");
-  if (!res.ok) throw new Error("無法載入彰化鄉鎮界資料");
-  rankingState.townGeo = await res.json();
-  return rankingState.townGeo;
+async function ensureRankingGeo(view) {
+  if (view.state.townGeo) return view.state.townGeo;
+  const res = await fetch(view.geojsonUrl);
+  if (!res.ok) throw new Error("無法載入邊界資料");
+  view.state.townGeo = await res.json();
+  if (!view.state.countyCodeMap) {
+    view.state.countyCodeMap = buildCountyCodeMap(view.state.townGeo);
+  }
+  return view.state.townGeo;
 }
 
-async function loadRankingData() {
-  if (!dom.rankingMetric) return;
-  const metricKey = dom.rankingMetric.value;
-  setRankingStatus("讀取即時資料...");
+async function loadRankingData(view) {
+  if (!view?.dom?.metric) return;
+  const metricKey = view.dom.metric.value;
+  if (view.dom.countySelect) {
+    const countyPick = view.dom.countySelect.value;
+    view.countyFilter = countyPick && countyPick !== "*" ? countyPick : null;
+  }
+  setRankingStatus(view, "讀取即時資料...");
   try {
+    await ensureRankingGeo(view);
     const datasetId = metricKey.startsWith("rain") ? RAIN_DATASET : RANKING_DATASET;
     const data = await fetchCwaDataset(datasetId);
     const stations = extractCwaStations(data);
-    const entries = buildRankingEntries(stations, metricKey);
-    rankingState.entries = entries;
-    await renderRanking(entries, metricKey);
-    setRankingDataTime(stations);
-    setRankingStatus(entries.length ? `已更新 ${entries.length} 筆測站` : "找不到有效測站資料");
+    const entries = buildRankingEntries(stations, metricKey, view);
+    view.state.entries = entries;
+    await renderRanking(entries, metricKey, view);
+    setRankingDataTime(stations, view);
+    setRankingStatus(view, entries.length ? `已更新 ${entries.length} 筆測站` : "找不到有效測站資料");
+    focusViewOnCounty(view);
   } catch (err) {
     console.error(err);
-    setRankingStatus(err.message || "即時排名載入失敗");
+    setRankingStatus(view, err.message || "即時排名載入失敗");
   }
 }
 
-function buildRankingEntries(stations, metricKey) {
+function buildRankingEntries(stations, metricKey, view) {
   const metric = rankingMetrics[metricKey] || rankingMetrics.temp;
   const entries = [];
   stations.forEach((station) => {
     const geo = station?.GeoInfo || station?.geoInfo || {};
     const county = normalizeCountyName(geo?.CountyName || geo?.countyName || "");
-    if (county !== REALTIME_COUNTY) return;
+    const countyCode = geo?.CountyCode || geo?.countyCode || "";
+    if (view?.countyFilter) {
+      const targetCode = view.state.countyCodeMap?.[view.countyFilter] || COUNTY_CODE_MAP[view.countyFilter];
+      if (county !== view.countyFilter && countyCode !== targetCode) return;
+    }
     const coords = readStationCoords(geo);
     if (!coords) return;
     const value = metric.value(station);
@@ -1628,6 +1766,7 @@ function buildRankingEntries(stations, metricKey) {
     entries.push({
       id: station?.StationId || station?.stationId || station?.StationID || station?.StationNo || "",
       name: stationName,
+      county,
       town: geo?.TownName || geo?.townName || "",
       lat: coords.lat,
       lon: coords.lon,
@@ -1636,7 +1775,7 @@ function buildRankingEntries(stations, metricKey) {
       temperature: toNumber(readWeatherElement(station, "AirTemperature")),
       humidity: (() => {
         let h = toNumber(readWeatherElement(station, "RelativeHumidity"));
-        if (h != null && h <= 1) h *= 100;
+        if (h != null && h >= 0 && h <= 1) h *= 100;
         return h;
       })(),
       obsTimeRaw: obsTime,
@@ -1657,41 +1796,41 @@ function readStationCoords(geo) {
   return { lat, lon };
 }
 
-async function renderRanking(entries, metricKey) {
-  await ensureRankingTownGeo();
-  renderRankingMap(entries, metricKey);
-  renderRankingTable(entries, metricKey);
-  renderRankingColorbar(metricKey);
+async function renderRanking(entries, metricKey, view) {
+  await ensureRankingGeo(view);
+  renderRankingMap(entries, metricKey, view);
+  renderRankingTable(entries, metricKey, view);
+  renderRankingColorbar(metricKey, view.dom.colorbar);
 }
 
-function renderRankingMap(entries, metricKey) {
-  if (!rankingState.map) return;
+function renderRankingMap(entries, metricKey, view) {
+  if (!view?.state?.map) return;
   const metric = rankingMetrics[metricKey] || rankingMetrics.temp;
-  const map = rankingState.map;
+  const map = view.state.map;
 
-  if (rankingState.townLayer) {
-    map.removeLayer(rankingState.townLayer);
-    rankingState.townLayer = null;
+  if (view.state.townLayer) {
+    map.removeLayer(view.state.townLayer);
+    view.state.townLayer = null;
   }
-  if (rankingState.stationLayer) {
-    map.removeLayer(rankingState.stationLayer);
-    rankingState.stationLayer = null;
+  if (view.state.stationLayer) {
+    map.removeLayer(view.state.stationLayer);
+    view.state.stationLayer = null;
   }
 
-  const townStats = new Map();
+  const areaStats = new Map();
   entries.forEach((entry) => {
-    const townKey = normalizeTownName(entry.town);
-    if (!townKey) return;
-    const current = townStats.get(townKey);
+    const key = getAreaKey(entry, view);
+    if (!key) return;
+    const current = areaStats.get(key);
     if (!current || entry.value > current.value) {
-      townStats.set(townKey, entry);
+      areaStats.set(key, entry);
     }
   });
 
-  rankingState.townLayer = L.geoJSON(rankingState.townGeo, {
+  view.state.townLayer = L.geoJSON(view.state.townGeo, {
     style: (feature) => {
-      const townKey = normalizeTownName(feature?.properties?.[TOWN_NAME_FIELD] || feature?.properties?.name || "");
-      const best = townStats.get(townKey);
+      const key = getAreaKeyFromFeature(feature, view);
+      const best = areaStats.get(key);
       return {
         color: "#2b3a55",
         weight: 1,
@@ -1700,23 +1839,23 @@ function renderRankingMap(entries, metricKey) {
       };
     },
     onEachFeature: (feature, layer) => {
-      const raw = feature?.properties?.[TOWN_NAME_FIELD] || feature?.properties?.name || "";
-      const townKey = normalizeTownName(raw);
-      const best = townStats.get(townKey);
-      const label = buildTownTooltip(raw, best, metricKey, metric);
+      const raw = getAreaNameFromFeature(feature, view);
+      const key = getAreaKeyFromFeature(feature, view);
+      const best = areaStats.get(key);
+      const label = buildAreaTooltip(raw, best, metricKey, metric, view);
       layer.bindTooltip(label, { sticky: true, className: "town-tooltip" });
       layer.on({
         mouseover: (e) => {
           e.target.setStyle({ weight: 2, fillOpacity: 0.5 });
         },
         mouseout: (e) => {
-          rankingState.townLayer.resetStyle(e.target);
+          view.state.townLayer.resetStyle(e.target);
         },
       });
     },
   }).addTo(map);
 
-  rankingState.stationLayer = L.layerGroup().addTo(map);
+  view.state.stationLayer = L.layerGroup().addTo(map);
   entries.forEach((entry, idx) => {
     const fill = getMetricColor(metricKey, metric, entry.value);
     let marker = null;
@@ -1752,29 +1891,39 @@ function renderRankingMap(entries, metricKey) {
         `${sanitizeText(entry.time || "")}`
     );
     marker.on("click", () => {
-      highlightRankingRow(idx, true);
+      const sorted = sortEntries(view.state.entries, view.state.sortDir);
+      const globalIdx = sorted.findIndex((item) => item.id === entry.id && item.lat === entry.lat && item.lon === entry.lon);
+      highlightRankingRow(globalIdx === -1 ? idx : globalIdx, true, view);
     });
-    marker.addTo(rankingState.stationLayer);
+    marker.addTo(view.state.stationLayer);
     entry.marker = marker;
   });
 
   // Keep the initial viewport; avoid auto-fit so the map stays zoomed out.
 }
 
-function renderRankingTable(entries, metricKey) {
-  if (!dom.rankingTableBody) return;
+function renderRankingTable(entries, metricKey, view) {
+  if (!view?.dom?.tableBody) return;
   const metric = rankingMetrics[metricKey] || rankingMetrics.temp;
-  if (dom.rankingTable) {
-    dom.rankingTable.classList.toggle("ranking-table--no-wind", metric.colorScale !== "wind");
-    dom.rankingTable.classList.toggle("ranking-table--thi", metricKey === "thi");
-    dom.rankingTable.classList.toggle("ranking-table--wind", metric.colorScale === "wind");
+  if (view.dom.table) {
+    view.dom.table.classList.toggle("ranking-table--no-wind", metric.colorScale !== "wind");
+    view.dom.table.classList.toggle("ranking-table--thi", metricKey === "thi");
+    view.dom.table.classList.toggle("ranking-table--wind", metric.colorScale === "wind");
+    view.dom.table.classList.toggle("ranking-table--with-town", Boolean(view.showTownColumn));
   }
-  if (dom.rankingValueHeader) {
+  if (view.dom.valueHeader) {
     const label = metricKey === "thi" ? "溫濕度指數(THI)" : metric.label;
     const unitText = metric.unit ? `(${metric.unit})` : "";
-    dom.rankingValueHeader.textContent = `${label}${unitText}`.trim();
+    view.dom.valueHeader.textContent = `${label}${unitText}`.trim();
   }
-  const rows = entries.map((entry, idx) => {
+  const sorted = sortEntries(entries, view.state.sortDir);
+  const pageSize = 50;
+  const totalPages = Math.max(1, Math.ceil(sorted.length / pageSize));
+  if (view.state.page > totalPages) view.state.page = totalPages;
+  const start = (view.state.page - 1) * pageSize;
+  const pageEntries = sorted.slice(start, start + pageSize);
+  const rows = pageEntries.map((entry, idx) => {
+    const rank = view.state.sortDir === "desc" ? start + idx + 1 : sorted.length - (start + idx);
     const valueText = formatRankingValue(metricKey, entry.value, metric.unit);
     const windText =
       metric.colorScale === "wind" && Number.isFinite(entry.direction)
@@ -1786,9 +1935,12 @@ function renderRankingTable(entries, metricKey) {
       metricKey === "thi" && Number.isFinite(entry.humidity) ? `${Number(entry.humidity).toFixed(0)}%` : "—";
     const rowColor = getMetricColor(metricKey, metric, entry.value);
     const rowHover = toRgba(rowColor, 0.16);
-    return `<tr data-rank-idx="${idx}" style="--row-hover:${rowHover};">
-      <td>${idx + 1}</td>
-      <td>${sanitizeText(entry.town || "—")}</td>
+    const areaText = view.showTownColumn ? entry.county || "—" : entry.town || "—";
+    const townText = view.showTownColumn ? entry.town || "—" : null;
+    return `<tr data-rank-idx="${start + idx}" style="--row-hover:${rowHover};">
+      <td>${rank}</td>
+      <td>${sanitizeText(areaText)}</td>
+      ${view.showTownColumn ? `<td>${sanitizeText(townText)}</td>` : ""}
       <td>${sanitizeText(entry.name || "—")}</td>
       <td>${sanitizeText(windText)}</td>
       <td>${sanitizeText(tempText)}</td>
@@ -1796,45 +1948,140 @@ function renderRankingTable(entries, metricKey) {
       <td>${sanitizeText(valueText)}</td>
     </tr>`;
   });
-  dom.rankingTableBody.innerHTML = rows.join("");
-  dom.rankingTableBody.querySelectorAll("tr").forEach((row) => {
+  view.dom.tableBody.innerHTML = rows.join("");
+  view.dom.tableBody.querySelectorAll("tr").forEach((row) => {
     row.addEventListener("click", () => {
-      const idx = Number(row.dataset.rankIdx);
-      highlightRankingRow(idx, true);
+      const globalIdx = Number(row.dataset.rankIdx);
+      highlightRankingRow(globalIdx, true, view);
     });
   });
+  renderPager(view, totalPages, sorted.length);
 }
 
-function highlightRankingRow(index, panTo) {
-  if (!dom.rankingTableBody) return;
-  const rows = Array.from(dom.rankingTableBody.querySelectorAll("tr"));
+function highlightRankingRow(index, panTo, view) {
+  if (!view?.dom?.tableBody) return;
+  const rows = Array.from(view.dom.tableBody.querySelectorAll("tr"));
   rows.forEach((row) => row.classList.remove("ranking-row--active"));
   const activeRow = rows.find((row) => Number(row.dataset.rankIdx) === index);
   if (activeRow) {
     activeRow.classList.add("ranking-row--active");
     if (panTo) activeRow.scrollIntoView({ block: "nearest", behavior: "smooth" });
   }
-  const entry = rankingState.entries[index];
-  if (entry?.marker && rankingState.map) {
+  const sorted = sortEntries(view.state.entries, view.state.sortDir);
+  const entry = sorted[index];
+  if (entry?.marker && view.state.map) {
     entry.marker.openPopup();
     if (panTo) {
-      rankingState.map.setView([entry.lat, entry.lon], 11, { animate: true });
+      view.state.map.setView([entry.lat, entry.lon], 11, { animate: true });
     }
   }
 }
 
-function normalizeTownName(value) {
+function normalizeAreaName(value, view) {
   if (!value) return "";
-  return String(value).replace("彰化縣", "").trim();
+  const raw = String(value).trim();
+  if (view?.areaType === "town") {
+    return raw.replace("彰化縣", "").trim();
+  }
+  return normalizeCountyName(raw);
 }
 
-function buildTownTooltip(rawName, best, metricKey, metric) {
-  const name = sanitizeText(normalizeTownName(rawName || ""));
+function getAreaNameFromFeature(feature, view) {
+  return feature?.properties?.[view.areaProp] || feature?.properties?.name || "";
+}
+
+function getAreaKeyFromFeature(feature, view) {
+  return normalizeAreaName(getAreaNameFromFeature(feature, view), view);
+}
+
+function getAreaKey(entry, view) {
+  const raw = view.areaType === "county" ? entry.county : entry.town;
+  return normalizeAreaName(raw, view);
+}
+
+function buildAreaTooltip(rawName, best, metricKey, metric, view) {
+  const name = sanitizeText(normalizeAreaName(rawName || "", view));
+  const label = name || (view.areaType === "county" ? "未知縣市" : "未知鄉鎮");
   if (!best) {
-    return `<strong>${name || "未知鄉鎮"}</strong>無測站資料`;
+    return `<strong>${label}</strong>無測站資料`;
   }
   const valueText = formatRankingValue(metricKey, best.value, metric.unit);
-  return `<strong>${name || "未知鄉鎮"}</strong>${sanitizeText(best.name || "測站")} ${sanitizeText(valueText)}`;
+  return `<strong>${label}</strong>${sanitizeText(best.name || "測站")} ${sanitizeText(valueText)}`;
+}
+
+function sortEntries(entries, dir) {
+  const list = Array.from(entries || []);
+  list.sort((a, b) => {
+    if (dir === "asc") return a.value - b.value;
+    return b.value - a.value;
+  });
+  return list;
+}
+
+function renderPager(view, totalPages, totalCount) {
+  if (!view?.dom?.pager) return;
+  const current = view.state.page;
+  const prevDisabled = current <= 1 ? "disabled" : "";
+  const nextDisabled = current >= totalPages ? "disabled" : "";
+  const safeTotal = Number.isFinite(totalCount) ? totalCount : 0;
+  view.dom.pager.innerHTML = `
+    <button class="pager-btn" data-page="prev" ${prevDisabled}>上一頁</button>
+    <span>第 ${current} / ${totalPages} 頁</span>
+    <span class="pager-total">共 ${safeTotal} 筆</span>
+    <button class="pager-btn" data-page="next" ${nextDisabled}>下一頁</button>
+  `;
+  view.dom.pager.querySelectorAll("button").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      if (btn.dataset.page === "prev" && view.state.page > 1) {
+        view.state.page -= 1;
+      }
+      if (btn.dataset.page === "next" && view.state.page < totalPages) {
+        view.state.page += 1;
+      }
+      renderRankingTable(view.state.entries, view.dom.metric.value, view);
+    });
+  });
+}
+
+function buildCountyCodeMap(geo) {
+  const map = {};
+  (geo?.features || []).forEach((f) => {
+    const name = f?.properties?.COUNTYNAME || f?.properties?.COUNTYNAME || f?.properties?.CountyName || "";
+    const code = f?.properties?.COUNTYCODE || f?.properties?.CountyCode || "";
+    if (name && code) {
+      map[normalizeCountyName(name)] = String(code);
+    }
+  });
+  return map;
+}
+
+function focusViewOnCounty(view) {
+  if (!view?.state?.map || !view?.state?.townGeo) return;
+  if (!view.countyFilter) {
+    view.state.map.setView(view.mapCenter, view.mapZoom);
+    return;
+  }
+  const target = normalizeCountyName(view.countyFilter);
+  const features = view.state.townGeo.features || [];
+  const bounds = L.latLngBounds();
+  let matched = false;
+  features.forEach((f) => {
+    const countyName = normalizeCountyName(
+      f?.properties?.COUNTYNAME || f?.properties?.CountyName || f?.properties?.countyName || ""
+    );
+    if (countyName !== target) return;
+    const layer = L.geoJSON(f);
+    const b = layer.getBounds();
+    if (b.isValid()) {
+      bounds.extend(b);
+      matched = true;
+    }
+  });
+  if (matched) {
+    view.state.map.fitBounds(bounds, { padding: [20, 20] });
+  } else {
+    view.state.map.setView(view.mapCenter, view.mapZoom);
+  }
 }
 
 function formatRankingValue(metricKey, value, unit) {
@@ -1975,10 +2222,10 @@ function isValidObservation(value) {
   return true;
 }
 
-function setRankingDataTime(stations) {
-  if (!dom.rankingDataTime) return;
+function setRankingDataTime(stations, view) {
+  if (!view?.dom?.dataTime) return;
   const latest = findLatestObsTimeFromStations(stations);
-  dom.rankingDataTime.textContent = latest ? latest : "";
+  view.dom.dataTime.textContent = latest ? latest : "";
 }
 
 function findLatestObsTimeFromStations(stations) {
@@ -2002,12 +2249,12 @@ function findLatestObsTimeFromStations(stations) {
   return latest;
 }
 
-function renderRankingColorbar(metricKey) {
-  if (!dom.rankingColorbar) return;
+function renderRankingColorbar(metricKey, colorbarEl) {
+  if (!colorbarEl) return;
   const metric = rankingMetrics[metricKey] || rankingMetrics.temp;
   const config = buildColorbarConfig(metricKey, metric);
   if (!config) {
-    dom.rankingColorbar.innerHTML = "";
+    colorbarEl.innerHTML = "";
     return;
   }
   const stopsHtml = config.stops
@@ -2051,7 +2298,7 @@ function renderRankingColorbar(metricKey) {
         .join("")}</div>`
     : "";
   if (config.orientation === "vertical") {
-    dom.rankingColorbar.innerHTML = `
+    colorbarEl.innerHTML = `
       <div class="colorbar-title">${sanitizeText(config.title)}</div>
       <div class="colorbar-vertical">
         <div class="colorbar-strip vertical">
@@ -2065,7 +2312,7 @@ function renderRankingColorbar(metricKey) {
     `;
     return;
   }
-  dom.rankingColorbar.innerHTML = `
+  colorbarEl.innerHTML = `
     <div class="colorbar-title">${sanitizeText(config.title)}</div>
     <div class="colorbar-scale">
       <div class="colorbar-strip">
