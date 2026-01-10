@@ -25,7 +25,8 @@
     <button class="tab-btn active" data-tab-target="realtime">即時天氣</button>
     <button class="tab-btn" data-tab-target="rankings">彰化縣氣象地圖</button>
     <button class="tab-btn" data-tab-target="taiwan-rankings">台灣氣象地圖</button>
-<button class="tab-btn" data-tab-target="historical">歷史資料</button>
+    <button class="tab-btn" data-tab-target="disaster">防災地圖</button>
+    <button class="tab-btn" data-tab-target="historical">歷史資料</button>
   </nav>
 
   <main class="tab-panel active" data-tab="realtime">
@@ -273,6 +274,57 @@
             <tbody id="taiwanRankingTableBody"></tbody>
           </table>
           <div class="table-footer" id="taiwanRankingPager"></div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <main class="tab-panel" data-tab="disaster">
+    <section class="panel">
+      <div class="controls">
+        <div class="control">
+          <label for="disasterMetric">指標</label>
+          <select id="disasterMetric"></select>
+        </div>
+        <div class="control buttons">
+          <button id="disasterReloadBtn" class="primary">更新列表</button>
+        </div>
+        <div class="control">
+          <label>狀態</label>
+          <div class="status" id="disasterStatus">尚未載入</div>
+        </div>
+      </div>
+    </section>
+
+    <section class="panel ranking-layout">
+      <div class="ranking-map">
+        <div id="disasterMap" class="map-shell"></div>
+        <div class="hint">僅顯示易致災門檻的測站。</div>
+        <div id="disasterColorbar" class="colorbar-card"></div>
+      </div>
+      <div class="ranking-table">
+        <div class="table-card">
+          <div class="table-header">
+            <span>防災測站即時監測</span>
+            <span id="disasterDataTime" class="table-header-time"></span>
+          </div>
+          <table id="disasterTable">
+            <thead>
+              <tr>
+                <th>排序</th>
+                <th>縣市</th>
+                <th>鄉鎮</th>
+                <th>測站</th>
+                <th>風向</th>
+                <th>溫度</th>
+                <th>濕度</th>
+                <th id="disasterValueHeader">數值</th>
+                <th>警戒等級</th>
+              </tr>
+            </thead>
+            <tbody id="disasterTableBody"></tbody>
+          </table>
+          <div class="table-footer" id="disasterPager"></div>
         </div>
       </div>
     </section>

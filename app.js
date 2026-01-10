@@ -57,6 +57,16 @@ const dom = {
   taiwanRankingMap: document.getElementById("taiwanRankingMap"),
   taiwanReloadRankingBtn: document.getElementById("taiwanReloadRankingBtn"),
   taiwanRankingColorbar: document.getElementById("taiwanRankingColorbar"),
+  disasterMetric: document.getElementById("disasterMetric"),
+  disasterStatus: document.getElementById("disasterStatus"),
+  disasterTableBody: document.getElementById("disasterTableBody"),
+  disasterValueHeader: document.getElementById("disasterValueHeader"),
+  disasterTable: document.getElementById("disasterTable"),
+  disasterDataTime: document.getElementById("disasterDataTime"),
+  disasterPager: document.getElementById("disasterPager"),
+  disasterMap: document.getElementById("disasterMap"),
+  disasterReloadBtn: document.getElementById("disasterReloadBtn"),
+  disasterColorbar: document.getElementById("disasterColorbar"),
 };
 
 let fileIndex = [];
@@ -89,6 +99,19 @@ const rankingState = {
 };
 
 const taiwanRankingState = {
+  map: null,
+  townLayer: null,
+  stationLayer: null,
+  townGeo: null,
+  entries: [],
+  activeRow: null,
+  activeMarker: null,
+  sortDir: "desc",
+  page: 1,
+  countyCodeMap: null,
+};
+
+const disasterState = {
   map: null,
   townLayer: null,
   stationLayer: null,
@@ -258,6 +281,33 @@ const rankingMetrics = {
   },
 };
 
+const disasterMetricKeys = ["temp", "humidity", "wind", "gust", "rain", "rain3hr", "rain24hr"];
+
+const disasterView = {
+  key: "disaster",
+  dom: {
+    metric: dom.disasterMetric,
+    status: dom.disasterStatus,
+    tableBody: dom.disasterTableBody,
+    countySelect: null,
+    valueHeader: dom.disasterValueHeader,
+    table: dom.disasterTable,
+    dataTime: dom.disasterDataTime,
+    pager: dom.disasterPager,
+    map: dom.disasterMap,
+    reloadBtn: dom.disasterReloadBtn,
+    colorbar: dom.disasterColorbar,
+  },
+  state: disasterState,
+  geojsonUrl: "./data/taiwan/townships.geojson",
+  areaProp: "TOWNNAME",
+  areaType: "town",
+  showTownColumn: true,
+  countyFilter: null,
+  mapCenter: [23.7, 121],
+  mapZoom: 7,
+};
+
 const rankingViews = {
   changhua: {
     key: "changhua",
@@ -322,6 +372,7 @@ async function init() {
   setStatus("請先選測站或縣市與時間區間，再點重新載入。");
   initRealtimeView();
   initRankingViews();
+  initDisasterView();
 }
 
 function bindTabs() {
@@ -343,6 +394,11 @@ function bindTabs() {
       if (target === "taiwan-rankings") {
         requestAnimationFrame(() => {
           ensureRankingMapSized(rankingViews.taiwan);
+        });
+      }
+      if (target === "disaster") {
+        requestAnimationFrame(() => {
+          ensureRankingMapSized(disasterView);
         });
       }
     });
@@ -372,6 +428,7 @@ function bindEvents() {
   dom.clearRealtimeBtn?.addEventListener("click", clearRealtimeDisplay);
   bindRankingViewEvents(rankingViews.changhua);
   bindRankingViewEvents(rankingViews.taiwan);
+  bindDisasterViewEvents();
 }
 async function loadIndex() {
   try {
@@ -1673,6 +1730,18 @@ function buildRankingMetricOptions(selectEl) {
   selectEl.value = "temp";
 }
 
+function buildDisasterMetricOptions(selectEl) {
+  if (!selectEl) return;
+  const options = disasterMetricKeys
+    .map((key) => {
+      const metric = rankingMetrics[key];
+      return metric ? `<option value="${key}">${metric.label}</option>` : "";
+    })
+    .filter(Boolean);
+  selectEl.innerHTML = options.join("");
+  selectEl.value = "temp";
+}
+
 function buildCountySelect(view) {
   if (!view?.dom?.countySelect) return;
   const opts = ['<option value="*">全台灣</option>']
@@ -1682,6 +1751,74 @@ function buildCountySelect(view) {
     view.dom.countySelect.value = view.countyFilter;
   } else {
     view.dom.countySelect.value = "*";
+  }
+}
+
+function initDisasterView() {
+  if (!disasterView?.dom?.metric || !disasterView?.dom?.map) return;
+  buildDisasterMetricOptions(disasterView.dom.metric);
+  initRankingMap(disasterView);
+  loadDisasterData();
+}
+
+function bindDisasterViewEvents() {
+  if (!disasterView?.dom) return;
+  disasterView.dom.reloadBtn?.addEventListener("click", loadDisasterData);
+  disasterView.dom.metric?.addEventListener("change", () => {
+    disasterView.state.page = 1;
+    loadDisasterData();
+  });
+  disasterView.dom.valueHeader?.addEventListener("click", () => {
+    disasterView.state.sortDir = disasterView.state.sortDir === "desc" ? "asc" : "desc";
+    disasterView.state.page = 1;
+    renderRankingTable(disasterView.state.entries, disasterView.dom.metric.value, disasterView);
+  });
+}
+
+function isDisasterThreshold(metricKey, value) {
+  if (value == null || !Number.isFinite(value)) return false;
+  switch (metricKey) {
+    case "temp":
+      return value < 10 || value > 34;
+    case "humidity":
+      return value < 50;
+    case "wind":
+      return windToBeaufortLevel(value) >= 6;
+    case "gust":
+      return windToBeaufortLevel(value) >= 8;
+    case "rain":
+      return value > 40;
+    case "rain3hr":
+      return value > 100;
+    case "rain24hr":
+      return value > 200;
+    default:
+      return false;
+  }
+}
+
+function buildDisasterEntries(stations, metricKey, view) {
+  const baseEntries = buildRankingEntries(stations, metricKey, view);
+  return baseEntries.filter((entry) => isDisasterThreshold(metricKey, entry.value));
+}
+
+async function loadDisasterData() {
+  if (!disasterView?.dom?.metric) return;
+  const metricKey = disasterView.dom.metric.value;
+  setRankingStatus(disasterView, "讀取即時資料...");
+  try {
+    await ensureRankingGeo(disasterView);
+    const datasetId = metricKey.startsWith("rain") ? RAIN_DATASET : RANKING_DATASET;
+    const data = await fetchCwaDataset(datasetId);
+    const stations = extractCwaStations(data);
+    const entries = buildDisasterEntries(stations, metricKey, disasterView);
+    disasterView.state.entries = entries;
+    await renderRanking(entries, metricKey, disasterView);
+    setRankingDataTime(stations, disasterView);
+    setRankingStatus(disasterView, entries.length ? `已更新 ${entries.length} 筆警戒測站` : "目前無符合門檻測站");
+  } catch (err) {
+    console.error(err);
+    setRankingStatus(disasterView, err.message || "防災地圖載入失敗");
   }
 }
 
@@ -1910,6 +2047,7 @@ function renderRankingTable(entries, metricKey, view) {
     view.dom.table.classList.toggle("ranking-table--thi", metricKey === "thi");
     view.dom.table.classList.toggle("ranking-table--wind", metric.colorScale === "wind");
     view.dom.table.classList.toggle("ranking-table--with-town", Boolean(view.showTownColumn));
+    view.dom.table.classList.toggle("ranking-table--disaster", view.key === "disaster");
   }
   if (view.dom.valueHeader) {
     const label = metricKey === "thi" ? "溫濕度指數(THI)" : metric.label;
@@ -1937,6 +2075,7 @@ function renderRankingTable(entries, metricKey, view) {
     const rowHover = toRgba(rowColor, 0.16);
     const areaText = view.showTownColumn ? entry.county || "—" : entry.town || "—";
     const townText = view.showTownColumn ? entry.town || "—" : null;
+    const alertText = view.key === "disaster" ? formatDisasterLevel(metricKey, entry.value) : null;
     return `<tr data-rank-idx="${start + idx}" style="--row-hover:${rowHover};">
       <td>${rank}</td>
       <td>${sanitizeText(areaText)}</td>
@@ -1946,6 +2085,7 @@ function renderRankingTable(entries, metricKey, view) {
       <td>${sanitizeText(tempText)}</td>
       <td>${sanitizeText(humidityText)}</td>
       <td>${sanitizeText(valueText)}</td>
+      ${view.key === "disaster" ? `<td>${sanitizeText(alertText)}</td>` : ""}
     </tr>`;
   });
   view.dom.tableBody.innerHTML = rows.join("");
@@ -2096,6 +2236,28 @@ function formatRankingValue(metricKey, value, unit) {
   }
   const suffix = unit ? unit : "";
   return `${Number(value).toFixed(digits)}${suffix}`;
+}
+
+function formatDisasterLevel(metricKey, value) {
+  if (value == null || !Number.isFinite(value)) return "—";
+  switch (metricKey) {
+    case "temp":
+      return value < 10 ? "低溫警戒" : value > 34 ? "高溫警戒" : "—";
+    case "humidity":
+      return value < 50 ? "乾燥警戒" : "—";
+    case "wind":
+      return windToBeaufortLevel(value) >= 6 ? "強風警戒" : "—";
+    case "gust":
+      return windToBeaufortLevel(value) >= 8 ? "強陣風警戒" : "—";
+    case "rain":
+      return value > 40 ? "短時強降雨" : "—";
+    case "rain3hr":
+      return value > 100 ? "大雨警戒(3hr)" : "—";
+    case "rain24hr":
+      return value > 200 ? "豪雨警戒(24hr)" : "—";
+    default:
+      return "—";
+  }
 }
 
 function getMetricColor(metricKey, metric, value) {
