@@ -188,6 +188,10 @@ const RAIN_COLORS_BASE = [
 const RAIN_LEVELS_24HR = [0, 1, 2, 6, 10, 15, 20, 25, 30, 40, 50, 60, 80, 100, 130, 160, 200, 250, 300, 350, 400, 500];
 const RAIN_LEVELS_3HR = [0, 1, 2, 6, 10, 15, 20, 25, 30, 35, 40, 50, 60, 70, 80, 90, 100, 120, 140, 160, 180, 200];
 const RAIN_LEVELS_1HR = [0, 1, 2, 6, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 100];
+const AQI_LEVELS = [0, 50, 100, 150, 200, 300, 500];
+const AQI_COLORS = ["#00e400", "#ffff00", "#ff7e00", "#ff0000", "#8f3f97", "#7e0023"];
+const PM25_LEVELS = [0, 15, 35, 55, 150, 250, 500];
+const PM25_COLORS = ["#00e400", "#ffff00", "#ff7e00", "#ff0000", "#8f3f97", "#7e0023"];
 
 const COUNTY_CODE_MAP = {
   彰化縣: "10007",
@@ -279,9 +283,26 @@ const rankingMetrics = {
     direction: null,
     colorScale: "thi",
   },
+  aqi: {
+    label: "AQI",
+    unit: "",
+    value: () => null,
+    direction: null,
+    colorScale: "aqi",
+  },
+  pm25: {
+    label: "PM2.5",
+    unit: "μg/m3",
+    value: () => null,
+    direction: null,
+    colorScale: "pm25",
+  },
 };
 
-const disasterMetricKeys = ["temp", "apparent", "humidity", "wind", "gust", "rain", "rain3hr", "rain24hr"];
+const rankingMetricKeys = ["temp", "apparent", "humidity", "wind", "gust", "rain", "rain3hr", "rain24hr", "thi"];
+const taiwanMetricKeys = [...rankingMetricKeys, "aqi", "pm25"];
+
+const disasterMetricKeys = ["temp", "apparent", "humidity", "wind", "gust", "rain", "rain3hr", "rain24hr", "aqi", "pm25"];
 
 const disasterView = {
   key: "disaster",
@@ -329,6 +350,7 @@ const rankingViews = {
     areaProp: "名稱",
     areaType: "town",
     showTownColumn: false,
+    metricKeys: rankingMetricKeys,
     countyFilter: REALTIME_COUNTY,
     mapCenter: [23.98, 120.46],
     mapZoom: 10,
@@ -353,6 +375,7 @@ const rankingViews = {
     areaProp: "TOWNNAME",
     areaType: "town",
     showTownColumn: true,
+    metricKeys: taiwanMetricKeys,
     countyFilter: null,
     mapCenter: [23.7, 121],
     mapZoom: 7,
@@ -1635,6 +1658,11 @@ async function fetchAqiDataset() {
   return res.json();
 }
 
+function extractAqiRecords(payload) {
+  const records = payload?.records || payload?.data || [];
+  return Array.isArray(records) ? records : [];
+}
+
 function pickAqiRecord(payload) {
   const records = payload?.records || payload?.data || [];
   if (!Array.isArray(records)) return null;
@@ -1693,7 +1721,7 @@ function renderAqi(record) {
 
 function initRankingView(view) {
   if (!view?.dom?.metric || !view?.dom?.map) return;
-  buildRankingMetricOptions(view.dom.metric);
+  buildRankingMetricOptions(view.dom.metric, view.metricKeys);
   buildCountySelect(view);
   initRankingMap(view);
   loadRankingData(view);
@@ -1721,13 +1749,17 @@ function bindRankingViewEvents(view) {
   });
 }
 
-function buildRankingMetricOptions(selectEl) {
+function buildRankingMetricOptions(selectEl, metricKeys) {
   if (!selectEl) return;
-  const options = Object.entries(rankingMetrics).map(
-    ([key, cfg]) => `<option value="${key}">${cfg.label}</option>`
-  );
+  const keys = Array.isArray(metricKeys) && metricKeys.length ? metricKeys : Object.keys(rankingMetrics);
+  const options = keys
+    .map((key) => {
+      const cfg = rankingMetrics[key];
+      return cfg ? `<option value="${key}">${cfg.label}</option>` : "";
+    })
+    .filter(Boolean);
   selectEl.innerHTML = options.join("");
-  selectEl.value = "temp";
+  selectEl.value = keys.includes("temp") ? "temp" : keys[0] || "temp";
 }
 
 function buildDisasterMetricOptions(selectEl) {
@@ -1794,13 +1826,19 @@ function isDisasterThreshold(metricKey, value) {
       return value > 100;
     case "rain24hr":
       return value > 200;
+    case "aqi":
+      return value >= 101;
+    case "pm25":
+      return value >= 35;
     default:
       return false;
   }
 }
 
 function buildDisasterEntries(stations, metricKey, view) {
-  const baseEntries = buildRankingEntries(stations, metricKey, view);
+  const baseEntries = isAqiMetric(metricKey)
+    ? buildAqiEntries(stations, metricKey, view)
+    : buildRankingEntries(stations, metricKey, view);
   return baseEntries.filter((entry) => isDisasterThreshold(metricKey, entry.value));
 }
 
@@ -1810,6 +1848,16 @@ async function loadDisasterData() {
   setRankingStatus(disasterView, "讀取即時資料...");
   try {
     await ensureRankingGeo(disasterView);
+    if (isAqiMetric(metricKey)) {
+      const data = await fetchAqiDataset();
+      const records = extractAqiRecords(data);
+      const entries = buildDisasterEntries(records, metricKey, disasterView);
+      disasterView.state.entries = entries;
+      await renderRanking(entries, metricKey, disasterView);
+      setRankingDataTimeFromAqi(records, disasterView);
+      setRankingStatus(disasterView, entries.length ? `已更新 ${entries.length} 筆警戒測站` : "目前無符合門檻測站");
+      return;
+    }
     const datasetId = metricKey.startsWith("rain") ? RAIN_DATASET : RANKING_DATASET;
     const data = await fetchCwaDataset(datasetId);
     const stations = extractCwaStations(data);
@@ -1828,6 +1876,10 @@ function setRankingStatus(view, text) {
   if (view?.dom?.status) {
     view.dom.status.textContent = text;
   }
+}
+
+function isAqiMetric(metricKey) {
+  return metricKey === "aqi" || metricKey === "pm25";
 }
 
 function initRankingMap(view) {
@@ -1865,6 +1917,17 @@ async function loadRankingData(view) {
   setRankingStatus(view, "讀取即時資料...");
   try {
     await ensureRankingGeo(view);
+    if (isAqiMetric(metricKey)) {
+      const data = await fetchAqiDataset();
+      const records = extractAqiRecords(data);
+      const entries = buildAqiEntries(records, metricKey, view);
+      view.state.entries = entries;
+      await renderRanking(entries, metricKey, view);
+      setRankingDataTimeFromAqi(records, view);
+      setRankingStatus(view, entries.length ? `已更新 ${entries.length} 筆測站` : "找不到有效測站資料");
+      focusViewOnCounty(view);
+      return;
+    }
     const datasetId = metricKey.startsWith("rain") ? RAIN_DATASET : RANKING_DATASET;
     const data = await fetchCwaDataset(datasetId);
     const stations = extractCwaStations(data);
@@ -1919,6 +1982,38 @@ function buildRankingEntries(stations, metricKey, view) {
       })(),
       obsTimeRaw: obsTime,
       time: formatObsTime(obsTime),
+    });
+  });
+  entries.sort((a, b) => b.value - a.value);
+  return entries;
+}
+
+function buildAqiEntries(records, metricKey, view) {
+  const entries = [];
+  records.forEach((record) => {
+    const county = normalizeCountyName(record?.county || record?.County || "");
+    if (view?.countyFilter && county !== view.countyFilter) return;
+    const lat = toNumber(record?.latitude);
+    const lon = toNumber(record?.longitude);
+    if (!Number.isFinite(lat) || !Number.isFinite(lon)) return;
+    const value =
+      metricKey === "pm25"
+        ? toNumber(record?.["pm2.5"] ?? record?.pm25 ?? record?.pm25_avg)
+        : toNumber(record?.aqi ?? record?.AQI);
+    if (!isValidObservation(value)) return;
+    entries.push({
+      id: record?.siteid || record?.siteId || record?.SiteId || record?.siteID || "",
+      name: record?.sitename || record?.siteName || record?.SiteName || "",
+      county,
+      town: "",
+      lat,
+      lon,
+      value,
+      direction: toNumber(record?.wind_direc),
+      temperature: null,
+      humidity: null,
+      obsTimeRaw: record?.publishtime || record?.PublishTime || "",
+      time: record?.publishtime || record?.PublishTime || "",
     });
   });
   entries.sort((a, b) => b.value - a.value);
@@ -2050,6 +2145,7 @@ function renderRankingTable(entries, metricKey, view) {
     view.dom.table.classList.toggle("ranking-table--wind", metric.colorScale === "wind");
     view.dom.table.classList.toggle("ranking-table--with-town", Boolean(view.showTownColumn));
     view.dom.table.classList.toggle("ranking-table--disaster", view.key === "disaster");
+    view.dom.table.classList.toggle("ranking-table--no-town", isAqiMetric(metricKey));
   }
   if (view.dom.valueHeader) {
     const label = metricKey === "thi" ? "溫濕度指數(THI)" : metric.label;
@@ -2228,7 +2324,7 @@ function focusViewOnCounty(view) {
 
 function formatRankingValue(metricKey, value, unit) {
   if (value == null || !Number.isFinite(value)) return "—";
-  const digits = metricKey === "humidity" ? 0 : 1;
+  const digits = metricKey === "humidity" || metricKey === "aqi" || metricKey === "pm25" ? 0 : 1;
   if (metricKey === "wind" || metricKey === "gust") {
     const label = windToBeaufort(value);
     return `${label} (${Number(value).toFixed(1)}${unit})`;
@@ -2259,6 +2355,14 @@ function formatDisasterLevel(metricKey, value) {
       return value > 100 ? "大雨警戒(3hr)" : "—";
     case "rain24hr":
       return value > 200 ? "豪雨警戒(24hr)" : "—";
+    case "aqi":
+      if (value >= 401) return "危害";
+      if (value >= 301) return "危害";
+      if (value >= 201) return "非常不健康";
+      if (value >= 151) return "對所有族群不健康";
+      return "對敏感族群不健康";
+    case "pm25":
+      return value >= 55 ? "細懸浮微粒警戒" : "細懸浮微粒注意";
     default:
       return "—";
   }
@@ -2293,9 +2397,29 @@ function getMetricColor(metricKey, metric, value) {
         "#d73027",
         "#a50026",
       ]);
+    case "aqi":
+      return aqiColor(value);
+    case "pm25":
+      return pm25Color(value);
     default:
       return "#94a3b8";
   }
+}
+
+function aqiColor(value) {
+  const levels = AQI_LEVELS.slice(1);
+  for (let i = 0; i < levels.length; i += 1) {
+    if (value <= levels[i]) return AQI_COLORS[i] || AQI_COLORS[AQI_COLORS.length - 1];
+  }
+  return AQI_COLORS[AQI_COLORS.length - 1];
+}
+
+function pm25Color(value) {
+  const levels = PM25_LEVELS.slice(1);
+  for (let i = 0; i < levels.length; i += 1) {
+    if (value <= levels[i]) return PM25_COLORS[i] || PM25_COLORS[PM25_COLORS.length - 1];
+  }
+  return PM25_COLORS[PM25_COLORS.length - 1];
 }
 
 function windColor(value) {
@@ -2394,6 +2518,12 @@ function setRankingDataTime(stations, view) {
   view.dom.dataTime.textContent = latest ? latest : "";
 }
 
+function setRankingDataTimeFromAqi(records, view) {
+  if (!view?.dom?.dataTime) return;
+  const latest = findLatestAqiTime(records);
+  view.dom.dataTime.textContent = latest ? latest : "";
+}
+
 function findLatestObsTimeFromStations(stations) {
   let latest = null;
   let latestMs = 0;
@@ -2413,6 +2543,34 @@ function findLatestObsTimeFromStations(stations) {
     }
   });
   return latest;
+}
+
+function findLatestAqiTime(records) {
+  let latest = null;
+  let latestMs = 0;
+  records.forEach((record) => {
+    const raw = record?.publishtime || record?.PublishTime || "";
+    if (!raw) return;
+    const parsed = parseAqiTime(raw);
+    if (!parsed) return;
+    const ts = parsed.getTime();
+    if (ts > latestMs) {
+      latestMs = ts;
+      latest = formatObsTime(raw) || raw;
+    }
+  });
+  return latest;
+}
+
+function parseAqiTime(value) {
+  if (!value) return null;
+  if (value instanceof Date) return value;
+  const text = String(value).trim();
+  const normalized = text.replace(/\//g, "-");
+  const iso = normalized.includes("T") ? normalized : normalized.replace(" ", "T");
+  const parsed = new Date(iso);
+  if (Number.isNaN(parsed.getTime())) return null;
+  return parsed;
 }
 
 function renderRankingColorbar(metricKey, colorbarEl) {
@@ -2554,6 +2712,28 @@ function buildColorbarConfig(metricKey, metric) {
     return {
       title: `${metric.label} (${metric.unit})`,
       stops: RAIN_COLORS_BASE,
+      ticks,
+      tickPositions: positions,
+    };
+  }
+  if (metric.colorScale === "aqi") {
+    const blocks = AQI_COLORS.length;
+    const ticks = AQI_LEVELS.map((v) => String(v));
+    const positions = AQI_LEVELS.map((_, idx) => idx / blocks);
+    return {
+      title: `${metric.label}`,
+      stops: AQI_COLORS,
+      ticks,
+      tickPositions: positions,
+    };
+  }
+  if (metric.colorScale === "pm25") {
+    const blocks = PM25_COLORS.length;
+    const ticks = PM25_LEVELS.map((v) => String(v));
+    const positions = PM25_LEVELS.map((_, idx) => idx / blocks);
+    return {
+      title: `${metric.label} (${metric.unit})`,
+      stops: PM25_COLORS,
       ticks,
       tickPositions: positions,
     };

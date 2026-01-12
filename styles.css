@@ -483,6 +483,11 @@ table tbody tr:nth-child(odd) {
   display: none;
 }
 
+.ranking-table--no-town.ranking-table--with-town th:nth-child(3),
+.ranking-table--no-town.ranking-table--with-town td:nth-child(3) {
+  display: none;
+}
+
 .ranking-layout {
   display: grid;
   grid-template-columns: minmax(0, 1.2fr) minmax(0, 0.8fr);
