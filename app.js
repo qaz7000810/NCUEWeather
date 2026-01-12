@@ -281,7 +281,7 @@ const rankingMetrics = {
   },
 };
 
-const disasterMetricKeys = ["temp", "humidity", "wind", "gust", "rain", "rain3hr", "rain24hr"];
+const disasterMetricKeys = ["temp", "apparent", "humidity", "wind", "gust", "rain", "rain3hr", "rain24hr"];
 
 const disasterView = {
   key: "disaster",
@@ -1780,6 +1780,8 @@ function isDisasterThreshold(metricKey, value) {
   switch (metricKey) {
     case "temp":
       return value < 10 || value > 34;
+    case "apparent":
+      return value < 10 || value > 34;
     case "humidity":
       return value < 50;
     case "wind":
@@ -2242,6 +2244,8 @@ function formatDisasterLevel(metricKey, value) {
   if (value == null || !Number.isFinite(value)) return "—";
   switch (metricKey) {
     case "temp":
+      return value < 10 ? "低溫警戒" : value > 34 ? "高溫警戒" : "—";
+    case "apparent":
       return value < 10 ? "低溫警戒" : value > 34 ? "高溫警戒" : "—";
     case "humidity":
       return value < 50 ? "乾燥警戒" : "—";
