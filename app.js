@@ -192,6 +192,12 @@ const AQI_LEVELS = [0, 50, 100, 150, 200, 300, 500];
 const AQI_COLORS = ["#00e400", "#ffff00", "#ff7e00", "#ff0000", "#8f3f97", "#7e0023"];
 const PM25_LEVELS = [0, 15, 35, 55, 150, 250, 500];
 const PM25_COLORS = ["#00e400", "#ffff00", "#ff7e00", "#ff0000", "#8f3f97", "#7e0023"];
+const PM10_LEVELS = [0, 54, 154, 254, 354, 424, 604];
+const PM10_COLORS = ["#00e400", "#ffff00", "#ff7e00", "#ff0000", "#8f3f97", "#7e0023"];
+const O3_LEVELS = [0, 54, 70, 85, 105, 200];
+const O3_COLORS = ["#00e400", "#ffff00", "#ff7e00", "#ff0000", "#8f3f97"];
+const DISASTER_PM10_THRESHOLD = 155;
+const DISASTER_O3_THRESHOLD = 71;
 
 const COUNTY_CODE_MAP = {
   彰化縣: "10007",
@@ -297,12 +303,26 @@ const rankingMetrics = {
     direction: null,
     colorScale: "pm25",
   },
+  pm10: {
+    label: "PM10",
+    unit: "μg/m3",
+    value: () => null,
+    direction: null,
+    colorScale: "pm10",
+  },
+  o3: {
+    label: "臭氧",
+    unit: "ppb",
+    value: () => null,
+    direction: null,
+    colorScale: "o3",
+  },
 };
 
 const rankingMetricKeys = ["temp", "apparent", "humidity", "wind", "gust", "rain", "rain3hr", "rain24hr", "thi"];
-const taiwanMetricKeys = [...rankingMetricKeys, "aqi", "pm25"];
+const taiwanMetricKeys = [...rankingMetricKeys, "aqi", "pm25", "pm10", "o3"];
 
-const disasterMetricKeys = ["temp", "apparent", "humidity", "wind", "gust", "rain", "rain3hr", "rain24hr", "aqi", "pm25"];
+const disasterMetricKeys = ["temp", "apparent", "humidity", "wind", "gust", "rain", "rain3hr", "rain24hr", "aqi", "pm25", "pm10", "o3"];
 
 const disasterView = {
   key: "disaster",
@@ -1659,12 +1679,13 @@ async function fetchAqiDataset() {
 }
 
 function extractAqiRecords(payload) {
+  if (Array.isArray(payload)) return payload;
   const records = payload?.records || payload?.data || [];
   return Array.isArray(records) ? records : [];
 }
 
 function pickAqiRecord(payload) {
-  const records = payload?.records || payload?.data || [];
+  const records = Array.isArray(payload) ? payload : payload?.records || payload?.data || [];
   if (!Array.isArray(records)) return null;
   return (
     records.find((r) => {
@@ -1830,6 +1851,10 @@ function isDisasterThreshold(metricKey, value) {
       return value >= 101;
     case "pm25":
       return value >= 35;
+    case "pm10":
+      return value >= DISASTER_PM10_THRESHOLD;
+    case "o3":
+      return value >= DISASTER_O3_THRESHOLD;
     default:
       return false;
   }
@@ -1879,7 +1904,7 @@ function setRankingStatus(view, text) {
 }
 
 function isAqiMetric(metricKey) {
-  return metricKey === "aqi" || metricKey === "pm25";
+  return metricKey === "aqi" || metricKey === "pm25" || metricKey === "pm10" || metricKey === "o3";
 }
 
 function initRankingMap(view) {
@@ -1996,10 +2021,16 @@ function buildAqiEntries(records, metricKey, view) {
     const lat = toNumber(record?.latitude);
     const lon = toNumber(record?.longitude);
     if (!Number.isFinite(lat) || !Number.isFinite(lon)) return;
-    const value =
-      metricKey === "pm25"
-        ? toNumber(record?.["pm2.5"] ?? record?.pm25 ?? record?.pm25_avg)
-        : toNumber(record?.aqi ?? record?.AQI);
+    let value = null;
+    if (metricKey === "pm25") {
+      value = toNumber(record?.["pm2.5"] ?? record?.pm25 ?? record?.pm25_avg);
+    } else if (metricKey === "pm10") {
+      value = toNumber(record?.pm10 ?? record?.pm10_avg);
+    } else if (metricKey === "o3") {
+      value = toNumber(record?.o3_8hr ?? record?.o3);
+    } else {
+      value = toNumber(record?.aqi ?? record?.AQI);
+    }
     if (!isValidObservation(value)) return;
     entries.push({
       id: record?.siteid || record?.siteId || record?.SiteId || record?.siteID || "",
@@ -2324,7 +2355,10 @@ function focusViewOnCounty(view) {
 
 function formatRankingValue(metricKey, value, unit) {
   if (value == null || !Number.isFinite(value)) return "—";
-  const digits = metricKey === "humidity" || metricKey === "aqi" || metricKey === "pm25" ? 0 : 1;
+  const digits =
+    metricKey === "humidity" || metricKey === "aqi" || metricKey === "pm25" || metricKey === "pm10" || metricKey === "o3"
+      ? 0
+      : 1;
   if (metricKey === "wind" || metricKey === "gust") {
     const label = windToBeaufort(value);
     return `${label} (${Number(value).toFixed(1)}${unit})`;
@@ -2363,6 +2397,10 @@ function formatDisasterLevel(metricKey, value) {
       return "對敏感族群不健康";
     case "pm25":
       return value >= 55 ? "細懸浮微粒警戒" : "細懸浮微粒注意";
+    case "pm10":
+      return value >= DISASTER_PM10_THRESHOLD ? "PM10警戒" : "—";
+    case "o3":
+      return value >= DISASTER_O3_THRESHOLD ? "臭氧警戒" : "—";
     default:
       return "—";
   }
@@ -2401,6 +2439,10 @@ function getMetricColor(metricKey, metric, value) {
       return aqiColor(value);
     case "pm25":
       return pm25Color(value);
+    case "pm10":
+      return pm10Color(value);
+    case "o3":
+      return o3Color(value);
     default:
       return "#94a3b8";
   }
@@ -2420,6 +2462,22 @@ function pm25Color(value) {
     if (value <= levels[i]) return PM25_COLORS[i] || PM25_COLORS[PM25_COLORS.length - 1];
   }
   return PM25_COLORS[PM25_COLORS.length - 1];
+}
+
+function pm10Color(value) {
+  const levels = PM10_LEVELS.slice(1);
+  for (let i = 0; i < levels.length; i += 1) {
+    if (value <= levels[i]) return PM10_COLORS[i] || PM10_COLORS[PM10_COLORS.length - 1];
+  }
+  return PM10_COLORS[PM10_COLORS.length - 1];
+}
+
+function o3Color(value) {
+  const levels = O3_LEVELS.slice(1);
+  for (let i = 0; i < levels.length; i += 1) {
+    if (value <= levels[i]) return O3_COLORS[i] || O3_COLORS[O3_COLORS.length - 1];
+  }
+  return O3_COLORS[O3_COLORS.length - 1];
 }
 
 function windColor(value) {
@@ -2734,6 +2792,28 @@ function buildColorbarConfig(metricKey, metric) {
     return {
       title: `${metric.label} (${metric.unit})`,
       stops: PM25_COLORS,
+      ticks,
+      tickPositions: positions,
+    };
+  }
+  if (metric.colorScale === "pm10") {
+    const blocks = PM10_COLORS.length;
+    const ticks = PM10_LEVELS.map((v) => String(v));
+    const positions = PM10_LEVELS.map((_, idx) => idx / blocks);
+    return {
+      title: `${metric.label} (${metric.unit})`,
+      stops: PM10_COLORS,
+      ticks,
+      tickPositions: positions,
+    };
+  }
+  if (metric.colorScale === "o3") {
+    const blocks = O3_COLORS.length;
+    const ticks = O3_LEVELS.map((v) => String(v));
+    const positions = O3_LEVELS.map((_, idx) => idx / blocks);
+    return {
+      title: `${metric.label} (${metric.unit})`,
+      stops: O3_COLORS,
       ticks,
       tickPositions: positions,
     };
