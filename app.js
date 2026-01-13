@@ -125,6 +125,9 @@ const disasterState = {
 };
 
 const CWA_BASE = "https://faein.climate-quiz-yuchen.workers.dev/api/v1/rest/datastore";
+const GEO_ASSETS_BASE = "https://raw.githubusercontent.com/qaz7000810/geo-assets/main";
+const CHANGHUA_DATA_BASE = `${GEO_ASSETS_BASE}/changhua`;
+const TYPHOON_COUNTIES_URL = `${GEO_ASSETS_BASE}/typhoon/counties.geojson`;
 const CWA_API_KEY = "";
 const NCUE_STATION_KEYWORDS = ["彰師大", "彰化師大", "國立彰化師範大學", "NCUE"];
 const AQI_ENDPOINT = "https://faein.climate-quiz-yuchen.workers.dev/api/v1/aqi";
@@ -726,7 +729,7 @@ function parseFileAll(text, metricKeys, rollup, allowedStations, bucketMap) {
 }
 
 async function tryParseDailyAll(fileInfo, metricKeys, allowedStations, bucketMap) {
-  const dailyPath = `./data/changhua/daily/${fileInfo.file.replace(".auto_hr.txt", ".daily.json")}`;
+  const dailyPath = resolveFileUrl(`./data/changhua/daily/${fileInfo.file.replace(".auto_hr.txt", ".daily.json")}`);
   let records = dailyCache.get(dailyPath);
   if (!records) {
     const res = await fetch(dailyPath);
@@ -754,6 +757,10 @@ async function tryParseDailyAll(fileInfo, metricKeys, allowedStations, bucketMap
 
 function resolveFileUrl(rawPath) {
   try {
+    if (rawPath && rawPath.startsWith("./data/changhua/")) {
+      const rel = rawPath.replace("./data/changhua/", "");
+      return `${CHANGHUA_DATA_BASE}/${rel}`;
+    }
     return new URL(rawPath, window.location.origin + window.location.pathname).toString();
   } catch (_) {
     return rawPath;
@@ -856,7 +863,7 @@ function requestUserLocation() {
 
 async function ensureCountiesGeo() {
   if (realtimeState.countiesGeo) return realtimeState.countiesGeo;
-  const res = await fetch("./data/typhoon/counties.geojson");
+  const res = await fetch(TYPHOON_COUNTIES_URL);
   if (!res.ok) throw new Error("無法載入縣市邊界資料");
   realtimeState.countiesGeo = await res.json();
   return realtimeState.countiesGeo;
