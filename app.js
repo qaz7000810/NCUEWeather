@@ -191,16 +191,16 @@ const RAIN_COLORS_BASE = [
 const RAIN_LEVELS_24HR = [0, 1, 2, 6, 10, 15, 20, 25, 30, 40, 50, 60, 80, 100, 130, 160, 200, 250, 300, 350, 400, 500];
 const RAIN_LEVELS_3HR = [0, 1, 2, 6, 10, 15, 20, 25, 30, 35, 40, 50, 60, 70, 80, 90, 100, 120, 140, 160, 180, 200];
 const RAIN_LEVELS_1HR = [0, 1, 2, 6, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 100];
-const AQI_LEVELS = [0, 50, 100, 150, 200, 300, 500];
+const AQI_LEVELS = [0, 50, 100, 150, 200, 300];
 const AQI_COLORS = ["#00e400", "#ffff00", "#ff7e00", "#ff0000", "#8f3f97", "#7e0023"];
-const PM25_LEVELS = [0, 15, 35, 55, 150, 250, 500];
+const PM25_LEVELS = [0, 15, 35, 55, 150, 250];
 const PM25_COLORS = ["#00e400", "#ffff00", "#ff7e00", "#ff0000", "#8f3f97", "#7e0023"];
-const PM10_LEVELS = [0, 54, 154, 254, 354, 424, 604];
+const PM10_LEVELS = [0, 50, 100, 255, 355, 425];
 const PM10_COLORS = ["#00e400", "#ffff00", "#ff7e00", "#ff0000", "#8f3f97", "#7e0023"];
-const O3_LEVELS = [0, 54, 70, 85, 105, 200];
-const O3_COLORS = ["#00e400", "#ffff00", "#ff7e00", "#ff0000", "#8f3f97"];
-const DISASTER_PM10_THRESHOLD = 155;
-const DISASTER_O3_THRESHOLD = 71;
+const O3_LEVELS = [0, 125, 165, 205, 405];
+const O3_COLORS = ["#00e400", "#ff7e00", "#ff0000","#8f3f97", "#7e0023"];
+const DISASTER_PM10_THRESHOLD = 255;
+const DISASTER_O3_THRESHOLD = 125;
 
 const COUNTY_CODE_MAP = {
   彰化縣: "10007",
