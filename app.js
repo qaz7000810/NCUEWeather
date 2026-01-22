@@ -1,8 +1,8 @@
 ﻿const metricConfigs = {
-  \12 },
-  \15 },
-  \13 },
-  \14 },
+  TX01: { label: "氣溫 (°C)", mode: "mean", color: "#5be4a8", index: 2 },
+  PP01: { label: "降雨量 (mm)", mode: "sum", color: "#4ea3ff", index: 5 },
+  RH01: { label: "相對濕度 (%)", mode: "mean", color: "#fcb97d", index: 3 },
+  WD01: { label: "風速 (m/s)", mode: "mean", color: "#ff7eb6", index: 4 },
 };
 
 const dom = {
