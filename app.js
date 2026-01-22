@@ -1,8 +1,8 @@
 ﻿const metricConfigs = {
-  TX01: { label: "氣溫 (°C)", mode: "mean", color: "#5be4a8", index: 3 },
-  PP01: { label: "降雨量 (mm)", mode: "sum", color: "#4ea3ff", index: 7 },
-  RH01: { label: "相對濕度 (%)", mode: "mean", color: "#fcb97d", index: 4 },
-  WD01: { label: "風速 (m/s)", mode: "mean", color: "#ff7eb6", index: 5 },
+  \12 },
+  \15 },
+  \13 },
+  \14 },
 };
 
 const dom = {
@@ -710,7 +710,7 @@ function parseFileAll(text, metricKeys, rollup, allowedStations, bucketMap) {
   for (const line of lines) {
     if (!line || line.startsWith("*") || line.startsWith("#")) continue;
     const parts = line.trim().split(/\s+/);
-    if (parts.length <= 8) continue;
+    if (parts.length <= 5) continue;
     const stno = parts[0];
     if (allowedStations && !allowedStations.has(stno)) continue;
 
