@@ -26,9 +26,12 @@ const dom = {
   reloadAlertsBtn: document.getElementById("reloadAlertsBtn"),
   reloadForecastBtn: document.getElementById("reloadForecastBtn"),
   reloadLiveTyphoonBtn: document.getElementById("reloadLiveTyphoonBtn"),
+  reloadRadarBtn: document.getElementById("reloadRadarBtn"),
   clearRealtimeBtn: document.getElementById("clearRealtimeBtn"),
   liveTyphoonMap: document.getElementById("liveTyphoonMap"),
   typhoonLiveList: document.getElementById("typhoonLiveList"),
+  radarMap: document.getElementById("radarMap"),
+  radarStatus: document.getElementById("radarStatus"),
   reloadNCUEBtn: document.getElementById("reloadNCUEBtn"),
   ncueStatus: document.getElementById("ncueStatus"),
   ncueObservation: document.getElementById("ncueObservation"),
@@ -80,6 +83,9 @@ const realtimeState = {
   alertCache: null,
   typhoonMap: null,
   typhoonLayer: null,
+  radarMap: null,
+  radarLayer: null,
+  radarTime: null,
   countiesGeo: null,
   latestObservation: null,
   latestAqi: null,
@@ -128,6 +134,11 @@ const CWA_BASE = "https://faein.climate-quiz-yuchen.workers.dev/api/v1/rest/data
 const GEO_ASSETS_BASE = "https://raw.githubusercontent.com/qaz7000810/geo-assets/main";
 const CHANGHUA_DATA_BASE = `${GEO_ASSETS_BASE}/changhua`;
 const TYPHOON_COUNTIES_URL = `${GEO_ASSETS_BASE}/typhoon/counties.geojson`;
+const CWA_HISTORY_BASE = "https://opendata.cwa.gov.tw/historyapi/v1";
+const CWA_HISTORY_KEY = "CWA-DFA41D22-5B7A-409D-9452-6E02457CA6AA";
+const RADAR_DATASET = "O-A0059-001";
+const RADAR_LEVELS = [0, 5, 10, 20, 30, 40, 50, 60];
+const RADAR_COLORS = ["#d2f5ff", "#9be7ff", "#5bc0ff", "#1f78ff", "#00d26a", "#f6f930", "#ff8c1a", "#ff2d2d"];
 const CWA_API_KEY = "";
 const NCUE_STATION_KEYWORDS = ["彰師大", "彰化師大", "國立彰化師範大學", "NCUE"];
 const AQI_ENDPOINT = "https://faein.climate-quiz-yuchen.workers.dev/api/v1/aqi";
@@ -469,6 +480,7 @@ function bindEvents() {
     loadForecast(REALTIME_COUNTY);
   });
   dom.reloadLiveTyphoonBtn?.addEventListener("click", loadLiveTyphoon);
+  dom.reloadRadarBtn?.addEventListener("click", loadRadarComposite);
   dom.reloadNCUEBtn?.addEventListener("click", loadNCUEObservation);
   dom.reloadAqiBtn?.addEventListener("click", loadAqiData);
   dom.clearRealtimeBtn?.addEventListener("click", clearRealtimeDisplay);
@@ -478,7 +490,7 @@ function bindEvents() {
 }
 async function loadIndex() {
   try {
-    const res = await fetch("./data/changhua/fileIndex.json");
+    const res = await fetch(`${CHANGHUA_DATA_BASE}/fileIndex.json`);
     fileIndex = await res.json();
     if (!Array.isArray(fileIndex) || !fileIndex.length) {
       setStatus("找不到索引檔，請先執行 scripts/build_changhua_subset.py");
@@ -496,7 +508,7 @@ async function loadIndex() {
 
 async function loadStationsMeta() {
   try {
-    const res = await fetch("./data/changhua/stations_meta.json");
+    const res = await fetch(`${CHANGHUA_DATA_BASE}/stations_meta.json`);
     if (!res.ok) return;
     stationsMeta = await res.json();
   } catch (err) {
@@ -913,11 +925,13 @@ function polygonContainsPoint(rings, pt) {
 function initRealtimeView() {
   setRealtimeStatus("已使用 Cloudflare Proxy，直接點「更新全部」即可。");
   initRealtimeMap();
+  initRadarMap();
   loadNCUEObservation();
   loadAqiData();
   loadForecast(REALTIME_COUNTY);
   loadWeatherAlerts();
   loadLiveTyphoon();
+  loadRadarComposite();
 }
 
 function buildRealtimeCountyOptions() {
@@ -942,6 +956,15 @@ function initRealtimeMap() {
   }).addTo(realtimeState.typhoonMap);
 }
 
+function initRadarMap() {
+  if (!dom.radarMap || realtimeState.radarMap) return;
+  realtimeState.radarMap = L.map("radarMap", { zoomControl: true }).setView([23.7, 121], 6);
+  L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+    maxZoom: 10,
+    attribution: "&copy; OpenStreetMap contributors",
+  }).addTo(realtimeState.radarMap);
+}
+
 function ensureRealtimeMapSized() {
   if (!realtimeState.typhoonMap) return;
   realtimeState.typhoonMap.invalidateSize();
@@ -950,6 +973,9 @@ function ensureRealtimeMapSized() {
     if (bounds && bounds.isValid()) {
       realtimeState.typhoonMap.fitBounds(bounds, { padding: [20, 20] });
     }
+  }
+  if (realtimeState.radarMap) {
+    realtimeState.radarMap.invalidateSize();
   }
 }
 
@@ -963,6 +989,7 @@ async function refreshRealtimeAll() {
       loadLiveTyphoon(),
       loadNCUEObservation(),
       loadAqiData(),
+      loadRadarComposite(),
     ]);
     setRealtimeStatus("已完成最新一次更新。");
   } catch (err) {
@@ -979,9 +1006,14 @@ function clearRealtimeDisplay() {
   if (dom.aqiObservation) dom.aqiObservation.innerHTML = "";
   if (dom.ncueStatus) dom.ncueStatus.textContent = "尚未載入";
   if (dom.aqiStatus) dom.aqiStatus.textContent = "尚未載入";
+  if (dom.radarStatus) dom.radarStatus.textContent = "尚未載入";
   if (realtimeState.typhoonLayer && realtimeState.typhoonMap) {
     realtimeState.typhoonMap.removeLayer(realtimeState.typhoonLayer);
     realtimeState.typhoonLayer = null;
+  }
+  if (realtimeState.radarLayer && realtimeState.radarMap) {
+    realtimeState.radarMap.removeLayer(realtimeState.radarLayer);
+    realtimeState.radarLayer = null;
   }
   setRealtimeStatus("已清空資料。");
 }
@@ -2925,6 +2957,130 @@ async function loadLiveTyphoon() {
     renderLiveTyphoon([]);
     setRealtimeStatus(err.message || "讀取颱風資料失敗");
   }
+}
+
+async function loadRadarComposite() {
+  if (!dom.radarStatus) return;
+  setRadarStatus("讀取雷達合成回波...");
+  try {
+    const meta = await fetchRadarMetadata();
+    if (!meta.productUrl) {
+      throw new Error("找不到雷達資料連結");
+    }
+    const res = await fetch(meta.productUrl);
+    if (!res.ok) throw new Error(`雷達資料讀取失敗 (${res.status})`);
+    const xmlText = await res.text();
+    const radar = parseRadarXml(xmlText);
+    const canvas = buildRadarCanvas(radar);
+    const bounds = [
+      [radar.startLat, radar.startLon],
+      [radar.startLat + radar.gridResolution * (radar.gridY - 1), radar.startLon + radar.gridResolution * (radar.gridX - 1)],
+    ];
+    if (realtimeState.radarLayer && realtimeState.radarMap) {
+      realtimeState.radarMap.removeLayer(realtimeState.radarLayer);
+      realtimeState.radarLayer = null;
+    }
+    if (realtimeState.radarMap) {
+      realtimeState.radarLayer = L.imageOverlay(canvas.toDataURL("image/png"), bounds, {
+        opacity: 0.7,
+        interactive: false,
+      }).addTo(realtimeState.radarMap);
+      if (bounds[0] && bounds[1]) {
+        realtimeState.radarMap.fitBounds(bounds, { padding: [10, 10] });
+      }
+    }
+    const timeText = radar.dateTime || meta.dateTime || "";
+    setRadarStatus(timeText ? `更新時間：${formatObsTime(timeText) || timeText}` : "已更新雷達回波");
+  } catch (err) {
+    console.error(err);
+    setRadarStatus(err.message || "雷達資料讀取失敗");
+  }
+}
+
+function setRadarStatus(text) {
+  if (dom.radarStatus) dom.radarStatus.textContent = text;
+}
+
+async function fetchRadarMetadata() {
+  const url = `${CWA_HISTORY_BASE}/getMetadata/${RADAR_DATASET}?Authorization=${CWA_HISTORY_KEY}&limit=1&format=JSON`;
+  const res = await fetch(url);
+  if (!res.ok) throw new Error(`雷達索引讀取失敗 (${res.status})`);
+  const data = await res.json();
+  const timeList = data?.dataset?.resources?.resource?.data?.time || [];
+  const entry = Array.isArray(timeList) && timeList.length ? timeList[0] : null;
+  if (!entry) return { productUrl: "", dateTime: "", updateTime: "" };
+  if (typeof entry === "string") {
+    return parseRadarMetaString(entry);
+  }
+  return {
+    productUrl: entry.ProductURL || entry.productUrl || "",
+    dateTime: entry.DateTime || entry.dateTime || "",
+    updateTime: entry.UpdateTime || entry.updateTime || "",
+  };
+}
+
+function parseRadarMetaString(text) {
+  const productUrl = (text.match(/ProductURL=([^;]+)/) || [])[1] || "";
+  const dateTime = (text.match(/DateTime=([^;]+)/) || [])[1] || "";
+  const updateTime = (text.match(/UpdateTime=([^;]+)/) || [])[1] || "";
+  return { productUrl, dateTime, updateTime };
+}
+
+function parseRadarXml(xmlText) {
+  const parser = new DOMParser();
+  const xml = parser.parseFromString(xmlText, "text/xml");
+  const startLon = Number(getXmlText(xml, "StartPointLongitude"));
+  const startLat = Number(getXmlText(xml, "StartPointLatitude"));
+  const gridResolution = Number(getXmlText(xml, "GridResolution"));
+  const gridX = Number(getXmlText(xml, "GridDimensionX"));
+  const gridY = Number(getXmlText(xml, "GridDimensionY"));
+  const dateTime = getXmlText(xml, "DateTime");
+  const content = getXmlText(xml, "content");
+  if (!content || !Number.isFinite(startLon) || !Number.isFinite(startLat) || !Number.isFinite(gridResolution)) {
+    throw new Error("雷達資料格式不完整");
+  }
+  return { startLon, startLat, gridResolution, gridX, gridY, dateTime, content };
+}
+
+function getXmlText(xml, tagName) {
+  const nodes = xml.getElementsByTagName(tagName);
+  if (!nodes || !nodes.length) return "";
+  return nodes[0].textContent?.trim() || "";
+}
+
+function buildRadarCanvas(radar) {
+  const canvas = document.createElement("canvas");
+  canvas.width = radar.gridX;
+  canvas.height = radar.gridY;
+  const ctx = canvas.getContext("2d");
+  const imageData = ctx.createImageData(radar.gridX, radar.gridY);
+  const values = radar.content.split(",");
+  const total = radar.gridX * radar.gridY;
+  for (let i = 0; i < total && i < values.length; i += 1) {
+    const raw = Number(values[i]);
+    const x = i % radar.gridX;
+    const y = Math.floor(i / radar.gridX);
+    const drawY = radar.gridY - 1 - y;
+    const idx = (drawY * radar.gridX + x) * 4;
+    if (!Number.isFinite(raw) || raw <= -90) {
+      imageData.data[idx + 3] = 0;
+      continue;
+    }
+    const color = radarColor(raw);
+    imageData.data[idx] = color[0];
+    imageData.data[idx + 1] = color[1];
+    imageData.data[idx + 2] = color[2];
+    imageData.data[idx + 3] = 200;
+  }
+  ctx.putImageData(imageData, 0, 0);
+  return canvas;
+}
+
+function radarColor(value) {
+  for (let i = 0; i < RADAR_LEVELS.length; i += 1) {
+    if (value <= RADAR_LEVELS[i]) return hexToRgb(RADAR_COLORS[i]);
+  }
+  return hexToRgb(RADAR_COLORS[RADAR_COLORS.length - 1]);
 }
 
 function normalizeTyphoon(payload) {
