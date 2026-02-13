@@ -409,6 +409,7 @@ table th,
 table td {
   padding: 8px 10px;
   border-bottom: 1px solid var(--border);
+  text-align: center;
 }
 
 table tbody tr:nth-child(odd) {
@@ -485,6 +486,11 @@ table tbody tr:nth-child(odd) {
 
 .ranking-table--no-town.ranking-table--with-town th:nth-child(3),
 .ranking-table--no-town.ranking-table--with-town td:nth-child(3) {
+  display: none;
+}
+
+.ranking-table--no-town:not(.ranking-table--with-town) th:nth-child(2),
+.ranking-table--no-town:not(.ranking-table--with-town) td:nth-child(2) {
   display: none;
 }
 

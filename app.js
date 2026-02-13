@@ -131,11 +131,10 @@ const disasterState = {
 };
 
 const CWA_BASE = "https://faein.climate-quiz-yuchen.workers.dev/api/v1/rest/datastore";
+const CWA_FILEAPI_BASE = "https://faein.climate-quiz-yuchen.workers.dev/api/v1/fileapi/v1/opendataapi";
 const GEO_ASSETS_BASE = "https://raw.githubusercontent.com/qaz7000810/geo-assets/main";
 const CHANGHUA_DATA_BASE = `${GEO_ASSETS_BASE}/changhua`;
 const TYPHOON_COUNTIES_URL = `${GEO_ASSETS_BASE}/typhoon/counties.geojson`;
-const CWA_HISTORY_BASE = "https://opendata.cwa.gov.tw/historyapi/v1";
-const CWA_HISTORY_KEY = "CWA-DFA41D22-5B7A-409D-9452-6E02457CA6AA";
 const RADAR_DATASET = "O-A0059-001";
 const RADAR_LEVELS = [0, 5, 10, 20, 30, 40, 50, 60];
 const RADAR_COLORS = ["#d2f5ff", "#9be7ff", "#5bc0ff", "#1f78ff", "#00d26a", "#f6f930", "#ff8c1a", "#ff2d2d"];
@@ -333,8 +332,8 @@ const rankingMetrics = {
   },
 };
 
-const rankingMetricKeys = ["temp", "apparent", "humidity", "wind", "gust", "rain", "rain3hr", "rain24hr", "thi"];
-const taiwanMetricKeys = [...rankingMetricKeys, "aqi", "pm25", "pm10", "o3"];
+const rankingMetricKeys = ["temp", "apparent", "humidity", "wind", "gust", "rain", "rain3hr", "rain24hr", "thi", "aqi", "pm25", "pm10", "o3"];
+const taiwanMetricKeys = [...rankingMetricKeys];
 
 const disasterMetricKeys = ["temp", "apparent", "humidity", "wind", "gust", "rain", "rain3hr", "rain24hr", "aqi", "pm25", "pm10", "o3"];
 
@@ -958,7 +957,7 @@ function initRealtimeMap() {
 
 function initRadarMap() {
   if (!dom.radarMap || realtimeState.radarMap) return;
-  realtimeState.radarMap = L.map("radarMap", { zoomControl: true }).setView([23.7, 121], 6);
+  realtimeState.radarMap = L.map("radarMap", { zoomControl: true }).setView([23.7, 121], 7);
   L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
     maxZoom: 10,
     attribution: "&copy; OpenStreetMap contributors",
@@ -2963,33 +2962,10 @@ async function loadRadarComposite() {
   if (!dom.radarStatus) return;
   setRadarStatus("讀取雷達合成回波...");
   try {
-    const meta = await fetchRadarMetadata();
-    if (!meta.productUrl) {
-      throw new Error("找不到雷達資料連結");
-    }
-    const res = await fetch(meta.productUrl);
-    if (!res.ok) throw new Error(`雷達資料讀取失敗 (${res.status})`);
-    const xmlText = await res.text();
-    const radar = parseRadarXml(xmlText);
-    const canvas = buildRadarCanvas(radar);
-    const bounds = [
-      [radar.startLat, radar.startLon],
-      [radar.startLat + radar.gridResolution * (radar.gridY - 1), radar.startLon + radar.gridResolution * (radar.gridX - 1)],
-    ];
-    if (realtimeState.radarLayer && realtimeState.radarMap) {
-      realtimeState.radarMap.removeLayer(realtimeState.radarLayer);
-      realtimeState.radarLayer = null;
-    }
-    if (realtimeState.radarMap) {
-      realtimeState.radarLayer = L.imageOverlay(canvas.toDataURL("image/png"), bounds, {
-        opacity: 0.7,
-        interactive: false,
-      }).addTo(realtimeState.radarMap);
-      if (bounds[0] && bounds[1]) {
-        realtimeState.radarMap.fitBounds(bounds, { padding: [10, 10] });
-      }
-    }
-    const timeText = radar.dateTime || meta.dateTime || "";
+    const payload = await fetchRadarFileDataset(RADAR_DATASET);
+    const radar = parseRadarRealtime(payload);
+    renderRadarOverlay(radar);
+    const timeText = radar.dateTime || "";
     setRadarStatus(timeText ? `更新時間：${formatObsTime(timeText) || timeText}` : "已更新雷達回波");
   } catch (err) {
     console.error(err);
@@ -3001,51 +2977,61 @@ function setRadarStatus(text) {
   if (dom.radarStatus) dom.radarStatus.textContent = text;
 }
 
-async function fetchRadarMetadata() {
-  const url = `${CWA_HISTORY_BASE}/getMetadata/${RADAR_DATASET}?Authorization=${CWA_HISTORY_KEY}&limit=1&format=JSON`;
+async function fetchRadarFileDataset(datasetId) {
+  const search = new URLSearchParams({ downloadType: "WEB", format: "JSON" });
+  if (CWA_API_KEY) search.set("Authorization", CWA_API_KEY);
+  const url = `${CWA_FILEAPI_BASE}/${datasetId}?${search.toString()}`;
   const res = await fetch(url);
-  if (!res.ok) throw new Error(`雷達索引讀取失敗 (${res.status})`);
-  const data = await res.json();
-  const timeList = data?.dataset?.resources?.resource?.data?.time || [];
-  const entry = Array.isArray(timeList) && timeList.length ? timeList[0] : null;
-  if (!entry) return { productUrl: "", dateTime: "", updateTime: "" };
-  if (typeof entry === "string") {
-    return parseRadarMetaString(entry);
+  if (!res.ok) {
+    throw new Error(`無法取得 ${datasetId}（${res.status}）`);
   }
-  return {
-    productUrl: entry.ProductURL || entry.productUrl || "",
-    dateTime: entry.DateTime || entry.dateTime || "",
-    updateTime: entry.UpdateTime || entry.updateTime || "",
-  };
+  const data = await res.json();
+  return data;
 }
 
-function parseRadarMetaString(text) {
-  const productUrl = (text.match(/ProductURL=([^;]+)/) || [])[1] || "";
-  const dateTime = (text.match(/DateTime=([^;]+)/) || [])[1] || "";
-  const updateTime = (text.match(/UpdateTime=([^;]+)/) || [])[1] || "";
-  return { productUrl, dateTime, updateTime };
+function renderRadarOverlay(radar) {
+  const canvas = buildRadarCanvas(radar);
+  const bounds = [
+    [radar.startLat, radar.startLon],
+    [radar.startLat + radar.gridResolution * (radar.gridY - 1), radar.startLon + radar.gridResolution * (radar.gridX - 1)],
+  ];
+  if (realtimeState.radarLayer && realtimeState.radarMap) {
+    realtimeState.radarMap.removeLayer(realtimeState.radarLayer);
+    realtimeState.radarLayer = null;
+  }
+  if (realtimeState.radarMap) {
+    realtimeState.radarLayer = L.imageOverlay(canvas.toDataURL("image/png"), bounds, {
+      opacity: 1,
+      interactive: false,
+    }).addTo(realtimeState.radarMap);
+  }
 }
 
-function parseRadarXml(xmlText) {
-  const parser = new DOMParser();
-  const xml = parser.parseFromString(xmlText, "text/xml");
-  const startLon = Number(getXmlText(xml, "StartPointLongitude"));
-  const startLat = Number(getXmlText(xml, "StartPointLatitude"));
-  const gridResolution = Number(getXmlText(xml, "GridResolution"));
-  const gridX = Number(getXmlText(xml, "GridDimensionX"));
-  const gridY = Number(getXmlText(xml, "GridDimensionY"));
-  const dateTime = getXmlText(xml, "DateTime");
-  const content = getXmlText(xml, "content");
+function parseRadarRealtime(payload) {
+  const root = payload?.cwaopendata || payload?.records || payload?.Records || payload;
+  const dataset = root?.dataset || payload?.dataset || {};
+  const info = dataset?.datasetInfo || dataset?.DatasetInfo || {};
+  const paramSet = info?.parameterSet || info?.ParameterSet || {};
+  const startLon = Number(paramSet.StartPointLongitude ?? paramSet.startPointLongitude);
+  const startLat = Number(paramSet.StartPointLatitude ?? paramSet.startPointLatitude);
+  const gridResolution = Number(paramSet.GridResolution ?? paramSet.gridResolution);
+  const gridX = Number(paramSet.GridDimensionX ?? paramSet.gridDimensionX);
+  const gridY = Number(paramSet.GridDimensionY ?? paramSet.gridDimensionY);
+  const dateTime = paramSet.DateTime || paramSet.dateTime || root?.sent || "";
+  const contents = dataset?.contents || dataset?.Contents || {};
+  const content = contents.content || contents.Content || "";
   if (!content || !Number.isFinite(startLon) || !Number.isFinite(startLat) || !Number.isFinite(gridResolution)) {
     throw new Error("雷達資料格式不完整");
   }
-  return { startLon, startLat, gridResolution, gridX, gridY, dateTime, content };
-}
-
-function getXmlText(xml, tagName) {
-  const nodes = xml.getElementsByTagName(tagName);
-  if (!nodes || !nodes.length) return "";
-  return nodes[0].textContent?.trim() || "";
+  return {
+    startLon,
+    startLat,
+    gridResolution,
+    gridX,
+    gridY,
+    dateTime,
+    content,
+  };
 }
 
 function buildRadarCanvas(radar) {
