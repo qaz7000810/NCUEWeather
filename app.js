@@ -3370,7 +3370,9 @@ function getHealthWarningSeverity(raw, metricKey) {
   if (!hasHealthWarning(raw)) return 0;
   const levelDefs = HEALTH_WARNING_LEVELS[metricKey] || [];
   const text = String(raw).trim();
-  const matched = levelDefs.find((def) => def.keywords.some((kw) => text.includes(kw)));
+  const matched = [...levelDefs]
+    .sort((a, b) => b.level - a.level)
+    .find((def) => def.keywords.some((kw) => text.includes(kw)));
   if (matched) return matched.level;
   const num = Number(raw);
   if (Number.isFinite(num) && num > 0) return Math.min(4, Math.max(1, Math.round(num)));
@@ -3381,6 +3383,8 @@ function getHealthWarningSeverity(raw, metricKey) {
 }
 
 function extractHealthLocations(payload) {
+  const recordsLocations = payload?.records?.Locations || payload?.Records?.Locations;
+  if (Array.isArray(recordsLocations)) return recordsLocations;
   const root = payload?.cwaopendata || payload;
   const resource = root?.Resources?.Resource || root?.resources?.resource || {};
   const data = resource?.Data || resource?.data || {};
@@ -3389,6 +3393,19 @@ function extractHealthLocations(payload) {
 }
 
 function extractHealthIssueTime(payload) {
+  const recordsLocations = payload?.records?.Locations || payload?.Records?.Locations;
+  if (Array.isArray(recordsLocations)) {
+    for (const county of recordsLocations) {
+      const towns = county?.Location || [];
+      if (!Array.isArray(towns)) continue;
+      for (const town of towns) {
+        const times = town?.Time || [];
+        if (!Array.isArray(times)) continue;
+        const t = times.find((x) => x?.IssueTime);
+        if (t?.IssueTime) return t.IssueTime;
+      }
+    }
+  }
   const root = payload?.cwaopendata || payload;
   const resource = root?.Resources?.Resource || root?.resources?.resource || {};
   const meta = resource?.Metadata || resource?.metadata || {};
