@@ -70,6 +70,16 @@ const dom = {
   disasterMap: document.getElementById("disasterMap"),
   disasterReloadBtn: document.getElementById("disasterReloadBtn"),
   disasterColorbar: document.getElementById("disasterColorbar"),
+  healthMetric: document.getElementById("healthMetric"),
+  healthStatus: document.getElementById("healthStatus"),
+  healthTableBody: document.getElementById("healthTableBody"),
+  healthValueHeader: document.getElementById("healthValueHeader"),
+  healthTable: document.getElementById("healthTable"),
+  healthDataTime: document.getElementById("healthDataTime"),
+  healthPager: document.getElementById("healthPager"),
+  healthMap: document.getElementById("healthMap"),
+  healthReloadBtn: document.getElementById("healthReloadBtn"),
+  healthColorbar: document.getElementById("healthColorbar"),
 };
 
 let fileIndex = [];
@@ -130,9 +140,24 @@ const disasterState = {
   countyCodeMap: null,
 };
 
+const healthState = {
+  map: null,
+  townLayer: null,
+  stationLayer: null,
+  townGeo: null,
+  entries: [],
+  activeRow: null,
+  activeMarker: null,
+  sortDir: "desc",
+  page: 1,
+  countyCodeMap: null,
+};
+
 const CWA_BASE = "https://faein.climate-quiz-yuchen.workers.dev/api/v1/rest/datastore";
 const CWA_FILEAPI_BASE = "https://faein.climate-quiz-yuchen.workers.dev/api/v1/fileapi/v1/opendataapi";
 const GEO_ASSETS_BASE = "https://raw.githubusercontent.com/qaz7000810/geo-assets/main";
+const GEO_ASSETS_CDN_BASE = "https://cdn.jsdelivr.net/gh/qaz7000810/geo-assets@main";
+const GEO_ASSETS_PAGES_BASE = "https://qaz7000810.github.io/geo-assets";
 const CHANGHUA_DATA_BASE = `${GEO_ASSETS_BASE}/changhua`;
 const TYPHOON_COUNTIES_URL = `${GEO_ASSETS_BASE}/typhoon/counties.geojson`;
 const RADAR_DATASET = "O-A0059-001";
@@ -146,6 +171,9 @@ const AQI_API_KEY = "";
 const REALTIME_COUNTY = "彰化縣";
 const RANKING_DATASET = "O-A0001-001";
 const RAIN_DATASET = "O-A0002-001";
+const COLD_INJURY_DATASET = "F-A0085-003";
+const TEMP_DIFF_DATASET = "F-A0085-005";
+const HEAT_INJURY_DATASET = "M-A0085-001";
 const TOWN_NAME_FIELD = "名稱";
 const CWA_COUNTIES = [
   "基隆市",
@@ -211,6 +239,27 @@ const O3_LEVELS = [0, 125, 165, 205, 405];
 const O3_COLORS = ["#00e400", "#ff7e00", "#ff0000","#8f3f97", "#7e0023"];
 const DISASTER_PM10_THRESHOLD = 255;
 const DISASTER_O3_THRESHOLD = 125;
+const HEALTH_WARNING_COLORS = ["#f5d64a", "#f39c34", "#dd4b39", "#9f1239"];
+const HEALTH_WARNING_LEVELS = {
+  coldInjury: [
+    { level: 1, label: "注意", thresholdText: "<=10", keywords: ["注意"] },
+    { level: 2, label: "警戒", thresholdText: "<=8", keywords: ["警戒"] },
+    { level: 3, label: "危險", thresholdText: "<=6", keywords: ["危險"] },
+    { level: 4, label: "高危險", thresholdText: "<=4", keywords: ["高危險"] },
+  ],
+  tempDiff: [
+    { level: 1, label: "注意", thresholdText: "7-8", keywords: ["注意"] },
+    { level: 2, label: "警戒", thresholdText: "9-10", keywords: ["警戒"] },
+    { level: 3, label: "危險", thresholdText: "11-12", keywords: ["危險"] },
+    { level: 4, label: "高危險", thresholdText: ">=13", keywords: ["高危險"] },
+  ],
+  heatInjury: [
+    { level: 1, label: "注意", thresholdText: ">=32", keywords: ["注意"] },
+    { level: 2, label: "警戒", thresholdText: ">=34", keywords: ["警戒"] },
+    { level: 3, label: "危險", thresholdText: ">=36", keywords: ["危險"] },
+    { level: 4, label: "高危險", thresholdText: ">=38", keywords: ["高危險"] },
+  ],
+};
 
 const COUNTY_CODE_MAP = {
   彰化縣: "10007",
@@ -330,12 +379,34 @@ const rankingMetrics = {
     direction: null,
     colorScale: "o3",
   },
+  coldInjury: {
+    label: "冷傷害指數",
+    unit: "",
+    value: () => null,
+    direction: null,
+    colorScale: "health",
+  },
+  tempDiff: {
+    label: "溫差提醒指數",
+    unit: "",
+    value: () => null,
+    direction: null,
+    colorScale: "health",
+  },
+  heatInjury: {
+    label: "熱傷害指數",
+    unit: "",
+    value: () => null,
+    direction: null,
+    colorScale: "health",
+  },
 };
 
 const rankingMetricKeys = ["temp", "apparent", "humidity", "wind", "gust", "rain", "rain3hr", "rain24hr", "thi", "aqi", "pm25", "pm10", "o3"];
 const taiwanMetricKeys = [...rankingMetricKeys];
 
 const disasterMetricKeys = ["temp", "apparent", "humidity", "wind", "gust", "rain", "rain3hr", "rain24hr", "aqi", "pm25", "pm10", "o3"];
+const healthMetricKeys = ["coldInjury", "tempDiff", "heatInjury"];
 
 const disasterView = {
   key: "disaster",
@@ -353,6 +424,31 @@ const disasterView = {
     colorbar: dom.disasterColorbar,
   },
   state: disasterState,
+  geojsonUrl: "https://raw.githubusercontent.com/qaz7000810/geo-assets/main/townships.geojson",
+  areaProp: "TOWNNAME",
+  areaType: "town",
+  showTownColumn: true,
+  countyFilter: null,
+  mapCenter: [23.7, 121],
+  mapZoom: 7,
+};
+
+const healthView = {
+  key: "health",
+  dom: {
+    metric: dom.healthMetric,
+    status: dom.healthStatus,
+    tableBody: dom.healthTableBody,
+    countySelect: null,
+    valueHeader: dom.healthValueHeader,
+    table: dom.healthTable,
+    dataTime: dom.healthDataTime,
+    pager: dom.healthPager,
+    map: dom.healthMap,
+    reloadBtn: dom.healthReloadBtn,
+    colorbar: dom.healthColorbar,
+  },
+  state: healthState,
   geojsonUrl: "https://raw.githubusercontent.com/qaz7000810/geo-assets/main/townships.geojson",
   areaProp: "TOWNNAME",
   areaType: "town",
@@ -429,6 +525,7 @@ async function init() {
   initRealtimeView();
   initRankingViews();
   initDisasterView();
+  initHealthView();
 }
 
 function bindTabs() {
@@ -455,6 +552,11 @@ function bindTabs() {
       if (target === "disaster") {
         requestAnimationFrame(() => {
           ensureRankingMapSized(disasterView);
+        });
+      }
+      if (target === "health") {
+        requestAnimationFrame(() => {
+          ensureRankingMapSized(healthView);
         });
       }
     });
@@ -486,11 +588,17 @@ function bindEvents() {
   bindRankingViewEvents(rankingViews.changhua);
   bindRankingViewEvents(rankingViews.taiwan);
   bindDisasterViewEvents();
+  bindHealthViewEvents();
 }
 async function loadIndex() {
   try {
     const res = await fetch(`${CHANGHUA_DATA_BASE}/fileIndex.json`);
     fileIndex = await res.json();
+    fileIndex = (Array.isArray(fileIndex) ? fileIndex : []).map((item) => {
+      const file = String(item?.file || "");
+      const fixedPath = /^\d{6}99\.auto_hr\.txt$/i.test(file) ? `./data/changhua/hourly/${file}` : item?.path;
+      return { ...item, path: fixedPath };
+    });
     if (!Array.isArray(fileIndex) || !fileIndex.length) {
       setStatus("找不到索引檔，請先執行 scripts/build_changhua_subset.py");
       return;
@@ -520,25 +628,37 @@ async function loadStationsMeta() {
 
 function buildCountyOptions() {
   if (!dom.countySelect) return;
+  const targetCounty = normalizeCountyName(REALTIME_COUNTY);
   const counties = new Set(
     stationsMeta
       .filter((s) => !s.status || s.status === "existing")
-      .map((s) => s.county)
+      .map((s) => normalizeCountyName(s.county))
       .filter(Boolean)
   );
-  const options = ['<option value="*">全部縣市</option>'].concat(
-    Array.from(counties)
-      .sort()
-      .map((c) => `<option value="${c}">${c}</option>`)
-  );
+  const preferredCounty = counties.has(targetCounty) ? targetCounty : null;
+  const options = preferredCounty
+    ? [`<option value="${preferredCounty}">${preferredCounty}</option>`]
+    : ['<option value="*">全部縣市</option>'].concat(
+        Array.from(counties)
+          .sort()
+          .map((c) => `<option value="${c}">${c}</option>`)
+      );
   dom.countySelect.innerHTML = options.join("");
+  if (preferredCounty) {
+    dom.countySelect.value = preferredCounty;
+  }
+  buildStationOptions();
 }
 
 function buildStationOptions() {
-  const county = dom.countySelect ? dom.countySelect.value : "";
-  let list = stationsMeta.filter((s) => !s.status || s.status === "existing");
+  const prevPick = dom.stationSelect?.value || "*";
+  const county = dom.countySelect ? normalizeCountyName(dom.countySelect.value) : "";
+  const targetCounty = normalizeCountyName(REALTIME_COUNTY);
+  let list = stationsMeta
+    .filter((s) => !s.status || s.status === "existing")
+    .filter((s) => normalizeCountyName(s.county) === targetCounty);
   if (county && county !== "*") {
-    list = list.filter((s) => s.county === county);
+    list = list.filter((s) => normalizeCountyName(s.county) === county);
   }
   const options = ['<option value="*">全部測站（縣內平均）</option>'].concat(
     list
@@ -546,8 +666,10 @@ function buildStationOptions() {
       .map((s) => `<option value="${s.id}">${s.id} ｜ ${s.name || ""}</option>`)
   );
   dom.stationSelect.innerHTML = options.join("");
-  if (list.some((s) => s.id === "A0G720")) {
-    dom.stationSelect.value = "A0G720";
+  if (prevPick && (prevPick === "*" || list.some((s) => s.id === prevPick))) {
+    dom.stationSelect.value = prevPick;
+  } else {
+    dom.stationSelect.value = "*";
   }
 }
 
@@ -612,11 +734,25 @@ async function refreshChart() {
     const payload = await loadAllSeries();
     if (!payload.points || !payload.labels.length) {
       clearChart();
-      setStatus("目前條件沒有有效資料（可能都是 -999x）");
+      if (payload.failedFiles > 0) {
+        const detail = payload.firstFailureReason ? `；首個錯誤：${payload.firstFailureReason}` : "";
+        setStatus(`目前讀不到有效檔案內容（已略過 ${payload.failedFiles} 個檔案）${detail}`);
+        return;
+      }
+      const pick = dom.stationSelect?.value;
+      if (pick && pick !== "*") {
+        setStatus(`測站 ${pick} 在目前區間無有效資料，請改選「全部測站」或調整月份。`);
+      } else {
+        setStatus("目前條件沒有有效資料（可能都是 -999x）");
+      }
       return;
     }
     renderCharts(payload);
-    setStatus(`完成：${payload.points} 筆資料已匯總`);
+    if (payload.failedFiles > 0) {
+      setStatus(`完成：${payload.points} 筆資料已匯總（略過 ${payload.failedFiles} 個失敗檔案）`);
+    } else {
+      setStatus(`完成：${payload.points} 筆資料已匯總`);
+    }
   } catch (err) {
     console.error(err);
     setStatus("載入失敗，請檢查主控台與檔案路徑");
@@ -639,10 +775,10 @@ function resolveStations() {
     return new Set([pick]);
   }
   if (!dom.countySelect) return null;
-  const county = dom.countySelect.value;
+  const county = normalizeCountyName(dom.countySelect.value) || normalizeCountyName(REALTIME_COUNTY);
   if (!county || county === "*") return null;
   const ids = stationsMeta
-    .filter((s) => (!s.status || s.status === "existing") && s.county === county)
+    .filter((s) => (!s.status || s.status === "existing") && normalizeCountyName(s.county) === county)
     .map((s) => s.id);
   return ids.length ? new Set(ids) : null;
 }
@@ -656,6 +792,8 @@ async function loadAllSeries() {
   const files = fileIndex.slice(startIdx, endIdx + 1);
   const allowedStations = resolveStations();
   let pointCount = 0;
+  let failedFiles = 0;
+  let firstFailureReason = "";
 
   for (let i = 0; i < files.length; i += 1) {
     const f = files[i];
@@ -664,17 +802,16 @@ async function loadAllSeries() {
       const ok = await tryParseDailyAll(f, metricKeys, allowedStations, bucketMap);
       if (ok) continue;
     }
-    const url = resolveFileUrl(f.path);
-    let text = fileCache.get(url);
-    if (!text) {
-      const res = await fetch(url);
-      if (!res.ok) {
-        throw new Error(`讀取失敗：${f.file} (${res.status})`);
+    try {
+      const text = await fetchChanghuaText(f.path);
+      parseFileAll(text, metricKeys, rollup, allowedStations, bucketMap);
+    } catch (err) {
+      failedFiles += 1;
+      if (!firstFailureReason) {
+        firstFailureReason = err?.message || String(err);
       }
-      text = await res.text();
-      fileCache.set(url, text);
+      console.warn(`讀取失敗，已略過 ${f.file}:`, err?.message || err);
     }
-    parseFileAll(text, metricKeys, rollup, allowedStations, bucketMap);
   }
 
   const keySet = new Set();
@@ -713,6 +850,8 @@ async function loadAllSeries() {
     labels,
     series,
     points: pointCount,
+    failedFiles,
+    firstFailureReason,
   };
 }
 
@@ -1833,6 +1972,87 @@ function buildDisasterMetricOptions(selectEl) {
   selectEl.value = "temp";
 }
 
+function resolveChanghuaCandidateUrls(rawPath) {
+  if (!rawPath) return [];
+  const normalized = String(rawPath).replace(/\\/g, "/");
+  const fileName = normalized.split("/").pop() || "";
+  const isHourlyFile = /^\d{6}99\.auto_hr\.txt$/i.test(fileName);
+  if (normalized.startsWith("./data/changhua/")) {
+    const rel = normalized.replace("./data/changhua/", "");
+    return [
+      `${CHANGHUA_DATA_BASE}/${rel}`,
+      `${GEO_ASSETS_CDN_BASE}/changhua/${rel}`,
+      `${GEO_ASSETS_PAGES_BASE}/changhua/${rel}`,
+      `${window.location.origin}/data/changhua/${rel}`,
+    ];
+  }
+  if (isHourlyFile) {
+    const rel = `hourly/${fileName}`;
+    return [
+      `${CHANGHUA_DATA_BASE}/${rel}`,
+      `${GEO_ASSETS_CDN_BASE}/changhua/${rel}`,
+      `${GEO_ASSETS_PAGES_BASE}/changhua/${rel}`,
+      `${window.location.origin}/data/changhua/${rel}`,
+    ];
+  }
+  return [resolveFileUrl(normalized)];
+}
+
+async function fetchChanghuaText(rawPath) {
+  const candidates = resolveChanghuaCandidateUrls(rawPath);
+  let lastErr = null;
+  for (const url of candidates) {
+    let text = fileCache.get(url);
+    if (text) return text;
+    try {
+      const res = await fetch(url, { cache: "no-cache" });
+      if (!res.ok) {
+        lastErr = new Error(`HTTP ${res.status} @ ${url}`);
+        continue;
+      }
+      text = await res.text();
+      if (!isLikelyHourlyText(text)) {
+        lastErr = new Error(`內容格式異常 @ ${url}`);
+        continue;
+      }
+      fileCache.set(url, text);
+      return text;
+    } catch (err) {
+      lastErr = err;
+    }
+  }
+  throw lastErr || new Error(`讀取失敗：${rawPath}`);
+}
+
+function isLikelyHourlyText(text) {
+  if (!text || typeof text !== "string") return false;
+  const sample = text
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .filter(Boolean)
+    .slice(0, 30);
+  if (!sample.length) return false;
+  let matched = 0;
+  for (const line of sample) {
+    if (/^[A-Za-z0-9]{6}\s+\d{10}\s+/.test(line)) {
+      matched += 1;
+    }
+  }
+  return matched >= Math.min(5, sample.length);
+}
+
+function buildHealthMetricOptions(selectEl) {
+  if (!selectEl) return;
+  const options = healthMetricKeys
+    .map((key) => {
+      const metric = rankingMetrics[key];
+      return metric ? `<option value="${key}">${metric.label}</option>` : "";
+    })
+    .filter(Boolean);
+  selectEl.innerHTML = options.join("");
+  selectEl.value = "coldInjury";
+}
+
 function buildCountySelect(view) {
   if (!view?.dom?.countySelect) return;
   const opts = ['<option value="*">全台灣</option>']
@@ -1852,6 +2072,13 @@ function initDisasterView() {
   loadDisasterData();
 }
 
+function initHealthView() {
+  if (!healthView?.dom?.metric || !healthView?.dom?.map) return;
+  buildHealthMetricOptions(healthView.dom.metric);
+  initRankingMap(healthView);
+  loadHealthData();
+}
+
 function bindDisasterViewEvents() {
   if (!disasterView?.dom) return;
   disasterView.dom.reloadBtn?.addEventListener("click", loadDisasterData);
@@ -1863,6 +2090,20 @@ function bindDisasterViewEvents() {
     disasterView.state.sortDir = disasterView.state.sortDir === "desc" ? "asc" : "desc";
     disasterView.state.page = 1;
     renderRankingTable(disasterView.state.entries, disasterView.dom.metric.value, disasterView);
+  });
+}
+
+function bindHealthViewEvents() {
+  if (!healthView?.dom) return;
+  healthView.dom.reloadBtn?.addEventListener("click", loadHealthData);
+  healthView.dom.metric?.addEventListener("change", () => {
+    healthView.state.page = 1;
+    loadHealthData();
+  });
+  healthView.dom.valueHeader?.addEventListener("click", () => {
+    healthView.state.sortDir = healthView.state.sortDir === "desc" ? "asc" : "desc";
+    healthView.state.page = 1;
+    renderRankingTable(healthView.state.entries, healthView.dom.metric.value, healthView);
   });
 }
 
@@ -2110,6 +2351,7 @@ function renderRankingMap(entries, metricKey, view) {
   if (!view?.state?.map) return;
   const metric = rankingMetrics[metricKey] || rankingMetrics.temp;
   const map = view.state.map;
+  const isHealthView = view.key === "health";
 
   if (view.state.townLayer) {
     map.removeLayer(view.state.townLayer);
@@ -2137,8 +2379,8 @@ function renderRankingMap(entries, metricKey, view) {
       return {
         color: "#2b3a55",
         weight: 1,
-        fillOpacity: 0,
-        fillColor: "transparent",
+        fillOpacity: isHealthView && best ? 0.45 : 0,
+        fillColor: isHealthView && best ? getMetricColor(metricKey, metric, best.value) : "transparent",
       };
     },
     onEachFeature: (feature, layer) => {
@@ -2149,7 +2391,8 @@ function renderRankingMap(entries, metricKey, view) {
       layer.bindTooltip(label, { sticky: true, className: "town-tooltip" });
       layer.on({
         mouseover: (e) => {
-          e.target.setStyle({ weight: 2, fillOpacity: 0.5 });
+          const hoverStyle = isHealthView && best ? { weight: 2, fillOpacity: 0.7 } : { weight: 2, fillOpacity: 0.5 };
+          e.target.setStyle(hoverStyle);
         },
         mouseout: (e) => {
           view.state.townLayer.resetStyle(e.target);
@@ -2157,6 +2400,11 @@ function renderRankingMap(entries, metricKey, view) {
       });
     },
   }).addTo(map);
+
+  if (isHealthView) {
+    view.state.stationLayer = L.layerGroup().addTo(map);
+    return;
+  }
 
   view.state.stationLayer = L.layerGroup().addTo(map);
   entries.forEach((entry, idx) => {
@@ -2214,6 +2462,7 @@ function renderRankingTable(entries, metricKey, view) {
     view.dom.table.classList.toggle("ranking-table--wind", metric.colorScale === "wind");
     view.dom.table.classList.toggle("ranking-table--with-town", Boolean(view.showTownColumn));
     view.dom.table.classList.toggle("ranking-table--disaster", view.key === "disaster");
+    view.dom.table.classList.toggle("ranking-table--health", view.key === "health");
     view.dom.table.classList.toggle("ranking-table--no-town", isAqiMetric(metricKey));
   }
   if (view.dom.valueHeader) {
@@ -2229,7 +2478,9 @@ function renderRankingTable(entries, metricKey, view) {
   const pageEntries = sorted.slice(start, start + pageSize);
   const rows = pageEntries.map((entry, idx) => {
     const rank = view.state.sortDir === "desc" ? start + idx + 1 : sorted.length - (start + idx);
-    const valueText = formatRankingValue(metricKey, entry.value, metric.unit);
+    const valueText = isHealthMetric(metricKey)
+      ? formatHealthValue(entry, metric)
+      : formatRankingValue(metricKey, entry.value, metric.unit);
     const windText =
       metric.colorScale === "wind" && Number.isFinite(entry.direction)
         ? formatWindDirection(entry.direction)
@@ -2242,7 +2493,7 @@ function renderRankingTable(entries, metricKey, view) {
     const rowHover = toRgba(rowColor, 0.16);
     const areaText = view.showTownColumn ? entry.county || "—" : entry.town || "—";
     const townText = view.showTownColumn ? entry.town || "—" : null;
-    const alertText = view.key === "disaster" ? formatDisasterLevel(metricKey, entry.value) : null;
+    const alertText = view.key === "disaster" ? formatDisasterLevel(metricKey, entry.value) : view.key === "health" ? formatHealthWarningText(entry) : null;
     return `<tr data-rank-idx="${start + idx}" style="--row-hover:${rowHover};">
       <td>${rank}</td>
       <td>${sanitizeText(areaText)}</td>
@@ -2252,7 +2503,7 @@ function renderRankingTable(entries, metricKey, view) {
       <td>${sanitizeText(tempText)}</td>
       <td>${sanitizeText(humidityText)}</td>
       <td>${sanitizeText(valueText)}</td>
-      ${view.key === "disaster" ? `<td>${sanitizeText(alertText)}</td>` : ""}
+      ${view.key === "disaster" || view.key === "health" ? `<td>${sanitizeText(alertText)}</td>` : ""}
     </tr>`;
   });
   view.dom.tableBody.innerHTML = rows.join("");
@@ -2281,6 +2532,8 @@ function highlightRankingRow(index, panTo, view) {
     if (panTo) {
       view.state.map.setView([entry.lat, entry.lon], 11, { animate: true });
     }
+  } else if (entry && view.state.map && Number.isFinite(entry.lat) && Number.isFinite(entry.lon) && panTo) {
+    view.state.map.setView([entry.lat, entry.lon], 10, { animate: true });
   }
 }
 
@@ -2310,7 +2563,14 @@ function buildAreaTooltip(rawName, best, metricKey, metric, view) {
   const name = sanitizeText(normalizeAreaName(rawName || "", view));
   const label = name || (view.areaType === "county" ? "未知縣市" : "未知鄉鎮");
   if (!best) {
+    if (isHealthMetric(metricKey)) {
+      return `<strong>${label}</strong>無警示`;
+    }
     return `<strong>${label}</strong>無測站資料`;
+  }
+  if (isHealthMetric(metricKey)) {
+    const valueText = formatHealthValue(best, metric);
+    return `<strong>${label}</strong>${sanitizeText(valueText)} ${sanitizeText(formatHealthWarningText(best))}`;
   }
   const valueText = formatRankingValue(metricKey, best.value, metric.unit);
   return `<strong>${label}</strong>${sanitizeText(best.name || "測站")} ${sanitizeText(valueText)}`;
@@ -2408,6 +2668,29 @@ function formatRankingValue(metricKey, value, unit) {
   return `${Number(value).toFixed(digits)}${suffix}`;
 }
 
+function formatHealthValue(entry, metric) {
+  if (!entry) return "—";
+  if (Number.isFinite(entry.healthIndexValue)) {
+    return `${Number(entry.healthIndexValue).toFixed(0)}`;
+  }
+  if (Number.isFinite(entry.value)) {
+    return `${Number(entry.value).toFixed(0)}`;
+  }
+  return "—";
+}
+
+function formatHealthWarningText(entry) {
+  if (!entry) return "—";
+  const warning = (entry.healthWarning || "").trim();
+  if (warning) return warning;
+  const level = Number(entry.value || 0);
+  if (level >= 4) return "高危險";
+  if (level >= 3) return "危險";
+  if (level >= 2) return "警戒";
+  if (level >= 1) return "注意";
+  return "—";
+}
+
 function formatDisasterLevel(metricKey, value) {
   if (value == null || !Number.isFinite(value)) return "—";
   switch (metricKey) {
@@ -2481,9 +2764,17 @@ function getMetricColor(metricKey, metric, value) {
       return pm10Color(value);
     case "o3":
       return o3Color(value);
+    case "health":
+      return healthWarningColor(value);
     default:
       return "#94a3b8";
   }
+}
+
+function healthWarningColor(value) {
+  if (!Number.isFinite(value) || value <= 0) return "#d1d5db";
+  const idx = Math.max(0, Math.min(HEALTH_WARNING_COLORS.length - 1, Math.round(value) - 1));
+  return HEALTH_WARNING_COLORS[idx];
 }
 
 function aqiColor(value) {
@@ -2856,6 +3147,28 @@ function buildColorbarConfig(metricKey, metric) {
       tickPositions: positions,
     };
   }
+  if (metric.colorScale === "health") {
+    const levelDefs = HEALTH_WARNING_LEVELS[metricKey] || [];
+    if (!levelDefs.length) {
+      return {
+        title: `${metric.label}`,
+        stops: HEALTH_WARNING_COLORS,
+        ticks: ["注意", "警戒", "危險", "高危險"],
+        tickPositions: [1 / 8, 3 / 8, 5 / 8, 7 / 8],
+      };
+    }
+    const blocks = levelDefs.length;
+    return {
+      title: `${metric.label}`,
+      stops: HEALTH_WARNING_COLORS.slice(0, blocks),
+      ticks: levelDefs.map((def) => def.thresholdText),
+      tickPositions: levelDefs.map((_, idx) => (idx + 0.5) / blocks),
+      legend: levelDefs.map((def, idx) => ({
+        label: `${def.label} (${def.thresholdText})`,
+        color: HEALTH_WARNING_COLORS[Math.min(idx, HEALTH_WARNING_COLORS.length - 1)],
+      })),
+    };
+  }
   if (metric.colorScale === "temp") {
     const tempBar = buildTempColorbar();
     return {
@@ -3004,6 +3317,164 @@ function renderRadarOverlay(radar) {
       opacity: 1,
       interactive: false,
     }).addTo(realtimeState.radarMap);
+  }
+}
+
+function isHealthMetric(metricKey) {
+  return metricKey === "coldInjury" || metricKey === "tempDiff" || metricKey === "heatInjury";
+}
+
+function getHealthDatasetId(metricKey) {
+  if (metricKey === "coldInjury") return COLD_INJURY_DATASET;
+  if (metricKey === "tempDiff") return TEMP_DIFF_DATASET;
+  return HEAT_INJURY_DATASET;
+}
+
+function getHealthElementConfig(metricKey) {
+  if (metricKey === "coldInjury") {
+    return {
+      indexKeys: ["ColdInjuryIndex"],
+      warningKeys: ["ColdInjuryWarning"],
+    };
+  }
+  if (metricKey === "tempDiff") {
+    return {
+      indexKeys: ["TemperatureDifferenceIndex", "TempDiffIndex"],
+      warningKeys: ["TemperatureDifferenceWarning", "TempDiffWarning"],
+    };
+  }
+  return {
+    indexKeys: ["HeatInjuryIndex"],
+    warningKeys: ["HeatInjuryWarning"],
+  };
+}
+
+function pickHealthValue(obj, preferredKeys, fallbackPattern) {
+  if (!obj || typeof obj !== "object") return null;
+  for (const key of preferredKeys) {
+    if (obj[key] !== undefined) return obj[key];
+  }
+  const dynamicKey = Object.keys(obj).find((key) => fallbackPattern.test(key));
+  return dynamicKey ? obj[dynamicKey] : null;
+}
+
+function hasHealthWarning(raw) {
+  if (raw == null) return false;
+  const text = String(raw).trim();
+  if (!text) return false;
+  if (text === "0" || text === "null" || text === "無" || text === "無警示" || text === "正常") return false;
+  return true;
+}
+
+function getHealthWarningSeverity(raw, metricKey) {
+  if (!hasHealthWarning(raw)) return 0;
+  const levelDefs = HEALTH_WARNING_LEVELS[metricKey] || [];
+  const text = String(raw).trim();
+  const matched = levelDefs.find((def) => def.keywords.some((kw) => text.includes(kw)));
+  if (matched) return matched.level;
+  const num = Number(raw);
+  if (Number.isFinite(num) && num > 0) return Math.min(4, Math.max(1, Math.round(num)));
+  if (/(高危險|紅|嚴重|極端)/.test(text)) return 4;
+  if (/(危險|高度)/.test(text)) return 3;
+  if (/(橙|中|警戒)/.test(text)) return 2;
+  return 1;
+}
+
+function extractHealthLocations(payload) {
+  const root = payload?.cwaopendata || payload;
+  const resource = root?.Resources?.Resource || root?.resources?.resource || {};
+  const data = resource?.Data || resource?.data || {};
+  const locations = data?.Locations || data?.locations || [];
+  return Array.isArray(locations) ? locations : [];
+}
+
+function extractHealthIssueTime(payload) {
+  const root = payload?.cwaopendata || payload;
+  const resource = root?.Resources?.Resource || root?.resources?.resource || {};
+  const meta = resource?.Metadata || resource?.metadata || {};
+  return meta?.IssueTime || meta?.Update || root?.Sent || root?.sent || "";
+}
+
+function buildHealthEntries(locations, metricKey) {
+  const { indexKeys, warningKeys } = getHealthElementConfig(metricKey);
+  const entries = [];
+  locations.forEach((countyBlock) => {
+    const county = normalizeCountyName(countyBlock?.CountyName || countyBlock?.countyName || "");
+    const towns = countyBlock?.Location || countyBlock?.location || [];
+    if (!Array.isArray(towns)) return;
+    towns.forEach((town) => {
+      const townName = town?.TownName || town?.townName || "";
+      const lat = toNumber(town?.Latitude || town?.latitude);
+      const lon = toNumber(town?.Longitude || town?.longitude);
+      if (!townName || !Number.isFinite(lat) || !Number.isFinite(lon)) return;
+      const times = town?.Time || town?.time || [];
+      if (!Array.isArray(times)) return;
+
+      let best = null;
+      times.forEach((t) => {
+        const elements = t?.WeatherElements || t?.weatherElements || {};
+        const warningRaw = pickHealthValue(elements, warningKeys, /Warning/i);
+        if (!hasHealthWarning(warningRaw)) return;
+        const severity = getHealthWarningSeverity(warningRaw, metricKey);
+        const indexRaw = pickHealthValue(elements, indexKeys, /Index/i);
+        const indexValue = toNumber(indexRaw);
+        const issueTime = t?.IssueTime || t?.issueTime || "";
+        if (!best) {
+          best = { severity, warningRaw, indexValue, issueTime };
+          return;
+        }
+        const bestIdx = Number.isFinite(best.indexValue) ? best.indexValue : -Infinity;
+        const currentIdx = Number.isFinite(indexValue) ? indexValue : -Infinity;
+        if (severity > best.severity || (severity === best.severity && currentIdx > bestIdx)) {
+          best = { severity, warningRaw, indexValue, issueTime };
+        }
+      });
+
+      if (!best) return;
+      entries.push({
+        id: town?.Geocode || `${county}-${townName}`,
+        name: townName,
+        county,
+        town: townName,
+        lat,
+        lon,
+        value: best.severity,
+        healthIndexValue: Number.isFinite(best.indexValue) ? best.indexValue : null,
+        healthWarning: String(best.warningRaw ?? "").trim(),
+        direction: null,
+        temperature: null,
+        humidity: null,
+        obsTimeRaw: best.issueTime,
+        time: formatObsTime(best.issueTime) || best.issueTime || "",
+      });
+    });
+  });
+  entries.sort((a, b) => {
+    if (b.value !== a.value) return b.value - a.value;
+    const ai = Number.isFinite(a.healthIndexValue) ? a.healthIndexValue : -Infinity;
+    const bi = Number.isFinite(b.healthIndexValue) ? b.healthIndexValue : -Infinity;
+    return bi - ai;
+  });
+  return entries;
+}
+
+async function loadHealthData() {
+  if (!healthView?.dom?.metric) return;
+  const metricKey = healthView.dom.metric.value;
+  setRankingStatus(healthView, "讀取健康氣象預報...");
+  try {
+    await ensureRankingGeo(healthView);
+    const datasetId = getHealthDatasetId(metricKey);
+    const data = await fetchCwaDataset(datasetId);
+    const locations = extractHealthLocations(data);
+    const entries = buildHealthEntries(locations, metricKey);
+    healthView.state.entries = entries;
+    await renderRanking(entries, metricKey, healthView);
+    healthView.dom.dataTime.textContent = formatObsTime(extractHealthIssueTime(data)) || extractHealthIssueTime(data) || "";
+    setRankingStatus(healthView, entries.length ? `已更新 ${entries.length} 筆警示鄉鎮` : "目前無警示鄉鎮");
+  } catch (err) {
+    console.error(err);
+    setRankingStatus(healthView, err.message || "健康氣象地圖載入失敗");
   }
 }
 

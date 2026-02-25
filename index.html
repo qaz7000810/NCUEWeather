@@ -26,6 +26,7 @@
     <button class="tab-btn" data-tab-target="rankings">彰化縣氣象地圖</button>
     <button class="tab-btn" data-tab-target="taiwan-rankings">台灣氣象地圖</button>
     <button class="tab-btn" data-tab-target="disaster">防災地圖</button>
+    <button class="tab-btn" data-tab-target="health">健康氣象地圖</button>
     <button class="tab-btn" data-tab-target="historical">歷史資料</button>
   </nav>
 
@@ -337,6 +338,57 @@
             <tbody id="disasterTableBody"></tbody>
           </table>
           <div class="table-footer" id="disasterPager"></div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <main class="tab-panel" data-tab="health">
+    <section class="panel">
+      <div class="controls">
+        <div class="control">
+          <label for="healthMetric">指標</label>
+          <select id="healthMetric"></select>
+        </div>
+        <div class="control buttons">
+          <button id="healthReloadBtn" class="primary">更新列表</button>
+        </div>
+        <div class="control">
+          <label>狀態</label>
+          <div class="status" id="healthStatus">尚未載入</div>
+        </div>
+      </div>
+    </section>
+
+    <section class="panel ranking-layout">
+      <div class="ranking-map">
+        <div id="healthMap" class="map-shell"></div>
+        <div class="hint">僅顯示有健康氣象警示的鄉鎮。</div>
+        <div id="healthColorbar" class="colorbar-card"></div>
+      </div>
+      <div class="ranking-table">
+        <div class="table-card">
+          <div class="table-header">
+            <span>健康氣象警示鄉鎮</span>
+            <span id="healthDataTime" class="table-header-time"></span>
+          </div>
+          <table id="healthTable">
+            <thead>
+              <tr>
+                <th>排序</th>
+                <th>縣市</th>
+                <th>鄉鎮</th>
+                <th>地區</th>
+                <th>風向</th>
+                <th>溫度</th>
+                <th>濕度</th>
+                <th id="healthValueHeader">數值</th>
+                <th>警示</th>
+              </tr>
+            </thead>
+            <tbody id="healthTableBody"></tbody>
+          </table>
+          <div class="table-footer" id="healthPager"></div>
         </div>
       </div>
     </section>
