@@ -9,6 +9,7 @@
   <link rel="stylesheet" href="./styles.css" />
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-zoom@2.0.1/dist/chartjs-plugin-zoom.min.js"></script>
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 </head>
 <body>
@@ -235,6 +236,16 @@
           <div class="table-footer" id="rankingPager"></div>
         </div>
       </div>
+      <div class="timeline">
+        <div class="timeline-row">
+          <label>圖表時間視窗</label>
+          <span id="chartRangeLabel">尚未載入</span>
+        </div>
+        <div class="slider">
+          <input type="range" id="chartRangeStart" min="0" max="0" step="1" value="0" />
+          <input type="range" id="chartRangeEnd" min="0" max="0" step="1" value="0" />
+        </div>
+      </div>
     </section>
   </main>
 
@@ -350,12 +361,35 @@
           <label for="healthMetric">指標</label>
           <select id="healthMetric"></select>
         </div>
+        <div class="control">
+          <label for="healthMode">模式</label>
+          <select id="healthMode">
+            <option value="window" selected>期間最嚴重</option>
+            <option value="timeline">時間軸</option>
+          </select>
+        </div>
+        <div class="control">
+          <label for="healthWindow">期間</label>
+          <select id="healthWindow">
+            <option value="24">24小時</option>
+            <option value="72" selected>72小時</option>
+          </select>
+        </div>
         <div class="control buttons">
           <button id="healthReloadBtn" class="primary">更新列表</button>
         </div>
         <div class="control">
           <label>狀態</label>
           <div class="status" id="healthStatus">尚未載入</div>
+        </div>
+      </div>
+      <div class="timeline" id="healthTimelineWrap" style="display:none;">
+        <div class="timeline-row">
+          <label for="healthTimeline">時間軸（逐3小時）</label>
+          <span id="healthTimelineLabel">--</span>
+        </div>
+        <div class="slider">
+          <input type="range" id="healthTimeline" min="0" max="0" step="1" value="0" />
         </div>
       </div>
     </section>

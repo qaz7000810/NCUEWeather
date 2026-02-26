@@ -12,6 +12,9 @@ const dom = {
   rangeStart: document.getElementById("rangeStart"),
   rangeEnd: document.getElementById("rangeEnd"),
   rangeLabel: document.getElementById("rangeLabel"),
+  chartRangeStart: document.getElementById("chartRangeStart"),
+  chartRangeEnd: document.getElementById("chartRangeEnd"),
+  chartRangeLabel: document.getElementById("chartRangeLabel"),
   status: document.getElementById("status"),
   chartTitle: document.getElementById("chartTitle"),
   loadBtn: document.getElementById("loadBtn"),
@@ -71,6 +74,8 @@ const dom = {
   disasterReloadBtn: document.getElementById("disasterReloadBtn"),
   disasterColorbar: document.getElementById("disasterColorbar"),
   healthMetric: document.getElementById("healthMetric"),
+  healthMode: document.getElementById("healthMode"),
+  healthWindow: document.getElementById("healthWindow"),
   healthStatus: document.getElementById("healthStatus"),
   healthTableBody: document.getElementById("healthTableBody"),
   healthValueHeader: document.getElementById("healthValueHeader"),
@@ -80,6 +85,9 @@ const dom = {
   healthMap: document.getElementById("healthMap"),
   healthReloadBtn: document.getElementById("healthReloadBtn"),
   healthColorbar: document.getElementById("healthColorbar"),
+  healthTimelineWrap: document.getElementById("healthTimelineWrap"),
+  healthTimeline: document.getElementById("healthTimeline"),
+  healthTimelineLabel: document.getElementById("healthTimelineLabel"),
 };
 
 let fileIndex = [];
@@ -87,6 +95,19 @@ let stationsMeta = [];
 const charts = {};
 const fileCache = new Map();
 const dailyCache = new Map();
+const historicalViewState = {
+  labelCount: 0,
+  start: 0,
+  end: 0,
+  syncing: false,
+};
+
+if (typeof Chart !== "undefined") {
+  const zoomPlugin = window.ChartZoom || window["chartjs-plugin-zoom"];
+  if (zoomPlugin) {
+    Chart.register(zoomPlugin);
+  }
+}
 
 const realtimeState = {
   forecastCache: new Map(),
@@ -151,6 +172,9 @@ const healthState = {
   sortDir: "desc",
   page: 1,
   countyCodeMap: null,
+  timelineKeys: [],
+  timelineEntries: new Map(),
+  timelineIndex: 0,
 };
 
 const CWA_BASE = "https://faein.climate-quiz-yuchen.workers.dev/api/v1/rest/datastore";
@@ -437,6 +461,8 @@ const healthView = {
   key: "health",
   dom: {
     metric: dom.healthMetric,
+    mode: dom.healthMode,
+    window: dom.healthWindow,
     status: dom.healthStatus,
     tableBody: dom.healthTableBody,
     countySelect: null,
@@ -447,6 +473,9 @@ const healthView = {
     map: dom.healthMap,
     reloadBtn: dom.healthReloadBtn,
     colorbar: dom.healthColorbar,
+    timelineWrap: dom.healthTimelineWrap,
+    timeline: dom.healthTimeline,
+    timelineLabel: dom.healthTimelineLabel,
   },
   state: healthState,
   geojsonUrl: "https://raw.githubusercontent.com/qaz7000810/geo-assets/main/townships.geojson",
@@ -566,6 +595,8 @@ function bindTabs() {
 function bindEvents() {
   dom.rangeStart.addEventListener("input", syncRange);
   dom.rangeEnd.addEventListener("input", syncRange);
+  dom.chartRangeStart?.addEventListener("input", syncChartRangeFromSlider);
+  dom.chartRangeEnd?.addEventListener("input", syncChartRangeFromSlider);
   dom.loadBtn.addEventListener("click", refreshChart);
   dom.clearBtn.addEventListener("click", clearChart);
   dom.countySelect?.addEventListener("change", () => {
@@ -695,6 +726,69 @@ function updateRangeLabel() {
   dom.rangeLabel.textContent = `${start.year}/${String(start.month).padStart(2, "0")} ~ ${end.year}/${String(end.month).padStart(2, "0")}`;
 }
 
+function syncChartRangeFromSlider() {
+  if (!historicalViewState.labelCount) return;
+  let start = Number(dom.chartRangeStart?.value || 0);
+  let end = Number(dom.chartRangeEnd?.value || 0);
+  if (start > end) {
+    const active = document.activeElement;
+    if (active === dom.chartRangeStart) {
+      end = start;
+      if (dom.chartRangeEnd) dom.chartRangeEnd.value = String(end);
+    } else {
+      start = end;
+      if (dom.chartRangeStart) dom.chartRangeStart.value = String(start);
+    }
+  }
+  applyHistoricalChartRange(start, end, { source: "slider" });
+}
+
+function applyHistoricalChartRange(start, end, options = {}) {
+  if (!historicalViewState.labelCount) return;
+  const maxIndex = Math.max(0, historicalViewState.labelCount - 1);
+  const s = Math.max(0, Math.min(maxIndex, Number(start)));
+  const e = Math.max(0, Math.min(maxIndex, Number(end)));
+  const rangeStart = Math.min(s, e);
+  const rangeEnd = Math.max(s, e);
+  historicalViewState.start = rangeStart;
+  historicalViewState.end = rangeEnd;
+  updateChartRangeLabel();
+  if (dom.chartRangeStart && String(dom.chartRangeStart.value) !== String(rangeStart)) dom.chartRangeStart.value = String(rangeStart);
+  if (dom.chartRangeEnd && String(dom.chartRangeEnd.value) !== String(rangeEnd)) dom.chartRangeEnd.value = String(rangeEnd);
+  if (historicalViewState.syncing) return;
+  historicalViewState.syncing = true;
+  Object.values(charts).forEach((chart) => {
+    if (!chart?.options?.scales?.x) return;
+    chart.options.scales.x.min = rangeStart;
+    chart.options.scales.x.max = rangeEnd;
+    chart.update("none");
+  });
+  historicalViewState.syncing = false;
+  if (options.source === "slider") {
+    setStatus(`已同步圖表視窗：${dom.chartRangeLabel?.textContent || ""}`);
+  }
+}
+
+function syncChartRangeFromChart(chart) {
+  if (!chart?.scales?.x || historicalViewState.syncing) return;
+  const x = chart.scales.x;
+  const min = Number.isFinite(x.min) ? Math.round(x.min) : 0;
+  const max = Number.isFinite(x.max) ? Math.round(x.max) : Math.max(0, historicalViewState.labelCount - 1);
+  applyHistoricalChartRange(min, max, { source: "chart" });
+}
+
+function updateChartRangeLabel() {
+  if (!dom.chartRangeLabel) return;
+  if (!historicalViewState.labelCount) {
+    dom.chartRangeLabel.textContent = "尚未載入";
+    return;
+  }
+  const labels = charts.TX01?.data?.labels || [];
+  const s = labels[historicalViewState.start] || labels[0] || "--";
+  const e = labels[historicalViewState.end] || labels[labels.length - 1] || "--";
+  dom.chartRangeLabel.textContent = `${s} ~ ${e}`;
+}
+
 function setStatus(text) {
   dom.status.textContent = text;
 }
@@ -766,6 +860,20 @@ function clearChart() {
     charts[k].destroy();
     delete charts[k];
   });
+  historicalViewState.labelCount = 0;
+  historicalViewState.start = 0;
+  historicalViewState.end = 0;
+  if (dom.chartRangeStart) {
+    dom.chartRangeStart.min = "0";
+    dom.chartRangeStart.max = "0";
+    dom.chartRangeStart.value = "0";
+  }
+  if (dom.chartRangeEnd) {
+    dom.chartRangeEnd.min = "0";
+    dom.chartRangeEnd.max = "0";
+    dom.chartRangeEnd.value = "0";
+  }
+  updateChartRangeLabel();
   dom.chartTitle.textContent = "已清空";
 }
 
@@ -933,6 +1041,20 @@ function formatKey(key, rollup) {
 
 function renderCharts(payload) {
   dom.chartTitle.textContent = `${payload.labels[0]} ~ ${payload.labels[payload.labels.length - 1]} ｜ 氣溫、降雨量、相對濕度、風速`;
+  historicalViewState.labelCount = payload.labels.length;
+  historicalViewState.start = 0;
+  historicalViewState.end = Math.max(0, payload.labels.length - 1);
+  if (dom.chartRangeStart) {
+    dom.chartRangeStart.min = "0";
+    dom.chartRangeStart.max = String(Math.max(0, payload.labels.length - 1));
+    dom.chartRangeStart.value = "0";
+  }
+  if (dom.chartRangeEnd) {
+    dom.chartRangeEnd.min = "0";
+    dom.chartRangeEnd.max = String(Math.max(0, payload.labels.length - 1));
+    dom.chartRangeEnd.value = String(Math.max(0, payload.labels.length - 1));
+  }
+  updateChartRangeLabel();
   Object.entries(payload.series).forEach(([metricKey, ser]) => {
     const canvas = document.getElementById(`chart-${metricKey}`);
     if (!canvas) return;
@@ -950,6 +1072,8 @@ function renderCharts(payload) {
     if (charts[metricKey]) {
       charts[metricKey].data.labels = payload.labels;
       charts[metricKey].data.datasets = [dataset];
+      charts[metricKey].options.scales.x.min = historicalViewState.start;
+      charts[metricKey].options.scales.x.max = historicalViewState.end;
       charts[metricKey].update();
     } else {
       charts[metricKey] = new Chart(ctx, {
@@ -960,9 +1084,27 @@ function renderCharts(payload) {
           maintainAspectRatio: false,
           animation: false,
           interaction: { mode: "index", intersect: false },
-          plugins: { legend: { display: false } },
+          plugins: {
+            legend: { display: false },
+            zoom: {
+              zoom: {
+                wheel: { enabled: true },
+                drag: { enabled: true },
+                mode: "x",
+              },
+              limits: {
+                x: { min: 0, max: Math.max(0, payload.labels.length - 1) },
+              },
+              onZoomComplete: ({ chart }) => syncChartRangeFromChart(chart),
+            },
+          },
           scales: {
-            x: { ticks: { maxRotation: 0, autoSkip: true }, grid: { color: "rgba(255,255,255,0.05)" } },
+            x: {
+              min: historicalViewState.start,
+              max: historicalViewState.end,
+              ticks: { maxRotation: 0, autoSkip: true },
+              grid: { color: "rgba(255,255,255,0.05)" },
+            },
             y: { grid: { color: "rgba(255,255,255,0.08)" } },
           },
         },
@@ -2075,7 +2217,10 @@ function initDisasterView() {
 function initHealthView() {
   if (!healthView?.dom?.metric || !healthView?.dom?.map) return;
   buildHealthMetricOptions(healthView.dom.metric);
+  if (healthView.dom.mode) healthView.dom.mode.value = "window";
+  if (healthView.dom.window) healthView.dom.window.value = "72";
   initRankingMap(healthView);
+  toggleHealthTimelineControls();
   loadHealthData();
 }
 
@@ -2096,15 +2241,36 @@ function bindDisasterViewEvents() {
 function bindHealthViewEvents() {
   if (!healthView?.dom) return;
   healthView.dom.reloadBtn?.addEventListener("click", loadHealthData);
+  healthView.dom.mode?.addEventListener("change", () => {
+    healthView.state.page = 1;
+    toggleHealthTimelineControls();
+    loadHealthData();
+  });
   healthView.dom.metric?.addEventListener("change", () => {
     healthView.state.page = 1;
     loadHealthData();
+  });
+  healthView.dom.window?.addEventListener("change", () => {
+    healthView.state.page = 1;
+    loadHealthData();
+  });
+  healthView.dom.timeline?.addEventListener("input", () => {
+    const idx = Number(healthView.dom.timeline.value || 0);
+    healthView.state.timelineIndex = Number.isFinite(idx) ? idx : 0;
+    renderHealthTimelineFrame();
   });
   healthView.dom.valueHeader?.addEventListener("click", () => {
     healthView.state.sortDir = healthView.state.sortDir === "desc" ? "asc" : "desc";
     healthView.state.page = 1;
     renderRankingTable(healthView.state.entries, healthView.dom.metric.value, healthView);
   });
+}
+
+function toggleHealthTimelineControls() {
+  const mode = healthView?.dom?.mode?.value || "window";
+  if (healthView?.dom?.timelineWrap) {
+    healthView.dom.timelineWrap.style.display = mode === "timeline" ? "" : "none";
+  }
 }
 
 function isDisasterThreshold(metricKey, value) {
@@ -3412,7 +3578,7 @@ function extractHealthIssueTime(payload) {
   return meta?.IssueTime || meta?.Update || root?.Sent || root?.sent || "";
 }
 
-function buildHealthEntries(locations, metricKey) {
+function buildHealthEntries(locations, metricKey, windowHours = 72) {
   const { indexKeys, warningKeys } = getHealthElementConfig(metricKey);
   const entries = [];
   locations.forEach((countyBlock) => {
@@ -3426,16 +3592,25 @@ function buildHealthEntries(locations, metricKey) {
       if (!townName || !Number.isFinite(lat) || !Number.isFinite(lon)) return;
       const times = town?.Time || town?.time || [];
       if (!Array.isArray(times)) return;
+      const parsedIssueMs = times
+        .map((t) => Date.parse(t?.IssueTime || t?.issueTime || ""))
+        .filter((ms) => Number.isFinite(ms));
+      const baseIssueMs = parsedIssueMs.length ? Math.min(...parsedIssueMs) : null;
+      const cutoffMs = Number.isFinite(baseIssueMs) ? baseIssueMs + Number(windowHours) * 3600 * 1000 : null;
 
       let best = null;
       times.forEach((t) => {
+        const issueTime = t?.IssueTime || t?.issueTime || "";
+        if (cutoffMs != null) {
+          const ms = Date.parse(issueTime);
+          if (!Number.isFinite(ms) || ms > cutoffMs) return;
+        }
         const elements = t?.WeatherElements || t?.weatherElements || {};
         const warningRaw = pickHealthValue(elements, warningKeys, /Warning/i);
         if (!hasHealthWarning(warningRaw)) return;
         const severity = getHealthWarningSeverity(warningRaw, metricKey);
         const indexRaw = pickHealthValue(elements, indexKeys, /Index/i);
         const indexValue = toNumber(indexRaw);
-        const issueTime = t?.IssueTime || t?.issueTime || "";
         if (!best) {
           best = { severity, warningRaw, indexValue, issueTime };
           return;
@@ -3475,20 +3650,141 @@ function buildHealthEntries(locations, metricKey) {
   return entries;
 }
 
+function getHealthWindowTimes(times, windowHours = 72) {
+  const parsedIssueMs = times
+    .map((t) => Date.parse(t?.IssueTime || t?.issueTime || ""))
+    .filter((ms) => Number.isFinite(ms));
+  const baseIssueMs = parsedIssueMs.length ? Math.min(...parsedIssueMs) : null;
+  const cutoffMs = Number.isFinite(baseIssueMs) ? baseIssueMs + Number(windowHours) * 3600 * 1000 : null;
+  if (cutoffMs == null) return [...times];
+  return times.filter((t) => {
+    const ms = Date.parse(t?.IssueTime || t?.issueTime || "");
+    return Number.isFinite(ms) && ms <= cutoffMs;
+  });
+}
+
+function buildHealthTimeline(locations, metricKey, windowHours = 72) {
+  const { indexKeys, warningKeys } = getHealthElementConfig(metricKey);
+  const timelineEntries = new Map();
+  locations.forEach((countyBlock) => {
+    const county = normalizeCountyName(countyBlock?.CountyName || countyBlock?.countyName || "");
+    const towns = countyBlock?.Location || countyBlock?.location || [];
+    if (!Array.isArray(towns)) return;
+    towns.forEach((town) => {
+      const townName = town?.TownName || town?.townName || "";
+      const lat = toNumber(town?.Latitude || town?.latitude);
+      const lon = toNumber(town?.Longitude || town?.longitude);
+      if (!townName || !Number.isFinite(lat) || !Number.isFinite(lon)) return;
+      const times = town?.Time || town?.time || [];
+      if (!Array.isArray(times)) return;
+      const filteredTimes = getHealthWindowTimes(times, windowHours);
+      filteredTimes.forEach((t) => {
+        const issueTime = t?.IssueTime || t?.issueTime || "";
+        const elements = t?.WeatherElements || t?.weatherElements || {};
+        const warningRaw = pickHealthValue(elements, warningKeys, /Warning/i);
+        if (!hasHealthWarning(warningRaw)) return;
+        const severity = getHealthWarningSeverity(warningRaw, metricKey);
+        const indexRaw = pickHealthValue(elements, indexKeys, /Index/i);
+        const indexValue = toNumber(indexRaw);
+        const arr = timelineEntries.get(issueTime) || [];
+        arr.push({
+          id: town?.Geocode || `${county}-${townName}`,
+          name: townName,
+          county,
+          town: townName,
+          lat,
+          lon,
+          value: severity,
+          healthIndexValue: Number.isFinite(indexValue) ? indexValue : null,
+          healthWarning: String(warningRaw ?? "").trim(),
+          direction: null,
+          temperature: null,
+          humidity: null,
+          obsTimeRaw: issueTime,
+          time: formatObsTime(issueTime) || issueTime || "",
+        });
+        timelineEntries.set(issueTime, arr);
+      });
+    });
+  });
+  const timelineKeys = Array.from(timelineEntries.keys()).sort((a, b) => {
+    const ams = Date.parse(a);
+    const bms = Date.parse(b);
+    if (Number.isFinite(ams) && Number.isFinite(bms)) return ams - bms;
+    return String(a).localeCompare(String(b));
+  });
+  timelineKeys.forEach((k) => {
+    const arr = timelineEntries.get(k) || [];
+    arr.sort((a, b) => {
+      if (b.value !== a.value) return b.value - a.value;
+      const ai = Number.isFinite(a.healthIndexValue) ? a.healthIndexValue : -Infinity;
+      const bi = Number.isFinite(b.healthIndexValue) ? b.healthIndexValue : -Infinity;
+      return bi - ai;
+    });
+    timelineEntries.set(k, arr);
+  });
+  return { timelineKeys, timelineEntries };
+}
+
+function renderHealthTimelineFrame() {
+  const metricKey = healthView?.dom?.metric?.value;
+  if (!metricKey) return;
+  const keys = healthView.state.timelineKeys || [];
+  const idx = Math.max(0, Math.min(keys.length - 1, Number(healthView.state.timelineIndex || 0)));
+  const key = keys[idx];
+  const entries = key ? healthView.state.timelineEntries.get(key) || [] : [];
+  healthView.state.entries = entries;
+  renderRankingMap(entries, metricKey, healthView);
+  renderRankingTable(entries, metricKey, healthView);
+  renderRankingColorbar(metricKey, healthView.dom.colorbar);
+  if (healthView.dom.timeline) {
+    healthView.dom.timeline.value = String(idx);
+  }
+  const label = key ? (formatObsTime(key) || key) : "--";
+  if (healthView.dom.timelineLabel) {
+    healthView.dom.timelineLabel.textContent = label;
+  }
+  if (healthView.dom.dataTime) {
+    healthView.dom.dataTime.textContent = label;
+  }
+  const windowHours = Number(healthView.dom.window?.value || 72);
+  setRankingStatus(healthView, entries.length ? `時間軸 ${label}：${entries.length} 筆警示鄉鎮（${windowHours}小時）` : `時間軸 ${label}：目前無警示鄉鎮（${windowHours}小時）`);
+}
+
 async function loadHealthData() {
   if (!healthView?.dom?.metric) return;
   const metricKey = healthView.dom.metric.value;
-  setRankingStatus(healthView, "讀取健康氣象預報...");
+  const windowHours = Number(healthView.dom.window?.value || 72);
+  const mode = healthView.dom.mode?.value || "window";
+  setRankingStatus(healthView, `讀取健康氣象預報（${windowHours}小時）...`);
   try {
     await ensureRankingGeo(healthView);
     const datasetId = getHealthDatasetId(metricKey);
     const data = await fetchCwaDataset(datasetId);
     const locations = extractHealthLocations(data);
-    const entries = buildHealthEntries(locations, metricKey);
-    healthView.state.entries = entries;
-    await renderRanking(entries, metricKey, healthView);
-    healthView.dom.dataTime.textContent = formatObsTime(extractHealthIssueTime(data)) || extractHealthIssueTime(data) || "";
-    setRankingStatus(healthView, entries.length ? `已更新 ${entries.length} 筆警示鄉鎮` : "目前無警示鄉鎮");
+    if (mode === "timeline") {
+      const { timelineKeys, timelineEntries } = buildHealthTimeline(locations, metricKey, windowHours);
+      healthView.state.timelineKeys = timelineKeys;
+      healthView.state.timelineEntries = timelineEntries;
+      healthView.state.timelineIndex = 0;
+      if (healthView.dom.timeline) {
+        healthView.dom.timeline.min = "0";
+        healthView.dom.timeline.max = String(Math.max(0, timelineKeys.length - 1));
+        healthView.dom.timeline.step = "1";
+        healthView.dom.timeline.value = "0";
+      }
+      renderHealthTimelineFrame();
+    } else {
+      const entries = buildHealthEntries(locations, metricKey, windowHours);
+      healthView.state.entries = entries;
+      healthView.state.timelineKeys = [];
+      healthView.state.timelineEntries = new Map();
+      await renderRanking(entries, metricKey, healthView);
+      const latest = formatObsTime(extractHealthIssueTime(data)) || extractHealthIssueTime(data) || "";
+      healthView.dom.dataTime.textContent = latest;
+      if (healthView.dom.timelineLabel) healthView.dom.timelineLabel.textContent = "--";
+      setRankingStatus(healthView, entries.length ? `已更新 ${entries.length} 筆警示鄉鎮（${windowHours}小時）` : `目前無警示鄉鎮（${windowHours}小時）`);
+    }
   } catch (err) {
     console.error(err);
     setRankingStatus(healthView, err.message || "健康氣象地圖載入失敗");
