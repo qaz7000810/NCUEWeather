@@ -203,6 +203,7 @@ const TEMP_DIFF_DATASET = "F-A0085-005";
 const HEAT_INJURY_DATASET = "M-A0085-001";
 const VISIT_COUNTER_NAMESPACE = "ncueweather-qaz7000810";
 const VISIT_COUNTER_TOTAL_KEY = "visit-total";
+const VISIT_COUNTER_BASE = "https://faein.climate-quiz-yuchen.workers.dev/api/v1/visit";
 const TOWN_NAME_FIELD = "名稱";
 const CWA_COUNTIES = [
   "基隆市",
@@ -805,8 +806,8 @@ async function loadVisitorCounters() {
   try {
     const todayKey = buildTodayCounterKey();
     const [total, today] = await Promise.all([
-      hitCountApi(VISIT_COUNTER_TOTAL_KEY),
-      hitCountApi(todayKey),
+      hitVisitCounterApi(VISIT_COUNTER_TOTAL_KEY),
+      hitVisitCounterApi(todayKey),
     ]);
     dom.visitTotal.textContent = formatCounterValue(total);
     dom.visitToday.textContent = formatCounterValue(today);
@@ -820,24 +821,18 @@ async function loadVisitorCounters() {
   }
 }
 
-async function hitCountApi(key) {
-  const hosts = ["https://api.countapi.xyz", "https://countapi.xyz"];
-  let lastErr = null;
-  for (const host of hosts) {
-    const endpoint = `${host}/hit/${encodeURIComponent(VISIT_COUNTER_NAMESPACE)}/${encodeURIComponent(key)}`;
-    try {
-      const res = await fetch(endpoint);
-      if (!res.ok) {
-        lastErr = new Error(`counter api ${res.status} @ ${host}`);
-        continue;
-      }
-      const data = await res.json();
-      return Number(data?.value ?? 0);
-    } catch (err) {
-      lastErr = err;
-    }
+async function hitVisitCounterApi(key) {
+  const endpoint = `${VISIT_COUNTER_BASE}/hit/${encodeURIComponent(VISIT_COUNTER_NAMESPACE)}/${encodeURIComponent(key)}`;
+  const res = await fetch(endpoint);
+  if (!res.ok) {
+    throw new Error(`counter api ${res.status}`);
   }
-  throw lastErr || new Error("counter api failed");
+  const data = await res.json();
+  const value = Number(data?.value ?? data?.count ?? data?.data?.value ?? data?.data?.count ?? 0);
+  if (!Number.isFinite(value)) {
+    throw new Error("counter api invalid payload");
+  }
+  return value;
 }
 
 function buildTodayCounterKey() {
