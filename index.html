@@ -13,12 +13,23 @@
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 </head>
 <body>
-    <header class="header">
+  <header class="header">
     <div>
       <p class="eyebrow">彰師大氣象觀測網站</p>
       <p class="eyebrow">CWA O-A0003-001 | 彰師大測站</p>
       <p class="eyebrow">環境部 AQI | 彰化測站</p>
       <h1>彰師大即時氣象與空品</h1>
+      <div class="visit-counter" id="visitCounter">
+        <div class="visit-item">
+          <span class="visit-label">總瀏覽</span>
+          <strong id="visitTotal">--</strong>
+        </div>
+        <div class="visit-item">
+          <span class="visit-label">今日瀏覽</span>
+          <strong id="visitToday">--</strong>
+        </div>
+        <div class="visit-status" id="visitStatus">計數載入中…</div>
+      </div>
     </div>
   </header>
 

@@ -88,6 +88,9 @@ const dom = {
   healthTimelineWrap: document.getElementById("healthTimelineWrap"),
   healthTimeline: document.getElementById("healthTimeline"),
   healthTimelineLabel: document.getElementById("healthTimelineLabel"),
+  visitTotal: document.getElementById("visitTotal"),
+  visitToday: document.getElementById("visitToday"),
+  visitStatus: document.getElementById("visitStatus"),
 };
 
 let fileIndex = [];
@@ -198,6 +201,8 @@ const RAIN_DATASET = "O-A0002-001";
 const COLD_INJURY_DATASET = "F-A0085-003";
 const TEMP_DIFF_DATASET = "F-A0085-005";
 const HEAT_INJURY_DATASET = "M-A0085-001";
+const VISIT_COUNTER_NAMESPACE = "ncueweather-qaz7000810";
+const VISIT_COUNTER_TOTAL_KEY = "visit-total";
 const TOWN_NAME_FIELD = "名稱";
 const CWA_COUNTIES = [
   "基隆市",
@@ -545,6 +550,7 @@ document.addEventListener("DOMContentLoaded", init);
 async function init() {
   bindTabs();
   bindEvents();
+  loadVisitorCounters();
   await loadIndex();
   await loadStationsMeta();
   buildCountyOptions();
@@ -791,6 +797,89 @@ function updateChartRangeLabel() {
 
 function setStatus(text) {
   dom.status.textContent = text;
+}
+
+async function loadVisitorCounters() {
+  if (!dom.visitTotal || !dom.visitToday || !dom.visitStatus) return;
+  dom.visitStatus.textContent = "計數更新中…";
+  try {
+    const todayKey = buildTodayCounterKey();
+    const [total, today] = await Promise.all([
+      hitCountApi(VISIT_COUNTER_TOTAL_KEY),
+      hitCountApi(todayKey),
+    ]);
+    dom.visitTotal.textContent = formatCounterValue(total);
+    dom.visitToday.textContent = formatCounterValue(today);
+    dom.visitStatus.textContent = "已更新";
+  } catch (err) {
+    console.warn("visit counter remote failed, fallback to local:", err);
+    const local = hitLocalCounter();
+    dom.visitTotal.textContent = formatCounterValue(local.total);
+    dom.visitToday.textContent = formatCounterValue(local.today);
+    dom.visitStatus.textContent = "本機計數（網路計數不可用）";
+  }
+}
+
+async function hitCountApi(key) {
+  const hosts = ["https://api.countapi.xyz", "https://countapi.xyz"];
+  let lastErr = null;
+  for (const host of hosts) {
+    const endpoint = `${host}/hit/${encodeURIComponent(VISIT_COUNTER_NAMESPACE)}/${encodeURIComponent(key)}`;
+    try {
+      const res = await fetch(endpoint);
+      if (!res.ok) {
+        lastErr = new Error(`counter api ${res.status} @ ${host}`);
+        continue;
+      }
+      const data = await res.json();
+      return Number(data?.value ?? 0);
+    } catch (err) {
+      lastErr = err;
+    }
+  }
+  throw lastErr || new Error("counter api failed");
+}
+
+function buildTodayCounterKey() {
+  const d = new Date();
+  const parts = new Intl.DateTimeFormat("zh-TW", {
+    timeZone: "Asia/Taipei",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).formatToParts(d);
+  const y = parts.find((p) => p.type === "year")?.value || String(d.getFullYear());
+  const m = parts.find((p) => p.type === "month")?.value || String(d.getMonth() + 1).padStart(2, "0");
+  const day = parts.find((p) => p.type === "day")?.value || String(d.getDate()).padStart(2, "0");
+  return `visit-${y}${m}${day}`;
+}
+
+function formatCounterValue(v) {
+  return Number.isFinite(v) ? v.toLocaleString("zh-TW") : "--";
+}
+
+function hitLocalCounter() {
+  const base = `${VISIT_COUNTER_NAMESPACE}:local`;
+  const todayKey = buildTodayCounterKey();
+  const dayStoreKey = `${base}:${todayKey}`;
+  const totalStoreKey = `${base}:total`;
+  const sessionHitKey = `${base}:session-hit:${todayKey}`;
+  const alreadyHit = sessionStorage.getItem(sessionHitKey) === "1";
+
+  let total = Number(localStorage.getItem(totalStoreKey) || 0);
+  let today = Number(localStorage.getItem(dayStoreKey) || 0);
+  if (!Number.isFinite(total) || total < 0) total = 0;
+  if (!Number.isFinite(today) || today < 0) today = 0;
+
+  if (!alreadyHit) {
+    total += 1;
+    today += 1;
+    localStorage.setItem(totalStoreKey, String(total));
+    localStorage.setItem(dayStoreKey, String(today));
+    sessionStorage.setItem(sessionHitKey, "1");
+  }
+
+  return { total, today };
 }
 
 function isSelectionReady() {
