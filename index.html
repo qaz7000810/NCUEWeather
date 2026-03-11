@@ -35,10 +35,10 @@
 
   <nav class="tabs">
     <button class="tab-btn active" data-tab-target="realtime">即時天氣</button>
-    <button class="tab-btn" data-tab-target="rankings">彰化縣氣象地圖</button>
-    <button class="tab-btn" data-tab-target="taiwan-rankings">台灣氣象地圖</button>
-    <button class="tab-btn" data-tab-target="disaster">防災地圖</button>
-    <button class="tab-btn" data-tab-target="health">健康氣象地圖</button>
+    <button class="tab-btn" data-tab-target="rankings">彰化氣象</button>
+    <button class="tab-btn" data-tab-target="taiwan-rankings">台灣氣象</button>
+    <button class="tab-btn" data-tab-target="disaster">防災氣象</button>
+    <button class="tab-btn" data-tab-target="health">健康氣象</button>
     <button class="tab-btn" data-tab-target="historical">歷史資料</button>
   </nav>
 
@@ -198,6 +198,16 @@
       <div class="hint">
         <p>提示：若有日彙整檔（<code>web/data/daily/*.daily.json</code>）會優先採用，載入較快；若需逐小時則改用原始 <code>*.auto_hr.txt</code>。</p>
       </div>
+      <div class="timeline">
+        <div class="timeline-row">
+          <label>圖表時間視窗</label>
+          <span id="chartRangeLabel">尚未載入</span>
+        </div>
+        <div class="slider">
+          <input type="range" id="chartRangeStart" min="0" max="0" step="1" value="0" />
+          <input type="range" id="chartRangeEnd" min="0" max="0" step="1" value="0" />
+        </div>
+      </div>
     </section>
   </main>
 
@@ -245,16 +255,6 @@
             <tbody id="rankingTableBody"></tbody>
           </table>
           <div class="table-footer" id="rankingPager"></div>
-        </div>
-      </div>
-      <div class="timeline">
-        <div class="timeline-row">
-          <label>圖表時間視窗</label>
-          <span id="chartRangeLabel">尚未載入</span>
-        </div>
-        <div class="slider">
-          <input type="range" id="chartRangeStart" min="0" max="0" step="1" value="0" />
-          <input type="range" id="chartRangeEnd" min="0" max="0" step="1" value="0" />
         </div>
       </div>
     </section>
