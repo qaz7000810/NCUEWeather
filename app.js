@@ -193,8 +193,7 @@ const RADAR_COLORS = ["#d2f5ff", "#9be7ff", "#5bc0ff", "#1f78ff", "#00d26a", "#f
 const CWA_API_KEY = "";
 const NCUE_STATION_KEYWORDS = ["彰師大", "彰化師大", "國立彰化師範大學", "NCUE"];
 const AQI_ENDPOINT = "https://faein.climate-quiz-yuchen.workers.dev/api/v1/aqi";
-const AIRBOX_PM25_ENDPOINT =
-  "https://sta.colife.org.tw/STA_AirQuality_EPAIoT/v1.0/Datastreams?$expand=Thing($expand=Locations),Observations($orderby=phenomenonTime%20desc;$top=1)&$filter=name%20eq%20%27PM2.5%27&$count=true";
+const AIRBOX_PM25_ENDPOINT = "https://faein.climate-quiz-yuchen.workers.dev/api/v1/airbox";
 const AQI_SITE_KEYWORDS = ["彰化"];
 const AQI_API_KEY = "";
 const REALTIME_COUNTY = "彰化縣";
@@ -404,6 +403,20 @@ const rankingMetrics = {
     direction: null,
     colorScale: "pm25",
   },
+  pm10Airbox: {
+    label: "PM10（空氣盒子）",
+    unit: "μg/m3",
+    value: () => null,
+    direction: null,
+    colorScale: "pm10",
+  },
+  pm1Airbox: {
+    label: "PM1（空氣盒子）",
+    unit: "μg/m3",
+    value: () => null,
+    direction: null,
+    colorScale: "pm25",
+  },
   pm10: {
     label: "PM10",
     unit: "μg/m3",
@@ -441,10 +454,10 @@ const rankingMetrics = {
   },
 };
 
-const rankingMetricKeys = ["temp", "apparent", "humidity", "wind", "gust", "rain", "rain3hr", "rain24hr", "thi", "aqi", "pm25", "pm25Airbox", "pm10", "o3"];
+const rankingMetricKeys = ["temp", "apparent", "humidity", "wind", "gust", "rain", "rain3hr", "rain24hr", "thi", "aqi", "pm25", "pm25Airbox", "pm10Airbox", "pm1Airbox", "pm10", "o3"];
 const taiwanMetricKeys = [...rankingMetricKeys];
 
-const disasterMetricKeys = ["temp", "apparent", "humidity", "wind", "gust", "rain", "rain3hr", "rain24hr", "aqi", "pm25", "pm25Airbox", "pm10", "o3"];
+const disasterMetricKeys = ["temp", "apparent", "humidity", "wind", "gust", "rain", "rain3hr", "rain24hr", "aqi", "pm25", "pm25Airbox", "pm10Airbox", "pm1Airbox", "pm10", "o3"];
 const healthMetricKeys = ["coldInjury", "tempDiff", "heatInjury"];
 
 const disasterView = {
@@ -2099,7 +2112,7 @@ async function fetchAirboxPm25Dataset() {
 }
 
 function extractAirboxRecords(payload) {
-  const records = payload?.value || payload?.records || payload?.data || [];
+  const records = payload?.feeds || payload?.value || payload?.records || payload?.data || [];
   return Array.isArray(records) ? records : [];
 }
 
@@ -2403,6 +2416,10 @@ function isDisasterThreshold(metricKey, value) {
     case "pm25":
     case "pm25Airbox":
       return value >= 35;
+    case "pm10Airbox":
+      return value >= DISASTER_PM10_THRESHOLD;
+    case "pm1Airbox":
+      return value >= 35;
     case "pm10":
       return value >= DISASTER_PM10_THRESHOLD;
     case "o3":
@@ -2414,7 +2431,7 @@ function isDisasterThreshold(metricKey, value) {
 
 function buildDisasterEntries(stations, metricKey, view) {
   let baseEntries = [];
-  if (metricKey === "pm25Airbox") {
+  if (isAirboxMetric(metricKey)) {
     baseEntries = buildAirboxEntries(stations, metricKey, view);
   } else if (isAqiMetric(metricKey)) {
     baseEntries = buildAqiEntries(stations, metricKey, view);
@@ -2430,7 +2447,7 @@ async function loadDisasterData() {
   setRankingStatus(disasterView, "讀取即時資料...");
   try {
     await ensureRankingGeo(disasterView);
-    if (metricKey === "pm25Airbox") {
+    if (isAirboxMetric(metricKey)) {
       const data = await fetchAirboxPm25Dataset();
       const records = extractAirboxRecords(data);
       const entries = buildDisasterEntries(records, metricKey, disasterView);
@@ -2471,7 +2488,11 @@ function setRankingStatus(view, text) {
 }
 
 function isAqiMetric(metricKey) {
-  return metricKey === "aqi" || metricKey === "pm25" || metricKey === "pm10" || metricKey === "o3" || metricKey === "pm25Airbox";
+  return metricKey === "aqi" || metricKey === "pm25" || metricKey === "pm10" || metricKey === "o3";
+}
+
+function isAirboxMetric(metricKey) {
+  return metricKey === "pm25Airbox" || metricKey === "pm10Airbox" || metricKey === "pm1Airbox";
 }
 
 function initRankingMap(view) {
@@ -2509,7 +2530,7 @@ async function loadRankingData(view) {
   setRankingStatus(view, "讀取即時資料...");
   try {
     await ensureRankingGeo(view);
-    if (metricKey === "pm25Airbox") {
+    if (isAirboxMetric(metricKey)) {
       const data = await fetchAirboxPm25Dataset();
       const records = extractAirboxRecords(data);
       const entries = buildAirboxEntries(records, metricKey, view);
@@ -2631,21 +2652,28 @@ function buildAqiEntries(records, metricKey, view) {
 
 function buildAirboxEntries(records, metricKey, view) {
   const entries = [];
+  const countyFilter = normalizeCountyName(view?.countyFilter || "");
   records.forEach((record) => {
     const thing = record?.Thing || record?.thing || {};
     const obs = Array.isArray(record?.Observations) ? record.Observations[0] : null;
-    const value = toNumber(obs?.result ?? record?.result);
+    const value = toNumber(readAirboxMetricValue(record, metricKey) ?? obs?.result ?? record?.result);
     if (!isValidObservation(value)) return;
 
     const coords = readAirboxCoords(record, thing);
     if (!coords) return;
 
     let county = normalizeCountyName(
+      extractCountyFromAirboxText(record?.name) ||
+      extractCountyFromAirboxText(record?.SiteName) ||
+      extractCountyFromAirboxText(record?.SiteAddr) ||
       pickThingText(thing, ["county", "County", "city", "City", "縣市", "縣市別"]) ||
+      mapAirboxAreaToCounty(record?.area) ||
       pickThingText(record, ["county", "County", "city", "City", "縣市", "縣市別"]) ||
       ""
     );
     let town =
+      extractTownFromAirboxName(record?.name) ||
+      extractTownFromAirboxName(record?.SiteName) ||
       pickThingText(thing, ["town", "Town", "district", "District", "site", "Site", "鄉鎮", "行政區"]) ||
       pickThingText(record, ["town", "Town", "district", "District", "site", "Site", "鄉鎮", "行政區"]) ||
       "";
@@ -2656,12 +2684,17 @@ function buildAirboxEntries(records, metricKey, view) {
       if (area?.town && !town) town = area.town;
     }
 
-    if (view?.countyFilter && county !== view.countyFilter) return;
+    if (countyFilter && county !== countyFilter) return;
 
-    const obsTime = obs?.phenomenonTime || obs?.resultTime || record?.phenomenonTime || "";
+    const obsTime = record?.timestamp || obs?.phenomenonTime || obs?.resultTime || record?.phenomenonTime || "";
     entries.push({
-      id: thing?.["@iot.id"] || record?.["@iot.id"] || record?.id || "",
-      name: pickThingText(thing, ["station", "Station", "name", "Name", "device_id", "DeviceID"]) || thing?.name || record?.name || "空氣盒子",
+      id: record?.device_id || thing?.["@iot.id"] || record?.["@iot.id"] || record?.id || "",
+      name:
+        record?.name ||
+        record?.SiteName ||
+        pickThingText(thing, ["station", "Station", "name", "Name", "device_id", "DeviceID"]) ||
+        thing?.name ||
+        "空氣盒子",
       county,
       town,
       lat: coords.lat,
@@ -2676,6 +2709,18 @@ function buildAirboxEntries(records, metricKey, view) {
   });
   entries.sort((a, b) => b.value - a.value);
   return entries;
+}
+
+function readAirboxMetricValue(record, metricKey) {
+  switch (metricKey) {
+    case "pm10Airbox":
+      return record?.s_d1;
+    case "pm1Airbox":
+      return record?.s_d2;
+    case "pm25Airbox":
+    default:
+      return record?.s_d0 ?? record?.c_d0;
+  }
 }
 
 function pickThingText(source, keys) {
@@ -2699,15 +2744,62 @@ function readAirboxCoords(record, thing) {
   }
 
   const lat = toNumber(
+    record?.gps_lat ||
     pickThingText(thing, ["latitude", "Latitude", "lat", "Lat", "緯度"]) ||
     pickThingText(record, ["latitude", "Latitude", "lat", "Lat", "緯度"])
   );
   const lon = toNumber(
+    record?.gps_lon ||
     pickThingText(thing, ["longitude", "Longitude", "lon", "Lon", "lng", "Lng", "經度"]) ||
     pickThingText(record, ["longitude", "Longitude", "lon", "Lon", "lng", "Lng", "經度"])
   );
   if (!Number.isFinite(lat) || !Number.isFinite(lon)) return null;
   return { lat, lon };
+}
+
+function mapAirboxAreaToCounty(area) {
+  const key = String(area || "").trim().toLowerCase();
+  const map = {
+    keelung: "基隆市",
+    taipei: "臺北市",
+    new_taipei: "新北市",
+    taoyuan: "桃園市",
+    hsinchu_city: "新竹市",
+    hsinchu_county: "新竹縣",
+    miaoli: "苗栗縣",
+    taichung: "臺中市",
+    taichuang: "臺中市",
+    changhua: "彰化縣",
+    nantou: "南投縣",
+    yunlin: "雲林縣",
+    chiayi_city: "嘉義市",
+    chiayi_county: "嘉義縣",
+    tainan: "臺南市",
+    kaohsiung: "高雄市",
+    pingtung: "屏東縣",
+    yilan: "宜蘭縣",
+    ilan: "宜蘭縣",
+    hualien: "花蓮縣",
+    taitung: "臺東縣",
+    penghu: "澎湖縣",
+    kinmen: "金門縣",
+    lienchiang: "連江縣",
+  };
+  return map[key] || "";
+}
+
+function extractTownFromAirboxName(value) {
+  const text = String(value || "").trim();
+  if (!text) return "";
+  const match = text.match(/(.*?[鄉鎮市區])/);
+  return match ? match[1] : "";
+}
+
+function extractCountyFromAirboxText(value) {
+  const text = String(value || "").trim();
+  if (!text) return "";
+  const match = text.match(/(基隆市|臺北市|台北市|新北市|桃園市|新竹市|新竹縣|苗栗縣|臺中市|台中市|彰化縣|南投縣|雲林縣|嘉義市|嘉義縣|臺南市|台南市|高雄市|屏東縣|宜蘭縣|花蓮縣|臺東縣|台東縣|澎湖縣|金門縣|連江縣)/);
+  return match ? normalizeCountyName(match[1]) : "";
 }
 
 function resolveAreaByPoint(geo, lon, lat, view) {
@@ -3059,7 +3151,7 @@ function focusViewOnCounty(view) {
 function formatRankingValue(metricKey, value, unit) {
   if (value == null || !Number.isFinite(value)) return "—";
   const digits =
-    metricKey === "humidity" || metricKey === "aqi" || metricKey === "pm25" || metricKey === "pm25Airbox" || metricKey === "pm10" || metricKey === "o3"
+    metricKey === "humidity" || metricKey === "aqi" || metricKey === "pm25" || metricKey === "pm25Airbox" || metricKey === "pm10Airbox" || metricKey === "pm1Airbox" || metricKey === "pm10" || metricKey === "o3"
       ? 0
       : 1;
   if (metricKey === "wind" || metricKey === "gust") {
@@ -3123,7 +3215,10 @@ function formatDisasterLevel(metricKey, value) {
       return "對敏感族群不健康";
     case "pm25":
     case "pm25Airbox":
+    case "pm1Airbox":
       return value >= 55 ? "細懸浮微粒警戒" : "細懸浮微粒注意";
+    case "pm10Airbox":
+      return value >= DISASTER_PM10_THRESHOLD ? "PM10警戒" : "PM10注意";
     case "pm10":
       return value >= DISASTER_PM10_THRESHOLD ? "PM10警戒" : "—";
     case "o3":
@@ -3366,7 +3461,7 @@ function findLatestAirboxTime(records) {
   let latestMs = 0;
   records.forEach((record) => {
     const obs = Array.isArray(record?.Observations) ? record.Observations[0] : null;
-    const raw = obs?.phenomenonTime || obs?.resultTime || record?.phenomenonTime || "";
+    const raw = record?.timestamp || obs?.phenomenonTime || obs?.resultTime || record?.phenomenonTime || "";
     if (!raw) return;
     const parsed = parseAqiTime(raw);
     if (!parsed) return;
@@ -3545,9 +3640,10 @@ function buildColorbarConfig(metricKey, metric) {
     };
   }
   if (metric.colorScale === "pm25") {
+    const levels = metricKey === "pm1Airbox" ? [0, 10, 20, 30, 80, 150] : PM25_LEVELS;
     const blocks = PM25_COLORS.length;
-    const ticks = PM25_LEVELS.map((v) => String(v));
-    const positions = PM25_LEVELS.map((_, idx) => idx / blocks);
+    const ticks = levels.map((v) => String(v));
+    const positions = levels.map((_, idx) => idx / blocks);
     return {
       title: `${metric.label} (${metric.unit})`,
       stops: PM25_COLORS,
