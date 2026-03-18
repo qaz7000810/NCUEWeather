@@ -1903,10 +1903,41 @@ function formatValue(value, unit = "", digits = 1) {
 function formatObsTime(value) {
   if (!value) return "";
   const raw = String(value).trim();
+  if (/[zZ]$|[+-]\d{2}:\d{2}$/.test(raw)) {
+    const parsed = new Date(raw);
+    if (!Number.isNaN(parsed.getTime())) {
+      return formatDateInTaipei(parsed);
+    }
+  }
   const match = raw.match(/^(\d{4})-(\d{2})-(\d{2})T(\d{2}:\d{2}:\d{2})/);
   if (!match) return raw.replace("T", " ").replace(/[-/]/g, "/");
   const [, y, m, d, t] = match;
   return `${y}/${m}/${d} ${t}`;
+}
+
+function formatDateInTaipei(date) {
+  try {
+    return new Intl.DateTimeFormat("zh-TW", {
+      timeZone: "Asia/Taipei",
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+      hour: "2-digit",
+      minute: "2-digit",
+      second: "2-digit",
+      hour12: false,
+    }).format(date).replace(/\//g, "/");
+  } catch (_) {
+    const utcMs = date.getTime();
+    const taipei = new Date(utcMs + 8 * 3600 * 1000);
+    const y = taipei.getUTCFullYear();
+    const m = String(taipei.getUTCMonth() + 1).padStart(2, "0");
+    const d = String(taipei.getUTCDate()).padStart(2, "0");
+    const hh = String(taipei.getUTCHours()).padStart(2, "0");
+    const mm = String(taipei.getUTCMinutes()).padStart(2, "0");
+    const ss = String(taipei.getUTCSeconds()).padStart(2, "0");
+    return `${y}/${m}/${d} ${hh}:${mm}:${ss}`;
+  }
 }
 
 function formatWindDirection(value) {
