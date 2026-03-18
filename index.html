@@ -397,7 +397,10 @@
       <div class="timeline" id="healthTimelineWrap" style="display:none;">
         <div class="timeline-row">
           <label for="healthTimeline">時間軸（逐3小時）</label>
-          <span id="healthTimelineLabel">--</span>
+          <div class="timeline-actions">
+            <span id="healthTimelineLabel">--</span>
+            <button id="healthTimelinePlayBtn" class="ghost" type="button">播放</button>
+          </div>
         </div>
         <div class="slider">
           <input type="range" id="healthTimeline" min="0" max="0" step="1" value="0" />

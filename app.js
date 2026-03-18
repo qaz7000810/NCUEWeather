@@ -88,6 +88,7 @@ const dom = {
   healthTimelineWrap: document.getElementById("healthTimelineWrap"),
   healthTimeline: document.getElementById("healthTimeline"),
   healthTimelineLabel: document.getElementById("healthTimelineLabel"),
+  healthTimelinePlayBtn: document.getElementById("healthTimelinePlayBtn"),
   visitTotal: document.getElementById("visitTotal"),
   visitToday: document.getElementById("visitToday"),
   visitStatus: document.getElementById("visitStatus"),
@@ -178,6 +179,8 @@ const healthState = {
   timelineKeys: [],
   timelineEntries: new Map(),
   timelineIndex: 0,
+  timelineTimer: null,
+  timelinePlaying: false,
 };
 
 const CWA_BASE = "https://faein.climate-quiz-yuchen.workers.dev/api/v1/rest/datastore";
@@ -504,6 +507,7 @@ const healthView = {
     timelineWrap: dom.healthTimelineWrap,
     timeline: dom.healthTimeline,
     timelineLabel: dom.healthTimelineLabel,
+    playBtn: dom.healthTimelinePlayBtn,
   },
   state: healthState,
   geojsonUrl: "https://raw.githubusercontent.com/qaz7000810/geo-assets/main/townships.geojson",
@@ -2359,18 +2363,24 @@ function bindDisasterViewEvents() {
 
 function bindHealthViewEvents() {
   if (!healthView?.dom) return;
-  healthView.dom.reloadBtn?.addEventListener("click", loadHealthData);
+  healthView.dom.reloadBtn?.addEventListener("click", () => {
+    stopHealthTimelinePlayback();
+    loadHealthData();
+  });
   healthView.dom.mode?.addEventListener("change", () => {
     healthView.state.page = 1;
+    stopHealthTimelinePlayback();
     toggleHealthTimelineControls();
     loadHealthData();
   });
   healthView.dom.metric?.addEventListener("change", () => {
     healthView.state.page = 1;
+    stopHealthTimelinePlayback();
     loadHealthData();
   });
   healthView.dom.window?.addEventListener("change", () => {
     healthView.state.page = 1;
+    stopHealthTimelinePlayback();
     loadHealthData();
   });
   healthView.dom.timeline?.addEventListener("input", () => {
@@ -2378,6 +2388,7 @@ function bindHealthViewEvents() {
     healthView.state.timelineIndex = Number.isFinite(idx) ? idx : 0;
     renderHealthTimelineFrame();
   });
+  healthView.dom.playBtn?.addEventListener("click", toggleHealthTimelinePlayback);
   healthView.dom.valueHeader?.addEventListener("click", () => {
     healthView.state.sortDir = healthView.state.sortDir === "desc" ? "asc" : "desc";
     healthView.state.page = 1;
@@ -2390,6 +2401,56 @@ function toggleHealthTimelineControls() {
   if (healthView?.dom?.timelineWrap) {
     healthView.dom.timelineWrap.style.display = mode === "timeline" ? "" : "none";
   }
+  if (mode !== "timeline") {
+    stopHealthTimelinePlayback();
+  }
+  updateHealthTimelinePlaybackButton();
+}
+
+function updateHealthTimelinePlaybackButton() {
+  const btn = healthView?.dom?.playBtn;
+  if (!btn) return;
+  const hasFrames = (healthView.state.timelineKeys || []).length > 1;
+  const isTimelineMode = (healthView?.dom?.mode?.value || "window") === "timeline";
+  btn.disabled = !isTimelineMode || !hasFrames;
+  btn.textContent = healthView.state.timelinePlaying ? "暫停" : "播放";
+}
+
+function stopHealthTimelinePlayback() {
+  if (healthView.state.timelineTimer) {
+    clearInterval(healthView.state.timelineTimer);
+    healthView.state.timelineTimer = null;
+  }
+  healthView.state.timelinePlaying = false;
+  updateHealthTimelinePlaybackButton();
+}
+
+function startHealthTimelinePlayback() {
+  const keys = healthView.state.timelineKeys || [];
+  if ((healthView?.dom?.mode?.value || "window") !== "timeline" || keys.length <= 1) {
+    stopHealthTimelinePlayback();
+    return;
+  }
+  stopHealthTimelinePlayback();
+  healthView.state.timelinePlaying = true;
+  healthView.state.timelineTimer = setInterval(() => {
+    const total = healthView.state.timelineKeys?.length || 0;
+    if (total <= 1) {
+      stopHealthTimelinePlayback();
+      return;
+    }
+    healthView.state.timelineIndex = (Number(healthView.state.timelineIndex || 0) + 1) % total;
+    renderHealthTimelineFrame();
+  }, 1200);
+  updateHealthTimelinePlaybackButton();
+}
+
+function toggleHealthTimelinePlayback() {
+  if (healthView.state.timelinePlaying) {
+    stopHealthTimelinePlayback();
+    return;
+  }
+  startHealthTimelinePlayback();
 }
 
 function isDisasterThreshold(metricKey, value) {
@@ -4113,6 +4174,7 @@ function renderHealthTimelineFrame() {
 
 async function loadHealthData() {
   if (!healthView?.dom?.metric) return;
+  stopHealthTimelinePlayback();
   const metricKey = healthView.dom.metric.value;
   const windowHours = Number(healthView.dom.window?.value || 72);
   const mode = healthView.dom.mode?.value || "window";
@@ -4134,6 +4196,7 @@ async function loadHealthData() {
         healthView.dom.timeline.value = "0";
       }
       renderHealthTimelineFrame();
+      updateHealthTimelinePlaybackButton();
     } else {
       const entries = buildHealthEntries(locations, metricKey, windowHours);
       healthView.state.entries = entries;
@@ -4143,6 +4206,7 @@ async function loadHealthData() {
       const latest = formatObsTime(extractHealthIssueTime(data)) || extractHealthIssueTime(data) || "";
       healthView.dom.dataTime.textContent = latest;
       if (healthView.dom.timelineLabel) healthView.dom.timelineLabel.textContent = "--";
+      updateHealthTimelinePlaybackButton();
       setRankingStatus(healthView, entries.length ? `已更新 ${entries.length} 筆警示鄉鎮（${windowHours}小時）` : `目前無警示鄉鎮（${windowHours}小時）`);
     }
   } catch (err) {

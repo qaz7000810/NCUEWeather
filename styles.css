@@ -163,9 +163,21 @@ h3 {
   gap: 6px;
 }
 
+.control.buttons {
+  justify-content: flex-start;
+}
+
+.control.buttons::before {
+  content: "";
+  display: block;
+  height: 20px;
+  flex: 0 0 auto;
+}
+
 label {
   font-size: 14px;
   color: var(--muted);
+  line-height: 20px;
 }
 
 select,
@@ -244,6 +256,16 @@ button:hover {
   align-items: center;
   color: var(--muted);
   margin-bottom: 10px;
+}
+
+.timeline-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.timeline-actions .ghost {
+  min-width: 72px;
 }
 
 .slider {
