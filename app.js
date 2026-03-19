@@ -386,14 +386,14 @@ const rankingMetrics = {
     colorScale: "thi",
   },
   aqi: {
-    label: "AQI",
+    label: "AQI（環境部）",
     unit: "",
     value: () => null,
     direction: null,
     colorScale: "aqi",
   },
   pm25: {
-    label: "PM2.5",
+    label: "PM2.5（環境部）",
     unit: "μg/m3",
     value: () => null,
     direction: null,
@@ -421,14 +421,14 @@ const rankingMetrics = {
     colorScale: "pm25",
   },
   pm10: {
-    label: "PM10",
+    label: "PM10（環境部）",
     unit: "μg/m3",
     value: () => null,
     direction: null,
     colorScale: "pm10",
   },
   o3: {
-    label: "臭氧",
+    label: "臭氧（環境部）",
     unit: "ppb",
     value: () => null,
     direction: null,
@@ -457,10 +457,10 @@ const rankingMetrics = {
   },
 };
 
-const rankingMetricKeys = ["temp", "apparent", "humidity", "wind", "gust", "rain", "rain3hr", "rain24hr", "thi", "aqi", "pm25", "pm25Airbox", "pm10Airbox", "pm1Airbox", "pm10", "o3"];
+const rankingMetricKeys = ["temp", "apparent", "humidity", "wind", "gust", "rain", "rain3hr", "rain24hr", "thi", "aqi", "pm25", "pm10", "o3", "pm1Airbox", "pm25Airbox", "pm10Airbox"];
 const taiwanMetricKeys = [...rankingMetricKeys];
 
-const disasterMetricKeys = ["temp", "apparent", "humidity", "wind", "gust", "rain", "rain3hr", "rain24hr", "aqi", "pm25", "pm25Airbox", "pm10Airbox", "pm1Airbox", "pm10", "o3"];
+const disasterMetricKeys = ["temp", "apparent", "humidity", "wind", "gust", "rain", "rain3hr", "rain24hr", "aqi", "pm25", "pm10", "o3", "pm1Airbox", "pm25Airbox", "pm10Airbox"];
 const healthMetricKeys = ["coldInjury", "tempDiff", "heatInjury"];
 
 const disasterView = {
