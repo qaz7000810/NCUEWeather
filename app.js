@@ -89,6 +89,22 @@ const dom = {
   healthTimeline: document.getElementById("healthTimeline"),
   healthTimelineLabel: document.getElementById("healthTimelineLabel"),
   healthTimelinePlayBtn: document.getElementById("healthTimelinePlayBtn"),
+  industryWeatherIndustry: document.getElementById("industryWeatherIndustry"),
+  industryWeatherAnimalWrap: document.getElementById("industryWeatherAnimalWrap"),
+  industryWeatherAnimal: document.getElementById("industryWeatherAnimal"),
+  industryWeatherTown: document.getElementById("industryWeatherTown"),
+  industryWeatherTime: document.getElementById("industryWeatherTime"),
+  industryWeatherTimelineWrap: document.getElementById("industryWeatherTimelineWrap"),
+  industryWeatherTimeline: document.getElementById("industryWeatherTimeline"),
+  industryWeatherTimelineLabel: document.getElementById("industryWeatherTimelineLabel"),
+  industryWeatherTimelinePlayBtn: document.getElementById("industryWeatherTimelinePlayBtn"),
+  industryWeatherReloadBtn: document.getElementById("industryWeatherReloadBtn"),
+  industryWeatherStatus: document.getElementById("industryWeatherStatus"),
+  industryWeatherMap: document.getElementById("industryWeatherMap"),
+  industryWeatherDataTime: document.getElementById("industryWeatherDataTime"),
+  industryWeatherInfo: document.getElementById("industryWeatherInfo"),
+  industryWeatherLegend: document.getElementById("industryWeatherLegend"),
+  industryWeatherThresholdBody: document.getElementById("industryWeatherThresholdBody"),
   visitTotal: document.getElementById("visitTotal"),
   visitToday: document.getElementById("visitToday"),
   visitStatus: document.getElementById("visitStatus"),
@@ -183,6 +199,22 @@ const healthState = {
   timelinePlaying: false,
 };
 
+const industryWeatherState = {
+  map: null,
+  townLayer: null,
+  townGeo: null,
+  selectedTownKey: "",
+  selectedTownName: "",
+  townData: [],
+  sourceMode: "idle",
+  latestTime: "",
+  forecastFrames: [],
+  forecastByTown: new Map(),
+  forecastIndex: 0,
+  forecastTimer: null,
+  forecastPlaying: false,
+};
+
 const CWA_BASE = "https://faein.climate-quiz-yuchen.workers.dev/api/v1/rest/datastore";
 const CWA_FILEAPI_BASE = "https://faein.climate-quiz-yuchen.workers.dev/api/v1/fileapi/v1/opendataapi";
 const GEO_ASSETS_BASE = "https://raw.githubusercontent.com/qaz7000810/geo-assets/main";
@@ -202,6 +234,7 @@ const AQI_API_KEY = "";
 const REALTIME_COUNTY = "彰化縣";
 const RANKING_DATASET = "O-A0001-001";
 const RAIN_DATASET = "O-A0002-001";
+const TOWN_FORECAST_DATASET = "F-D0047-017";
 const COLD_INJURY_DATASET = "F-A0085-003";
 const TEMP_DIFF_DATASET = "F-A0085-005";
 const HEAT_INJURY_DATASET = "M-A0085-001";
@@ -297,6 +330,88 @@ const HEALTH_WARNING_LEVELS = {
 
 const COUNTY_CODE_MAP = {
   彰化縣: "10007",
+};
+
+const INDUSTRY_WEATHER_NEUTRAL_COLOR = "#cbd5e1";
+const INDUSTRY_WEATHER_LEVELS = [
+  { key: "normal", label: "正常", color: "#2fbe82" },
+  { key: "attention", label: "注意 / 輕度", color: "#f2c94c" },
+  { key: "alert", label: "警戒 / 中度", color: "#f39c34" },
+  { key: "danger", label: "危險 / 嚴重", color: "#d14343" },
+  { key: "extreme", label: "極危險", color: "#8b1e3f" },
+];
+const INDUSTRY_PLACEHOLDER_COPY = {
+  agriculture: "農業氣象功能建置中",
+  fishery: "漁業氣象功能建置中",
+};
+const LIVESTOCK_ANIMALS = {
+  cattle: {
+    label: "牛",
+    metric: "thi",
+    thresholds: [
+      { min: -Infinity, max: 72, level: "normal", label: "正常", description: "THI < 72" },
+      { min: 72, max: 80, level: "attention", label: "輕度熱緊迫", description: "72 ≤ THI < 79" },
+      { min: 80, max: 90, level: "alert", label: "中度熱緊迫", description: "80 ≤ THI < 89" },
+      { min: 90, max: 98, level: "danger", label: "嚴重熱緊迫", description: "90 ≤ THI < 98" },
+      { min: 98, max: Infinity, level: "extreme", label: "危險熱緊迫", description: "THI ≥ 98" },
+    ],
+  },
+  chicken: {
+    label: "雞",
+    metric: "thi",
+    highTempWarning: {
+      minTemp: 32,
+      level: "attention",
+      label: "高溫預警",
+      description: "氣溫 ≥ 32°C 高溫預警",
+    },
+    thresholds: [
+      { min: -Infinity, max: 72, level: "normal", label: "正常", description: "THI < 72" },
+      { min: 72, max: 78.000001, level: "attention", label: "低度熱緊迫預警", description: "72 ≤ THI ≤ 78" },
+      { min: 78.000001, max: 80, level: "alert", label: "中度熱緊迫預警", description: "78 < THI ≤ 79" },
+      { min: 80, max: Infinity, level: "danger", label: "嚴重熱緊迫", description: "THI ≥ 80" },
+    ],
+  },
+  pig: {
+    label: "豬",
+    metric: "temp",
+    thresholds: [
+      { min: -Infinity, max: 27, level: "normal", label: "正常", description: "氣溫 < 27°C" },
+      { min: 27, max: 30, level: "attention", label: "注意", description: "氣溫 27–30°C" },
+      { min: 30, max: 34, level: "alert", label: "警戒", description: "氣溫 30–34°C" },
+      { min: 34, max: Infinity, level: "danger", label: "危險", description: "氣溫 ≥ 34°C" },
+    ],
+  },
+  goat: {
+    label: "羊",
+    metric: "temp",
+    thresholds: [
+      { min: -Infinity, max: 30, level: "normal", label: "正常", description: "氣溫 < 30°C" },
+      { min: 30, max: 35, level: "attention", label: "注意", description: "氣溫 30–35°C" },
+      { min: 35, max: 40, level: "alert", label: "警戒", description: "氣溫 35–40°C" },
+      { min: 40, max: Infinity, level: "danger", label: "危險", description: "氣溫 ≥ 40°C" },
+    ],
+  },
+  duck: {
+    label: "鴨",
+    metric: "temp",
+    thresholds: [
+      { min: -Infinity, max: 30, level: "normal", label: "正常", description: "氣溫 < 30°C" },
+      { min: 30, max: 34, level: "attention", label: "注意", description: "氣溫 30–34°C" },
+      { min: 34, max: 38, level: "alert", label: "警戒", description: "氣溫 34–38°C" },
+      { min: 38, max: Infinity, level: "danger", label: "危險", description: "氣溫 ≥ 38°C" },
+    ],
+  },
+  goose: {
+    label: "鵝",
+    metric: "temp",
+    thresholds: [
+      { min: -Infinity, max: 25, level: "normal", label: "正常", description: "氣溫 < 25°C" },
+      { min: 25, max: 28, level: "attention", label: "注意", description: "氣溫 25–28°C" },
+      { min: 28, max: 32, level: "alert", label: "警戒", description: "氣溫 28–32°C" },
+      { min: 32, max: Infinity, level: "danger", label: "危險", description: "氣溫 ≥ 32°C" },
+    ],
+  },
 };
 
 const rankingMetrics = {
@@ -588,6 +703,7 @@ async function init() {
   initRankingViews();
   initDisasterView();
   initHealthView();
+  initIndustryWeatherView();
 }
 
 function bindTabs() {
@@ -619,6 +735,11 @@ function bindTabs() {
       if (target === "health") {
         requestAnimationFrame(() => {
           ensureRankingMapSized(healthView);
+        });
+      }
+      if (target === "industry-weather") {
+        requestAnimationFrame(() => {
+          ensureIndustryWeatherMapSized();
         });
       }
     });
@@ -653,6 +774,7 @@ function bindEvents() {
   bindRankingViewEvents(rankingViews.taiwan);
   bindDisasterViewEvents();
   bindHealthViewEvents();
+  bindIndustryWeatherEvents();
 }
 async function loadIndex() {
   try {
@@ -2378,6 +2500,15 @@ function initHealthView() {
   loadHealthData();
 }
 
+function initIndustryWeatherView() {
+  if (!dom.industryWeatherMap || !dom.industryWeatherIndustry) return;
+  renderIndustryWeatherLegend();
+  renderIndustryWeatherThresholdTable();
+  syncIndustryWeatherControls();
+  initIndustryWeatherMap();
+  loadIndustryWeatherData();
+}
+
 function bindDisasterViewEvents() {
   if (!disasterView?.dom) return;
   disasterView.dom.reloadBtn?.addEventListener("click", loadDisasterData);
@@ -2425,6 +2556,937 @@ function bindHealthViewEvents() {
     healthView.state.page = 1;
     renderRankingTable(healthView.state.entries, healthView.dom.metric.value, healthView);
   });
+}
+
+function bindIndustryWeatherEvents() {
+  dom.industryWeatherIndustry?.addEventListener("change", () => {
+    syncIndustryWeatherControls();
+    ensureIndustryWeatherSelection();
+    renderIndustryWeatherMap();
+    renderIndustryWeatherInfo();
+  });
+  dom.industryWeatherAnimal?.addEventListener("change", () => {
+    syncIndustryWeatherControls();
+    if (getIndustryWeatherTimeMode() === "realtime") {
+      ensureIndustryWeatherSelection();
+      renderIndustryWeatherMap();
+      renderIndustryWeatherInfo();
+      return;
+    }
+    loadIndustryWeatherData();
+  });
+  dom.industryWeatherTime?.addEventListener("change", loadIndustryWeatherData);
+  dom.industryWeatherTimeline?.addEventListener("input", () => {
+    const idx = Number(dom.industryWeatherTimeline?.value || 0);
+    industryWeatherState.forecastIndex = Number.isFinite(idx) ? idx : 0;
+    stopIndustryWeatherPlayback();
+    syncIndustryWeatherForecastFrame();
+  });
+  dom.industryWeatherTimelinePlayBtn?.addEventListener("click", toggleIndustryWeatherPlayback);
+  dom.industryWeatherTown?.addEventListener("change", () => {
+    const townKey = dom.industryWeatherTown?.value || "";
+    if (!townKey) return;
+    industryWeatherState.selectedTownKey = townKey;
+    industryWeatherState.selectedTownName = townKey;
+    renderIndustryWeatherMap();
+    renderIndustryWeatherInfo();
+  });
+  dom.industryWeatherReloadBtn?.addEventListener("click", loadIndustryWeatherData);
+}
+
+function syncIndustryWeatherControls() {
+  const industry = dom.industryWeatherIndustry?.value || "livestock";
+  const animal = dom.industryWeatherAnimal?.value || "cattle";
+  if (dom.industryWeatherAnimalWrap) {
+    dom.industryWeatherAnimalWrap.style.display = industry === "livestock" ? "" : "none";
+  }
+}
+
+function initIndustryWeatherMap() {
+  if (!dom.industryWeatherMap || industryWeatherState.map) return;
+  industryWeatherState.map = L.map(dom.industryWeatherMap.id, { zoomControl: true }).setView([23.98, 120.46], 10);
+  L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+    maxZoom: 12,
+    attribution: "&copy; OpenStreetMap contributors",
+  }).addTo(industryWeatherState.map);
+}
+
+function ensureIndustryWeatherMapSized() {
+  industryWeatherState.map?.invalidateSize();
+}
+
+function setIndustryWeatherStatus(text) {
+  if (dom.industryWeatherStatus) dom.industryWeatherStatus.textContent = text;
+}
+
+async function ensureIndustryWeatherGeo() {
+  if (industryWeatherState.townGeo) return industryWeatherState.townGeo;
+  const res = await fetch("./data/changhua/changhua_townships.geojson");
+  if (!res.ok) throw new Error("無法載入彰化鄉鎮邊界");
+  industryWeatherState.townGeo = await res.json();
+  return industryWeatherState.townGeo;
+}
+
+async function loadIndustryWeatherData() {
+  if (!dom.industryWeatherMap) return;
+  const timeMode = getIndustryWeatherTimeMode();
+  setIndustryWeatherStatus(`讀取彰化產業氣象資料（${getIndustryWeatherTimeLabel(timeMode)}）...`);
+  try {
+    const geo = await ensureIndustryWeatherGeo();
+    let townData = [];
+    industryWeatherState.forecastFrames = [];
+    industryWeatherState.forecastByTown = new Map();
+    industryWeatherState.forecastIndex = 0;
+    stopIndustryWeatherPlayback();
+    if (timeMode === "realtime") {
+      const data = await fetchCwaDataset(RANKING_DATASET);
+      const stations = extractCwaStations(data);
+      townData = buildIndustryTownDataFromStations(stations, geo);
+      if (!townData.length) throw new Error("彰化即時測站資料不足");
+      industryWeatherState.latestTime = findLatestObsTimeFromStations(stations) || "";
+      toggleIndustryWeatherTimeline(false);
+    } else {
+      const data = await fetchCwaDataset(TOWN_FORECAST_DATASET);
+      townData = buildIndustryTownDataFromForecast(data, timeMode);
+      if (!townData.length) throw new Error("彰化鄉鎮預報資料不足");
+      industryWeatherState.latestTime = findForecastIssueTime(data) || "";
+      toggleIndustryWeatherTimeline(true);
+    }
+    industryWeatherState.townData = townData;
+    industryWeatherState.sourceMode = "cwa";
+    populateIndustryTownOptions();
+    if (timeMode !== "realtime") {
+      configureIndustryWeatherTimeline();
+    }
+    ensureIndustryWeatherSelection();
+    renderIndustryWeatherMap();
+    renderIndustryWeatherInfo();
+    updateIndustryWeatherDataTime();
+    fitIndustryWeatherBounds();
+    setIndustryWeatherStatus(`已更新 ${townData.length} 個彰化鄉鎮（${getIndustryWeatherTimeLabel(timeMode)}）`);
+  } catch (err) {
+    console.warn("industry weather fallback to mock:", err);
+    try {
+      const geo = await ensureIndustryWeatherGeo();
+      industryWeatherState.townData = buildMockIndustryTownData(geo);
+      industryWeatherState.sourceMode = "mock";
+      industryWeatherState.latestTime = formatDateInTaipei(new Date());
+      stopIndustryWeatherPlayback();
+      toggleIndustryWeatherTimeline(false);
+      populateIndustryTownOptions();
+      ensureIndustryWeatherSelection();
+      renderIndustryWeatherMap();
+      renderIndustryWeatherInfo();
+      updateIndustryWeatherDataTime();
+      fitIndustryWeatherBounds();
+      setIndustryWeatherStatus(`正式資料暫不可用，已改用 mock 資料（${getIndustryWeatherTimeLabel(timeMode)}）`);
+    } catch (fallbackErr) {
+      console.error(fallbackErr);
+      setIndustryWeatherStatus(fallbackErr.message || "農漁牧氣象資料載入失敗");
+    }
+  }
+}
+
+function configureIndustryWeatherTimeline() {
+  const total = industryWeatherState.forecastFrames.length;
+  if (!dom.industryWeatherTimeline) return;
+  dom.industryWeatherTimeline.min = "0";
+  dom.industryWeatherTimeline.max = String(Math.max(0, total - 1));
+  dom.industryWeatherTimeline.step = "1";
+  dom.industryWeatherTimeline.value = String(industryWeatherState.forecastIndex);
+  syncIndustryWeatherForecastFrame();
+  updateIndustryWeatherPlaybackButton();
+}
+
+function buildIndustryTownDataFromStations(stations, geo) {
+  const changhuaStations = (stations || [])
+    .map((station) => {
+      const geoInfo = station?.GeoInfo || station?.geoInfo || {};
+      const county = normalizeCountyName(geoInfo?.CountyName || geoInfo?.countyName || "");
+      if (county !== REALTIME_COUNTY) return null;
+      const coords = readStationCoords(geoInfo);
+      const temp = toNumber(readWeatherElement(station, "AirTemperature"));
+      let humidity = toNumber(readWeatherElement(station, "RelativeHumidity"));
+      if (humidity != null && humidity >= 0 && humidity <= 1) humidity *= 100;
+      if (!coords || !isValidObservation(temp)) return null;
+      const obsTime =
+        station?.ObsTime?.DateTime ||
+        station?.obsTime?.DateTime ||
+        station?.ObsTime?.dateTime ||
+        station?.obsTime?.dateTime ||
+        "";
+      return {
+        id: station?.StationId || station?.stationId || station?.StationID || "",
+        name: getStationName(station),
+        town: normalizeIndustryTownName(geoInfo?.TownName || geoInfo?.townName || ""),
+        lat: coords.lat,
+        lon: coords.lon,
+        temp,
+        humidity: isValidObservation(humidity) ? humidity : null,
+        thi: computeLivestockThi(temp, humidity),
+        obsTime,
+      };
+    })
+    .filter(Boolean);
+
+  const allStations = changhuaStations.filter((station) => isValidObservation(station.temp));
+  if (!allStations.length) return [];
+
+  return (geo?.features || []).map((feature) => {
+    const townName = normalizeIndustryTownName(feature?.properties?.[TOWN_NAME_FIELD] || "");
+    const center = getIndustryFeatureCenter(feature);
+    const inTown = allStations.filter((station) => station.town === townName);
+    const aggregate = inTown.length
+      ? summarizeIndustryStations(inTown)
+      : interpolateIndustryStationValue(allStations, center.lat, center.lon);
+    return {
+      townKey: townName,
+      townName,
+      lat: center.lat,
+      lon: center.lon,
+      temperature: aggregate.temperature,
+      humidity: aggregate.humidity,
+      thi: computeLivestockThi(aggregate.temperature, aggregate.humidity),
+      stationCount: inTown.length || aggregate.stationCount,
+      source: inTown.length ? "station" : "interpolated",
+      obsTime: aggregate.obsTime,
+    };
+  });
+}
+
+function buildIndustryTownDataFromForecast(payload, timeMode) {
+  const locations = extractTownForecastLocations(payload);
+  const forecastByTown = new Map();
+  const frameSet = new Set();
+  const result = [];
+  locations.forEach((location) => {
+    const townName = normalizeIndustryTownName(
+      location?.LocationName ||
+      location?.locationName ||
+      location?.name ||
+      ""
+    );
+    if (!townName) return;
+    const timeline = buildForecastTimelineForLocation(location)
+      .filter((entry) => isForecastEntryInWindow(entry?.dataTime, timeMode, new Date()));
+    if (!timeline.length) return;
+    forecastByTown.set(townName, timeline);
+    timeline.forEach((entry) => frameSet.add(entry.dataTime));
+    const picked = pickForecastEntryForMode(timeline, timeMode);
+    if (!picked) return;
+    result.push({
+      townKey: townName,
+      townName,
+      lat: toNumber(
+        location?.Latitude ||
+        location?.latitude ||
+        location?.lat
+      ),
+      lon: toNumber(
+        location?.Longitude ||
+        location?.longitude ||
+        location?.lon ||
+        location?.lng
+      ),
+      temperature: picked.temperature,
+      humidity: picked.humidity,
+      thi: computeLivestockThi(picked.temperature, picked.humidity),
+      stationCount: 0,
+      source: "forecast",
+      obsTime: picked.dataTime,
+      forecastLabel: picked.label,
+      worstForecast: picked,
+    });
+  });
+  industryWeatherState.forecastByTown = forecastByTown;
+  industryWeatherState.forecastFrames = Array.from(frameSet).sort();
+  industryWeatherState.forecastIndex = Math.max(0, Math.min(industryWeatherState.forecastIndex, industryWeatherState.forecastFrames.length - 1));
+  const frameData = buildIndustryTownDataForForecastFrame(industryWeatherState.forecastFrames[industryWeatherState.forecastIndex], result);
+  return frameData.length ? frameData : result;
+}
+
+function buildIndustryTownDataForForecastFrame(frameTime, fallbackRows = []) {
+  if (!frameTime) return fallbackRows;
+  const rows = [];
+  for (const [townName, timeline] of industryWeatherState.forecastByTown.entries()) {
+    const matched = (timeline || []).find((entry) => entry.dataTime === frameTime);
+    const worst = pickForecastEntryForMode(timeline, getIndustryWeatherTimeMode());
+    const source = matched || worst;
+    if (!source) continue;
+    rows.push({
+      townKey: townName,
+      townName,
+      lat: source.lat,
+      lon: source.lon,
+      temperature: source.temperature,
+      humidity: source.humidity,
+      thi: computeLivestockThi(source.temperature, source.humidity),
+      stationCount: 0,
+      source: "forecast",
+      obsTime: source.dataTime,
+      forecastLabel: formatIndustryForecastLabel(frameTime, getIndustryWeatherTimeMode()),
+      worstForecast: worst,
+    });
+  }
+  if (rows.length) return rows;
+  return fallbackRows;
+}
+
+function extractTownForecastLocations(payload) {
+  const dataset =
+    payload?.cwaopendata?.Dataset ||
+    payload?.records ||
+    payload?.Records ||
+    payload?.dataset ||
+    payload?.Dataset ||
+    {};
+  const containers = [
+    dataset?.Locations,
+    dataset?.locations,
+    dataset?.locations?.[0],
+    dataset?.Locations?.[0],
+  ].filter(Boolean);
+  for (const container of containers) {
+    const list =
+      container?.Location ||
+      container?.location ||
+      container?.Locations ||
+      container?.locations ||
+      [];
+    if (Array.isArray(list) && list.length) return list;
+  }
+  if (Array.isArray(dataset?.location) && dataset.location.length) return dataset.location;
+  if (Array.isArray(dataset?.Location) && dataset.Location.length) return dataset.Location;
+  return [];
+}
+
+function buildForecastTimelineForLocation(location) {
+  const tempMap = buildForecastElementTimeMap(location, ["溫度", "Temperature"], "Temperature");
+  const humidityMap = buildForecastElementTimeMap(location, ["相對濕度", "RelativeHumidity"], "RelativeHumidity");
+  const lat = toNumber(location?.Latitude || location?.latitude || location?.lat);
+  const lon = toNumber(location?.Longitude || location?.longitude || location?.lon || location?.lng);
+  const keys = Array.from(new Set([...tempMap.keys(), ...humidityMap.keys()])).sort();
+  return keys.map((dataTime) => {
+    const temperature = tempMap.get(dataTime);
+    const humidity = humidityMap.get(dataTime);
+    return {
+      dataTime,
+      lat,
+      lon,
+      temperature,
+      humidity,
+      thi: computeLivestockThi(temperature, humidity),
+    };
+  }).filter((item) => isValidObservation(item.temperature) || isValidObservation(item.thi));
+}
+
+function buildForecastElementTimeMap(location, elementNames, valueKey) {
+  const map = new Map();
+  const weatherElements =
+    (Array.isArray(location?.WeatherElement) && location.WeatherElement) ||
+    (Array.isArray(location?.weatherElement) && location.weatherElement) ||
+    (Array.isArray(location?.Element) && location.Element) ||
+    (Array.isArray(location?.element) && location.element) ||
+    [];
+  const target = weatherElements.find((element) => {
+    const name = String(
+      element?.ElementName ||
+      element?.elementName ||
+      element?.name ||
+      ""
+    ).trim();
+    return elementNames.includes(name);
+  });
+  const times = Array.isArray(target?.Time) ? target.Time : Array.isArray(target?.time) ? target.time : [];
+  times.forEach((entry) => {
+    const dataTime =
+      entry?.DataTime ||
+      entry?.dataTime ||
+      entry?.StartTime ||
+      entry?.startTime ||
+      entry?.Time ||
+      entry?.time;
+    const value = toNumber(readForecastElementValue(entry, valueKey));
+    if (dataTime && Number.isFinite(value)) {
+      map.set(dataTime, value);
+    }
+  });
+  return map;
+}
+
+function readForecastElementValue(entry, valueKey) {
+  const directObject =
+    entry?.ElementValue ||
+    entry?.elementValue ||
+    entry?.Parameter ||
+    entry?.parameter ||
+    null;
+  if (directObject && !Array.isArray(directObject)) {
+    if (directObject[valueKey] != null) return directObject[valueKey];
+    const keys = Object.keys(directObject);
+    if (keys.length) return directObject[keys[0]];
+  }
+  const valueArray =
+    (Array.isArray(entry?.ElementValue) && entry.ElementValue) ||
+    (Array.isArray(entry?.elementValue) && entry.elementValue) ||
+    [];
+  if (valueArray.length) {
+    const first = valueArray[0] || {};
+    if (first[valueKey] != null) return first[valueKey];
+    if (first?.value != null) return first.value;
+    const keys = Object.keys(first);
+    if (keys.length) return first[keys[0]];
+  }
+  return entry?.value ?? null;
+}
+
+function pickForecastEntryForMode(timeline, timeMode) {
+  const now = new Date();
+  const filtered = (timeline || []).filter((entry) => isForecastEntryInWindow(entry?.dataTime, timeMode, now));
+  const source = filtered.length ? filtered : timeline || [];
+  if (!source.length) return null;
+  const animalKey = dom.industryWeatherAnimal?.value || "cattle";
+  const ranked = source
+    .map((entry) => {
+      const display = evaluateLivestockRisk(
+        animalKey,
+        getIndustryMetricValueForAnimal(animalKey, entry),
+        entry.temperature
+      );
+      return {
+        ...entry,
+        riskRank: getIndustryRiskRank(display.levelKey),
+        display,
+      };
+    })
+    .sort((a, b) => {
+      if (b.riskRank !== a.riskRank) return b.riskRank - a.riskRank;
+      const aMetric = getIndustryMetricValueForAnimal(animalKey, a);
+      const bMetric = getIndustryMetricValueForAnimal(animalKey, b);
+      if (Number.isFinite(bMetric) && Number.isFinite(aMetric) && bMetric !== aMetric) return bMetric - aMetric;
+      return Date.parse(a.dataTime) - Date.parse(b.dataTime);
+    });
+  const selected = ranked[0];
+  return {
+    ...selected,
+    label: formatIndustryForecastLabel(selected.dataTime, timeMode),
+  };
+}
+
+function getIndustryMetricValueForAnimal(animalKey, entry) {
+  const config = LIVESTOCK_ANIMALS[animalKey] || LIVESTOCK_ANIMALS.cattle;
+  return config.metric === "thi" ? entry?.thi : entry?.temperature;
+}
+
+function isForecastEntryInWindow(dataTime, timeMode, now) {
+  const ts = Date.parse(dataTime || "");
+  if (!Number.isFinite(ts)) return false;
+  const base = now instanceof Date ? now : new Date();
+  if (timeMode === "future36") {
+    return ts >= base.getTime() && ts <= base.getTime() + 36 * 3600 * 1000;
+  }
+  return ts >= base.getTime();
+}
+
+function formatIndustryForecastLabel(dataTime, timeMode) {
+  const formatted = formatObsTime(dataTime);
+  if (!formatted) return getIndustryWeatherTimeLabel(timeMode);
+  return `${getIndustryWeatherTimeLabel(timeMode)}｜${formatted}`;
+}
+
+function findForecastIssueTime(payload) {
+  return (
+    formatObsTime(payload?.cwaopendata?.Dataset?.DatasetInfo?.IssueTime) ||
+    formatObsTime(payload?.records?.DatasetInfo?.IssueTime) ||
+    formatObsTime(payload?.records?.datasetInfo?.issueTime) ||
+    formatObsTime(payload?.cwaopendata?.Sent) ||
+    ""
+  );
+}
+
+function getIndustryWeatherTimeMode() {
+  return dom.industryWeatherTime?.value || "realtime";
+}
+
+function toggleIndustryWeatherTimeline(show) {
+  if (dom.industryWeatherTimelineWrap) {
+    dom.industryWeatherTimelineWrap.style.display = show ? "" : "none";
+  }
+  if (!show && dom.industryWeatherTimelineLabel) {
+    dom.industryWeatherTimelineLabel.textContent = "--";
+  }
+  if (!show) {
+    stopIndustryWeatherPlayback();
+  }
+  updateIndustryWeatherPlaybackButton();
+}
+
+function syncIndustryWeatherForecastFrame() {
+  const frameTime = industryWeatherState.forecastFrames[industryWeatherState.forecastIndex];
+  if (!frameTime) return;
+  industryWeatherState.townData = buildIndustryTownDataForForecastFrame(frameTime, industryWeatherState.townData);
+  if (dom.industryWeatherTimeline) {
+    dom.industryWeatherTimeline.value = String(industryWeatherState.forecastIndex);
+  }
+  if (dom.industryWeatherTimelineLabel) {
+    dom.industryWeatherTimelineLabel.textContent = formatObsTime(frameTime) || frameTime;
+  }
+  ensureIndustryWeatherSelection();
+  renderIndustryWeatherMap();
+  renderIndustryWeatherInfo();
+}
+
+function updateIndustryWeatherPlaybackButton() {
+  const btn = dom.industryWeatherTimelinePlayBtn;
+  if (!btn) return;
+  const enabled = getIndustryWeatherTimeMode() === "future36" && (industryWeatherState.forecastFrames?.length || 0) > 1;
+  btn.disabled = !enabled;
+  btn.textContent = industryWeatherState.forecastPlaying ? "暫停" : "播放";
+}
+
+function stopIndustryWeatherPlayback() {
+  if (industryWeatherState.forecastTimer) {
+    clearInterval(industryWeatherState.forecastTimer);
+    industryWeatherState.forecastTimer = null;
+  }
+  industryWeatherState.forecastPlaying = false;
+  updateIndustryWeatherPlaybackButton();
+}
+
+function startIndustryWeatherPlayback() {
+  const total = industryWeatherState.forecastFrames?.length || 0;
+  if (getIndustryWeatherTimeMode() !== "future36" || total <= 1) {
+    stopIndustryWeatherPlayback();
+    return;
+  }
+  stopIndustryWeatherPlayback();
+  industryWeatherState.forecastPlaying = true;
+  industryWeatherState.forecastTimer = setInterval(() => {
+    const count = industryWeatherState.forecastFrames?.length || 0;
+    if (count <= 1) {
+      stopIndustryWeatherPlayback();
+      return;
+    }
+    industryWeatherState.forecastIndex = (industryWeatherState.forecastIndex + 1) % count;
+    syncIndustryWeatherForecastFrame();
+  }, 1400);
+  updateIndustryWeatherPlaybackButton();
+}
+
+function toggleIndustryWeatherPlayback() {
+  if (industryWeatherState.forecastPlaying) {
+    stopIndustryWeatherPlayback();
+    return;
+  }
+  startIndustryWeatherPlayback();
+}
+
+function getIndustryWeatherTimeLabel(timeMode) {
+  switch (timeMode) {
+    case "future36":
+      return "未來36小時";
+    case "realtime":
+    default:
+      return "即時";
+  }
+}
+
+function summarizeIndustryStations(stations) {
+  const count = Math.max(1, stations.length);
+  const temperature = stations.reduce((sum, station) => sum + Number(station.temp || 0), 0) / count;
+  const humidityValues = stations.map((station) => station.humidity).filter(isValidObservation);
+  const humidity = humidityValues.length
+    ? humidityValues.reduce((sum, value) => sum + Number(value || 0), 0) / humidityValues.length
+    : null;
+  const latest = stations
+    .map((station) => station.obsTime)
+    .filter(Boolean)
+    .sort((a, b) => Date.parse(b) - Date.parse(a))[0] || "";
+  return {
+    temperature,
+    humidity,
+    stationCount: count,
+    obsTime: latest,
+  };
+}
+
+function interpolateIndustryStationValue(stations, lat, lon) {
+  const ranked = stations
+    .map((station) => {
+      const dist = distanceKm(lat, lon, station.lat, station.lon);
+      return {
+        ...station,
+        distance: Number.isFinite(dist) ? Math.max(dist, 0.5) : 999,
+      };
+    })
+    .sort((a, b) => a.distance - b.distance)
+    .slice(0, 4);
+  const weights = ranked.map((station) => 1 / (station.distance * station.distance));
+  const totalWeight = weights.reduce((sum, value) => sum + value, 0) || 1;
+  const temperature = ranked.reduce((sum, station, idx) => sum + station.temp * weights[idx], 0) / totalWeight;
+  const humidityTerms = ranked.filter((station) => isValidObservation(station.humidity));
+  const humidity = humidityTerms.length
+    ? humidityTerms.reduce((sum, station) => sum + station.humidity * (1 / (Math.max(distanceKm(lat, lon, station.lat, station.lon), 0.5) ** 2)), 0) /
+      humidityTerms.reduce((sum, station) => sum + (1 / (Math.max(distanceKm(lat, lon, station.lat, station.lon), 0.5) ** 2)), 0)
+    : null;
+  return {
+    temperature,
+    humidity,
+    stationCount: ranked.length,
+    obsTime: ranked.map((station) => station.obsTime).filter(Boolean).sort((a, b) => Date.parse(b) - Date.parse(a))[0] || "",
+  };
+}
+
+function buildMockIndustryTownData(geo) {
+  return (geo?.features || []).map((feature, index) => {
+    const townName = normalizeIndustryTownName(feature?.properties?.[TOWN_NAME_FIELD] || "");
+    const center = getIndustryFeatureCenter(feature);
+    const seed = hashString(townName || String(index));
+    const temperature = 27 + (seed % 90) / 10;
+    const humidity = 58 + (seed % 35);
+    return {
+      townKey: townName,
+      townName,
+      lat: center.lat,
+      lon: center.lon,
+      temperature,
+      humidity,
+      thi: computeLivestockThi(temperature, humidity),
+      stationCount: 0,
+      source: "mock",
+      obsTime: "",
+    };
+  });
+}
+
+function ensureIndustryWeatherSelection() {
+  const list = industryWeatherState.townData || [];
+  if (!list.length) {
+    industryWeatherState.selectedTownKey = "";
+    industryWeatherState.selectedTownName = "";
+    syncIndustryTownSelect();
+    return;
+  }
+  const matched = list.find((item) => item.townKey === industryWeatherState.selectedTownKey);
+  if (matched) {
+    industryWeatherState.selectedTownName = matched.townName;
+    syncIndustryTownSelect();
+    return;
+  }
+  const preferred = list.find((item) => item.townKey === "彰化市") || list[0];
+  industryWeatherState.selectedTownKey = preferred.townKey;
+  industryWeatherState.selectedTownName = preferred.townName;
+  syncIndustryTownSelect();
+}
+
+function getSelectedIndustryTown() {
+  return (industryWeatherState.townData || []).find((item) => item.townKey === industryWeatherState.selectedTownKey) || null;
+}
+
+function renderIndustryWeatherMap() {
+  if (!industryWeatherState.map || !industryWeatherState.townGeo) return;
+  const map = industryWeatherState.map;
+  if (industryWeatherState.townLayer) {
+    map.removeLayer(industryWeatherState.townLayer);
+    industryWeatherState.townLayer = null;
+  }
+  const current = getSelectedIndustryTown();
+  industryWeatherState.townLayer = L.geoJSON(industryWeatherState.townGeo, {
+    style: (feature) => {
+      const townName = normalizeIndustryTownName(feature?.properties?.[TOWN_NAME_FIELD] || "");
+      const row = (industryWeatherState.townData || []).find((item) => item.townKey === townName);
+      const display = buildIndustryTownDisplay(row);
+      const selected = current && current.townKey === townName;
+      return {
+        color: selected ? "#0f172a" : "#2b3a55",
+        weight: selected ? 2.5 : 1,
+        fillOpacity: row ? 0.72 : 0.18,
+        fillColor: display.color,
+      };
+    },
+    onEachFeature: (feature, layer) => {
+      const townName = normalizeIndustryTownName(feature?.properties?.[TOWN_NAME_FIELD] || "");
+      const row = (industryWeatherState.townData || []).find((item) => item.townKey === townName);
+      const display = buildIndustryTownDisplay(row);
+      layer.bindTooltip(
+        `<strong>${sanitizeText(townName)}</strong>${sanitizeText(display.tooltip)}`,
+        { sticky: true, className: "industry-map-tooltip" }
+      );
+      layer.on("click", () => {
+        industryWeatherState.selectedTownKey = townName;
+        industryWeatherState.selectedTownName = townName;
+        syncIndustryTownSelect();
+        renderIndustryWeatherMap();
+        renderIndustryWeatherInfo();
+      });
+    },
+  }).addTo(map);
+}
+
+function renderIndustryWeatherInfo() {
+  if (!dom.industryWeatherInfo) return;
+  const town = getSelectedIndustryTown();
+  const industry = dom.industryWeatherIndustry?.value || "livestock";
+  const animalKey = dom.industryWeatherAnimal?.value || "cattle";
+  const animalConfig = LIVESTOCK_ANIMALS[animalKey] || LIVESTOCK_ANIMALS.cattle;
+  if (!town) {
+    dom.industryWeatherInfo.innerHTML = '<div class="industry-text-card"><p>請點選地圖查看詳細資訊。</p></div>';
+    return;
+  }
+  const display = buildIndustryTownDisplay(town);
+  const industryLabel = industry === "livestock" ? "畜牧業" : industry === "agriculture" ? "農業" : "漁業";
+  const animalLabel = industry === "livestock" ? animalConfig.label : "—";
+  const metricLabel = industry === "livestock" ? (animalConfig.metric === "thi" ? "THI" : "氣溫") : "氣溫";
+  const timeMode = getIndustryWeatherTimeMode();
+  const worstLabel = town?.worstForecast?.label || "—";
+  const worstDisplay = town?.worstForecast
+    ? evaluateLivestockRisk(
+        animalKey,
+        getIndustryMetricValueForAnimal(animalKey, town.worstForecast),
+        town.worstForecast.temperature
+      )
+    : null;
+  const sourceText =
+    industryWeatherState.sourceMode === "cwa"
+      ? town.source === "forecast"
+        ? `取自 ${TOWN_FORECAST_DATASET} 鄉鎮逐時預報`
+        : town.source === "station"
+          ? "取自鄉鎮內即時測站"
+          : "以鄰近彰化測站內插估算"
+      : "目前為 mock 示意資料";
+  const thresholdText = industry === "livestock" ? display.thresholdText : "農業 / 漁業門檻功能預留中";
+  const descText =
+    industry === "livestock"
+      ? display.description
+      : INDUSTRY_PLACEHOLDER_COPY[industry] || "功能建置中";
+  dom.industryWeatherInfo.innerHTML = `
+    <div class="industry-summary">
+      <div>
+        <p class="eyebrow">彰化縣 ${sanitizeText(town.townName)}</p>
+        <h3>${sanitizeText(industryLabel)}</h3>
+        <p class="subtitle">${industry === "livestock" ? `${sanitizeText(animalLabel)}｜${sanitizeText(metricLabel)}｜${sanitizeText(getIndustryWeatherTimeLabel(timeMode))}` : sanitizeText(descText)}</p>
+      </div>
+      <div class="industry-risk-badge">
+        <span class="industry-risk-dot" style="background:${display.color};"></span>
+        <span>${sanitizeText(display.levelLabel)}</span>
+      </div>
+    </div>
+    <div class="industry-info-grid">
+      <div class="industry-info-card">
+        <span>目前氣溫</span>
+        <strong>${formatValue(town.temperature, "°C", 1)}</strong>
+      </div>
+      <div class="industry-info-card">
+        <span>相對濕度</span>
+        <strong>${isValidObservation(town.humidity) ? formatValue(town.humidity, "%", 0) : "—"}</strong>
+      </div>
+      <div class="industry-info-card">
+        <span>THI</span>
+        <strong>${isValidObservation(town.thi) ? Number(town.thi).toFixed(1) : "—"}</strong>
+      </div>
+      <div class="industry-info-card">
+        <span>${timeMode === "realtime" ? "觀測時間" : "預報時段"}</span>
+        <strong>${sanitizeText(town.forecastLabel || formatObsTime(town.obsTime) || "—")}</strong>
+      </div>
+      <div class="industry-info-card">
+        <span>資料來源</span>
+        <strong>${sanitizeText(sourceText)}</strong>
+      </div>
+    </div>
+    ${timeMode !== "realtime" ? `
+    <div class="industry-text-card">
+      <p><strong>期間最危險時段：</strong>${sanitizeText(worstLabel)}${worstDisplay ? `｜${sanitizeText(worstDisplay.levelLabel)}` : ""}</p>
+    </div>` : ""}
+    <div class="industry-text-card">
+      <p><strong>風險說明：</strong>${sanitizeText(descText)}</p>
+    </div>
+    <div class="industry-text-card">
+      <p><strong>門檻說明：</strong>${sanitizeText(thresholdText)}</p>
+    </div>
+  `;
+}
+
+function renderIndustryWeatherLegend() {
+  if (!dom.industryWeatherLegend) return;
+  dom.industryWeatherLegend.innerHTML = INDUSTRY_WEATHER_LEVELS.map((item) => `
+    <div class="industry-legend-item">
+      <span class="swatch" style="background:${item.color};"></span>
+      <span>${sanitizeText(item.label)}</span>
+    </div>
+  `).join("");
+}
+
+function renderIndustryWeatherThresholdTable() {
+  if (!dom.industryWeatherThresholdBody) return;
+  const animalOrder = ["cattle", "pig", "chicken", "goat", "duck", "goose"];
+  dom.industryWeatherThresholdBody.innerHTML = animalOrder.map((key) => {
+    const config = LIVESTOCK_ANIMALS[key];
+    const steps = config.thresholds || [];
+    const highTempWarning = config.highTempWarning?.description || "";
+    return `
+      <tr>
+        <td>${sanitizeText(config.label)}</td>
+        <td>${config.metric === "thi" ? "THI" : "氣溫"}</td>
+        <td>${sanitizeText(steps[0]?.description || "—")}</td>
+        <td>${sanitizeText([steps[1]?.description, highTempWarning].filter(Boolean).join("；") || "—")}</td>
+        <td>${sanitizeText(steps[2]?.description || "—")}</td>
+        <td>${sanitizeText(steps[3]?.description || "—")}</td>
+        <td>${sanitizeText(steps[4]?.description || "—")}</td>
+      </tr>
+    `;
+  }).join("");
+}
+
+function updateIndustryWeatherDataTime() {
+  if (!dom.industryWeatherDataTime) return;
+  const suffix = industryWeatherState.sourceMode === "mock" ? "mock" : "即時";
+  dom.industryWeatherDataTime.textContent = industryWeatherState.latestTime ? `${industryWeatherState.latestTime}｜${suffix}` : suffix;
+}
+
+function populateIndustryTownOptions() {
+  if (!dom.industryWeatherTown) return;
+  const towns = (industryWeatherState.townData || []).map((item) => item.townKey).filter(Boolean);
+  if (!towns.length) {
+    dom.industryWeatherTown.innerHTML = '<option value="">暫無資料</option>';
+    return;
+  }
+  dom.industryWeatherTown.innerHTML = towns
+    .map((town) => `<option value="${town}">${sanitizeText(town)}</option>`)
+    .join("");
+  syncIndustryTownSelect();
+}
+
+function syncIndustryTownSelect() {
+  if (!dom.industryWeatherTown) return;
+  if (!industryWeatherState.selectedTownKey) return;
+  dom.industryWeatherTown.value = industryWeatherState.selectedTownKey;
+}
+
+function buildIndustryTownDisplay(row) {
+  const industry = dom.industryWeatherIndustry?.value || "livestock";
+  const animalKey = dom.industryWeatherAnimal?.value || "cattle";
+  if (!row) {
+    return {
+      color: INDUSTRY_WEATHER_NEUTRAL_COLOR,
+      levelLabel: "無資料",
+      description: "暫無資料",
+      thresholdText: "暫無資料",
+      tooltip: "無資料",
+    };
+  }
+  if (industry !== "livestock") {
+    return {
+      color: INDUSTRY_WEATHER_NEUTRAL_COLOR,
+      levelLabel: "功能建置中",
+      description: INDUSTRY_PLACEHOLDER_COPY[industry] || "功能建置中",
+      thresholdText: "待後續串接正式門檻與資料源",
+      tooltip: `${formatValue(row.temperature, "°C", 1)} / ${isValidObservation(row.humidity) ? formatValue(row.humidity, "%", 0) : "濕度—"}`,
+    };
+  }
+  const config = LIVESTOCK_ANIMALS[animalKey] || LIVESTOCK_ANIMALS.cattle;
+  const metricValue = config.metric === "thi" ? row.thi : row.temperature;
+  const result = evaluateLivestockRisk(animalKey, metricValue, row.temperature);
+  const metricText = isValidObservation(metricValue)
+    ? config.metric === "thi"
+      ? `THI ${Number(metricValue).toFixed(1)}`
+      : `${Number(metricValue).toFixed(1)}°C`
+    : "無資料";
+  return {
+    ...result,
+    tooltip: `${result.label}｜${metricText}`,
+  };
+}
+
+function evaluateLivestockRisk(animalKey, metricValue, temperature) {
+  const config = LIVESTOCK_ANIMALS[animalKey] || LIVESTOCK_ANIMALS.cattle;
+  const steps = config.thresholds || [];
+  if (!isValidObservation(metricValue)) {
+    return {
+      color: INDUSTRY_WEATHER_NEUTRAL_COLOR,
+      levelKey: "normal",
+      levelLabel: "無資料",
+      label: "無資料",
+      description: "暫無可用觀測資料",
+      thresholdText: "暫無資料",
+    };
+  }
+  const matched = steps.find((step) => metricValue >= (step.min ?? -Infinity) && metricValue < (step.max ?? Infinity)) || steps[steps.length - 1];
+  const warning = config.highTempWarning;
+  if (
+    animalKey === "chicken" &&
+    warning &&
+    isValidObservation(temperature) &&
+    Number(temperature) >= Number(warning.minTemp) &&
+    matched?.level === "normal"
+  ) {
+    const palette = INDUSTRY_WEATHER_LEVELS.find((item) => item.key === warning.level);
+    return {
+      color: palette?.color || INDUSTRY_WEATHER_NEUTRAL_COLOR,
+      levelKey: warning.level,
+      levelLabel: warning.label,
+      label: warning.label,
+      description: warning.label,
+      thresholdText: `${config.label} ${warning.description}`,
+    };
+  }
+  const palette = INDUSTRY_WEATHER_LEVELS.find((item) => item.key === matched.level);
+  return {
+    color: palette?.color || INDUSTRY_WEATHER_NEUTRAL_COLOR,
+    levelKey: matched.level,
+    levelLabel: matched.label,
+    label: matched.label,
+    description: matched.label,
+    thresholdText: `${config.label} ${matched.description} 屬${matched.label}`,
+  };
+}
+
+function getIndustryRiskRank(levelKey) {
+  const order = ["normal", "attention", "alert", "danger", "extreme"];
+  const idx = order.indexOf(levelKey || "normal");
+  return idx === -1 ? 0 : idx;
+}
+
+function normalizeIndustryTownName(value) {
+  return String(value || "").replace(/^彰化縣/, "").trim();
+}
+
+function getIndustryFeatureCenter(feature) {
+  const bounds = L.geoJSON(feature).getBounds();
+  const center = bounds.getCenter();
+  return { lat: center.lat, lon: center.lng };
+}
+
+function fitIndustryWeatherBounds() {
+  if (!industryWeatherState.map || !industryWeatherState.townGeo) return;
+  const bounds = L.geoJSON(industryWeatherState.townGeo).getBounds();
+  if (bounds.isValid()) {
+    industryWeatherState.map.fitBounds(bounds, { padding: [20, 20] });
+  }
+}
+
+function computeLivestockThi(temperature, humidity) {
+  return computeThi(temperature, humidity);
+}
+
+function distanceKm(lat1, lon1, lat2, lon2) {
+  const toRad = (value) => (value * Math.PI) / 180;
+  const r = 6371;
+  const dLat = toRad(lat2 - lat1);
+  const dLon = toRad(lon2 - lon1);
+  const a =
+    Math.sin(dLat / 2) ** 2 +
+    Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLon / 2) ** 2;
+  return 2 * r * Math.asin(Math.sqrt(a));
+}
+
+function hashString(value) {
+  let hash = 0;
+  const text = String(value || "");
+  for (let i = 0; i < text.length; i += 1) {
+    hash = (hash << 5) - hash + text.charCodeAt(i);
+    hash |= 0;
+  }
+  return Math.abs(hash);
 }
 
 function toggleHealthTimelineControls() {
@@ -3481,7 +4543,7 @@ function computeThi(temperature, humidity) {
   const t = Number(temperature);
   const h = Number(humidity);
   if (!Number.isFinite(t) || !Number.isFinite(h)) return null;
-  return (1.8 * t + 32) - (0.55 - 0.0055 * h) * (1.8 * t - 26);
+  return t - (0.55 - 0.0055 * h) * (t - 14.5);
 }
 
 function isValidObservation(value) {

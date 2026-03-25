@@ -39,6 +39,7 @@
     <button class="tab-btn" data-tab-target="taiwan-rankings">台灣氣象</button>
     <button class="tab-btn" data-tab-target="disaster">防災氣象</button>
     <button class="tab-btn" data-tab-target="health">健康氣象</button>
+    <button class="tab-btn" data-tab-target="industry-weather">彰化農漁牧氣象</button>
     <button class="tab-btn" data-tab-target="historical">歷史資料</button>
   </nav>
 
@@ -437,6 +438,110 @@
             <tbody id="healthTableBody"></tbody>
           </table>
           <div class="table-footer" id="healthPager"></div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <main class="tab-panel" data-tab="industry-weather">
+    <section class="panel">
+      <div class="controls industry-controls">
+        <div class="control">
+          <label for="industryWeatherIndustry">產業</label>
+          <select id="industryWeatherIndustry">
+            <option value="livestock" selected>畜牧業</option>
+            <option value="agriculture">農業</option>
+            <option value="fishery">漁業</option>
+          </select>
+        </div>
+        <div class="control" id="industryWeatherAnimalWrap">
+          <label for="industryWeatherAnimal">動物</label>
+          <select id="industryWeatherAnimal">
+            <option value="cattle" selected>牛</option>
+            <option value="pig">豬</option>
+            <option value="chicken">雞</option>
+            <option value="goat">羊</option>
+            <option value="duck">鴨</option>
+            <option value="goose">鵝</option>
+          </select>
+        </div>
+        <div class="control">
+          <label for="industryWeatherTown">鄉鎮市區</label>
+          <select id="industryWeatherTown">
+            <option value="">載入中...</option>
+          </select>
+        </div>
+        <div class="control">
+          <label for="industryWeatherTime">時間</label>
+          <select id="industryWeatherTime">
+            <option value="realtime" selected>即時</option>
+            <option value="future36">未來36小時</option>
+          </select>
+        </div>
+        <div class="control buttons">
+          <button id="industryWeatherReloadBtn" class="primary">更新資料</button>
+        </div>
+        <div class="control">
+          <label>狀態</label>
+          <div class="status" id="industryWeatherStatus">尚未載入</div>
+        </div>
+      </div>
+      <div class="timeline" id="industryWeatherTimelineWrap" style="display:none;">
+        <div class="timeline-row">
+          <label for="industryWeatherTimeline">預報時間軸</label>
+          <div class="timeline-actions">
+            <span id="industryWeatherTimelineLabel">--</span>
+            <button id="industryWeatherTimelinePlayBtn" class="ghost" type="button">播放</button>
+          </div>
+        </div>
+        <div class="slider">
+          <input type="range" id="industryWeatherTimeline" min="0" max="0" step="1" value="0" />
+        </div>
+      </div>
+    </section>
+
+    <section class="panel industry-layout">
+      <div class="industry-map-column">
+        <div id="industryWeatherMap" class="map-shell"></div>
+        <div class="hint">點擊彰化鄉鎮可更新右側資訊面板；畜牧業模式會依動物熱風險門檻上色。</div>
+      </div>
+      <aside class="industry-info-panel">
+        <div class="table-card">
+          <div class="table-header">
+            <span>彰化產業氣象資訊</span>
+            <span id="industryWeatherDataTime" class="table-header-time"></span>
+          </div>
+          <div id="industryWeatherInfo" class="industry-info-body"></div>
+        </div>
+        <div class="table-card industry-legend-card">
+          <div class="table-header">
+            <span>風險圖例</span>
+          </div>
+          <div id="industryWeatherLegend" class="industry-legend"></div>
+        </div>
+      </aside>
+    </section>
+
+    <section class="panel industry-supplement">
+      <div class="table-card">
+        <div class="table-header">
+          <span>畜牧業門檻對照</span>
+        </div>
+        <div class="industry-threshold-wrap">
+          <table class="industry-threshold-table">
+            <thead>
+              <tr>
+                <th>動物</th>
+                <th>指標</th>
+                <th>正常</th>
+                <th>注意/輕度</th>
+                <th>警戒/中度</th>
+                <th>危險/嚴重</th>
+                <th>極危險</th>
+              </tr>
+            </thead>
+            <tbody id="industryWeatherThresholdBody"></tbody>
+          </table>
         </div>
       </div>
     </section>
