@@ -4543,7 +4543,7 @@ function computeThi(temperature, humidity) {
   const t = Number(temperature);
   const h = Number(humidity);
   if (!Number.isFinite(t) || !Number.isFinite(h)) return null;
-  return t - (0.55 - 0.0055 * h) * (t - 14.5);
+  return (1.8 * t + 32) - (0.55 - 0.0055 * h) * (1.8 * t - 26);
 }
 
 function isValidObservation(value) {
