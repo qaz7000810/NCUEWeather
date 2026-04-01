@@ -2617,7 +2617,11 @@ function initIndustryWeatherMap() {
 }
 
 function ensureIndustryWeatherMapSized() {
-  industryWeatherState.map?.invalidateSize();
+  if (!industryWeatherState.map) return;
+  industryWeatherState.map.invalidateSize(false);
+  if (industryWeatherState.townGeo) {
+    fitIndustryWeatherBounds();
+  }
 }
 
 function setIndustryWeatherStatus(text) {
@@ -3465,7 +3469,11 @@ function fitIndustryWeatherBounds() {
   if (!industryWeatherState.map || !industryWeatherState.townGeo) return;
   const bounds = L.geoJSON(industryWeatherState.townGeo).getBounds();
   if (bounds.isValid()) {
-    industryWeatherState.map.fitBounds(bounds, { padding: [20, 20] });
+    industryWeatherState.map.fitBounds(bounds, {
+      padding: [20, 20],
+      maxZoom: 11,
+      animate: false,
+    });
   }
 }
 
