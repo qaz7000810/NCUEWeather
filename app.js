@@ -304,6 +304,10 @@ const PM10_LEVELS = [0, 50, 100, 255, 355, 425];
 const PM10_COLORS = ["#00e400", "#ffff00", "#ff7e00", "#ff0000", "#8f3f97", "#7e0023"];
 const O3_LEVELS = [0, 125, 165, 205, 405];
 const O3_COLORS = ["#00e400", "#ff7e00", "#ff0000","#8f3f97", "#7e0023"];
+const DISASTER_TEMP_LOW_THRESHOLD = 10;
+const DISASTER_TEMP_HIGH_THRESHOLD = 34;
+const DISASTER_HUMIDITY_LOW_THRESHOLD = 50;
+const DISASTER_HUMIDITY_FOG_THRESHOLD = 98;
 const DISASTER_PM10_THRESHOLD = 255;
 const DISASTER_O3_THRESHOLD = 125;
 const HEALTH_WARNING_COLORS = ["#f5d64a", "#f39c34", "#dd4b39", "#9f1239"];
@@ -1704,11 +1708,12 @@ function buildLocalAlerts() {
   };
 
   if (obs) {
-    if (Number.isFinite(obs.temp) && obs.temp >= 34) add("溫度 ≥ 34（目前溫度偏高）");
+    if (Number.isFinite(obs.temp) && obs.temp >= DISASTER_TEMP_HIGH_THRESHOLD) add(`溫度 ≥ ${DISASTER_TEMP_HIGH_THRESHOLD}（目前溫度偏高）`);
     if (Number.isFinite(obs.temp) && obs.temp <= 12) add("溫度 ≤ 12（目前溫度偏低）");
-    if (Number.isFinite(obs.apparent) && obs.apparent >= 34) add("體感溫度 ≥ 34（目前體感溫度偏高）");
+    if (Number.isFinite(obs.apparent) && obs.apparent >= DISASTER_TEMP_HIGH_THRESHOLD) add(`體感溫度 ≥ ${DISASTER_TEMP_HIGH_THRESHOLD}（目前體感溫度偏高）`);
     if (Number.isFinite(obs.apparent) && obs.apparent <= 12) add("體感溫度 ≤ 12（目前體感溫度偏低）");
-    if (Number.isFinite(obs.humidity) && obs.humidity < 50) add("濕度 < 50%（目前濕度偏低）");
+    if (Number.isFinite(obs.humidity) && obs.humidity < DISASTER_HUMIDITY_LOW_THRESHOLD) add(`濕度 < ${DISASTER_HUMIDITY_LOW_THRESHOLD}%（目前濕度偏低）`);
+    if (Number.isFinite(obs.humidity) && obs.humidity > DISASTER_HUMIDITY_FOG_THRESHOLD) add(`濕度 > ${DISASTER_HUMIDITY_FOG_THRESHOLD}%（可能起霧）`);
     const windLevel = windToBeaufortLevel(obs.windSpeed);
     const gustLevel = windToBeaufortLevel(obs.gust);
     if (Number.isFinite(windLevel) && windLevel >= 4) add("風速 ≥ 4級（目前風速偏大）");
@@ -3550,11 +3555,11 @@ function isDisasterThreshold(metricKey, value) {
   if (value == null || !Number.isFinite(value)) return false;
   switch (metricKey) {
     case "temp":
-      return value < 10 || value > 34;
+      return value < DISASTER_TEMP_LOW_THRESHOLD || value > DISASTER_TEMP_HIGH_THRESHOLD;
     case "apparent":
-      return value < 10 || value > 34;
+      return value < DISASTER_TEMP_LOW_THRESHOLD || value > DISASTER_TEMP_HIGH_THRESHOLD;
     case "humidity":
-      return value < 50;
+      return value < DISASTER_HUMIDITY_LOW_THRESHOLD || value > DISASTER_HUMIDITY_FOG_THRESHOLD;
     case "wind":
       return windToBeaufortLevel(value) >= 6;
     case "gust":
@@ -4346,11 +4351,11 @@ function formatDisasterLevel(metricKey, value) {
   if (value == null || !Number.isFinite(value)) return "—";
   switch (metricKey) {
     case "temp":
-      return value < 10 ? "低溫警戒" : value > 34 ? "高溫警戒" : "—";
+      return value < DISASTER_TEMP_LOW_THRESHOLD ? "低溫警戒" : value > DISASTER_TEMP_HIGH_THRESHOLD ? "高溫警戒" : "—";
     case "apparent":
-      return value < 10 ? "低溫警戒" : value > 34 ? "高溫警戒" : "—";
+      return value < DISASTER_TEMP_LOW_THRESHOLD ? "低溫警戒" : value > DISASTER_TEMP_HIGH_THRESHOLD ? "高溫警戒" : "—";
     case "humidity":
-      return value < 50 ? "乾燥警戒" : "—";
+      return value < DISASTER_HUMIDITY_LOW_THRESHOLD ? "乾燥警戒" : value > DISASTER_HUMIDITY_FOG_THRESHOLD ? "濃霧警戒" : "—";
     case "wind":
       return windToBeaufortLevel(value) >= 6 ? "強風警戒" : "—";
     case "gust":
