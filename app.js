@@ -5108,8 +5108,10 @@ function extractHealthIssueTime(payload) {
 function buildHealthEntries(locations, metricKey, windowHours = 72) {
   const { indexKeys, warningKeys } = getHealthElementConfig(metricKey);
   const entries = [];
+  const targetCounty = healthView.countyFilter ? normalizeCountyName(healthView.countyFilter) : null;
   locations.forEach((countyBlock) => {
     const county = normalizeCountyName(countyBlock?.CountyName || countyBlock?.countyName || "");
+    if (targetCounty && county !== targetCounty) return;
     const towns = countyBlock?.Location || countyBlock?.location || [];
     if (!Array.isArray(towns)) return;
     towns.forEach((town) => {
@@ -5193,8 +5195,10 @@ function getHealthWindowTimes(times, windowHours = 72) {
 function buildHealthTimeline(locations, metricKey, windowHours = 72) {
   const { indexKeys, warningKeys } = getHealthElementConfig(metricKey);
   const timelineEntries = new Map();
+  const targetCounty = healthView.countyFilter ? normalizeCountyName(healthView.countyFilter) : null;
   locations.forEach((countyBlock) => {
     const county = normalizeCountyName(countyBlock?.CountyName || countyBlock?.countyName || "");
+    if (targetCounty && county !== targetCounty) return;
     const towns = countyBlock?.Location || countyBlock?.location || [];
     if (!Array.isArray(towns)) return;
     towns.forEach((town) => {
