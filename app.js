@@ -629,13 +629,13 @@ const healthView = {
     playBtn: dom.healthTimelinePlayBtn,
   },
   state: healthState,
-  geojsonUrl: "https://raw.githubusercontent.com/qaz7000810/geo-assets/main/townships.geojson",
-  areaProp: "TOWNNAME",
+  geojsonUrl: "./data/changhua/changhua_townships.geojson",
+  areaProp: "名稱",
   areaType: "town",
-  showTownColumn: true,
-  countyFilter: null,
-  mapCenter: [23.7, 121],
-  mapZoom: 7,
+  showTownColumn: false,
+  countyFilter: REALTIME_COUNTY,
+  mapCenter: [23.99, 120.46],
+  mapZoom: 11,
 };
 
 const rankingViews = {
