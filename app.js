@@ -352,68 +352,73 @@ const LIVESTOCK_ANIMALS = {
   cattle: {
     label: "牛",
     metric: "thi",
+    metricLabel: "THI",
     thresholds: [
       { min: -Infinity, max: 72, level: "normal", label: "正常", description: "THI < 72" },
-      { min: 72, max: 80, level: "attention", label: "輕度熱緊迫", description: "72 ≤ THI < 79" },
-      { min: 80, max: 90, level: "alert", label: "中度熱緊迫", description: "80 ≤ THI < 89" },
-      { min: 90, max: 98, level: "danger", label: "嚴重熱緊迫", description: "90 ≤ THI < 98" },
-      { min: 98, max: Infinity, level: "extreme", label: "危險熱緊迫", description: "THI ≥ 98" },
+      { min: 72, max: 80, level: "attention", label: "注意 / 輕度", description: "THI ≥ 72" },
+      { min: 80, max: 90, level: "alert", label: "警戒 / 中度", description: "THI ≥ 80" },
+      { min: 90, max: 99, level: "danger", label: "嚴重 / 高度", description: "THI ≥ 90" },
+      { min: 99, max: Infinity, level: "extreme", label: "危險", description: "THI ≥ 99" },
     ],
   },
   chicken: {
     label: "雞",
-    metric: "thi",
-    highTempWarning: {
-      minTemp: 32,
-      level: "attention",
-      label: "高溫預警",
-      description: "氣溫 ≥ 32°C 高溫預警",
-    },
+    metric: "thi_temp",
+    metricLabel: "THI / 氣溫",
     thresholds: [
-      { min: -Infinity, max: 72, level: "normal", label: "正常", description: "THI < 72" },
-      { min: 72, max: 78.000001, level: "attention", label: "低度熱緊迫預警", description: "72 ≤ THI ≤ 78" },
-      { min: 78.000001, max: 80, level: "alert", label: "中度熱緊迫預警", description: "78 < THI ≤ 79" },
-      { min: 80, max: Infinity, level: "danger", label: "嚴重熱緊迫", description: "THI ≥ 80" },
+      { minThi: null, minTemp: null, level: "normal", label: "正常", description: "THI < 72 且氣溫 < 30°C" },
+      { minThi: 72, minTemp: 30, level: "attention", label: "注意 / 輕度", description: "THI ≥ 72 或氣溫 ≥ 30°C" },
+      { minThi: 80, minTemp: 32, level: "alert", label: "警戒 / 中度", description: "THI ≥ 80 或氣溫 ≥ 32°C" },
+      { minThi: 90, minTemp: 35, level: "danger", label: "嚴重 / 高度", description: "THI ≥ 90 或氣溫 ≥ 35°C" },
+      { minThi: 99, minTemp: 37, level: "extreme", label: "危險", description: "THI ≥ 99 或氣溫 ≥ 37°C" },
     ],
   },
   pig: {
     label: "豬",
-    metric: "temp",
+    metric: "thi_temp",
+    metricLabel: "THI / 氣溫",
     thresholds: [
-      { min: -Infinity, max: 27, level: "normal", label: "正常", description: "氣溫 < 27°C" },
-      { min: 27, max: 30, level: "attention", label: "注意", description: "氣溫 27–30°C" },
-      { min: 30, max: 34, level: "alert", label: "警戒", description: "氣溫 30–34°C" },
-      { min: 34, max: Infinity, level: "danger", label: "危險", description: "氣溫 ≥ 34°C" },
+      { minThi: null, minTemp: null, level: "normal", label: "正常", description: "THI < 75 且氣溫 < 30°C" },
+      { minThi: 75, minTemp: 30, level: "attention", label: "注意 / 輕度", description: "THI ≥ 75 或氣溫 ≥ 30°C" },
+      { minThi: 79, minTemp: 32, level: "alert", label: "警戒 / 中度", description: "THI ≥ 79 或氣溫 ≥ 32°C" },
+      { minThi: 84, minTemp: 35, level: "danger", label: "嚴重 / 高度", description: "THI ≥ 84 或氣溫 ≥ 35°C" },
+      { minThi: 90, minTemp: 37, level: "extreme", label: "危險", description: "THI ≥ 90 或氣溫 ≥ 37°C" },
     ],
   },
   goat: {
     label: "羊",
-    metric: "temp",
+    metric: "thi_temp",
+    metricLabel: "THI / 氣溫",
     thresholds: [
-      { min: -Infinity, max: 30, level: "normal", label: "正常", description: "氣溫 < 30°C" },
-      { min: 30, max: 35, level: "attention", label: "注意", description: "氣溫 30–35°C" },
-      { min: 35, max: 40, level: "alert", label: "警戒", description: "氣溫 35–40°C" },
-      { min: 40, max: Infinity, level: "danger", label: "危險", description: "氣溫 ≥ 40°C" },
+      { minThi: null, minTemp: null, level: "normal", label: "正常", description: "THI < 75 且氣溫 < 30°C" },
+      { minThi: 75, minTemp: 30, level: "attention", label: "注意 / 輕度", description: "THI ≥ 75 或氣溫 ≥ 30°C" },
+      { minThi: 79, minTemp: 32, level: "alert", label: "警戒 / 中度", description: "THI ≥ 79 或氣溫 ≥ 32°C" },
+      { minThi: 84, minTemp: 35, level: "danger", label: "嚴重 / 高度", description: "THI ≥ 84 或氣溫 ≥ 35°C" },
+      { minThi: 90, minTemp: 37, level: "extreme", label: "危險", description: "THI ≥ 90 或氣溫 ≥ 37°C" },
     ],
   },
   duck: {
     label: "鴨",
     metric: "temp",
+    metricLabel: "氣溫",
     thresholds: [
       { min: -Infinity, max: 30, level: "normal", label: "正常", description: "氣溫 < 30°C" },
-      { min: 30, max: 34, level: "attention", label: "注意", description: "氣溫 30–34°C" },
-      { min: 34, max: 38, level: "alert", label: "警戒", description: "氣溫 34–38°C" },
-      { min: 38, max: Infinity, level: "danger", label: "危險", description: "氣溫 ≥ 38°C" },
+      { min: 30, max: 32, level: "attention", label: "注意 / 輕度", description: "氣溫 ≥ 30°C" },
+      { min: 32, max: 35, level: "alert", label: "警戒 / 中度", description: "氣溫 ≥ 32°C" },
+      { min: 35, max: 37, level: "danger", label: "嚴重 / 高度", description: "氣溫 ≥ 35°C" },
+      { min: 37, max: Infinity, level: "extreme", label: "危險", description: "氣溫 ≥ 37°C" },
     ],
   },
   goose: {
     label: "鵝",
-    metric: "temp",
+    metric: "temp_dual",
+    metricLabel: "氣溫",
     thresholds: [
-      { min: -Infinity, max: 25, level: "normal", label: "正常", description: "氣溫 < 25°C" },
-      { min: 25, max: 28, level: "attention", label: "注意", description: "氣溫 25–28°C" },
-      { min: 28, max: 32, level: "alert", label: "警戒", description: "氣溫 28–32°C" },
-      { min: 32, max: Infinity, level: "danger", label: "危險", description: "氣溫 ≥ 32°C" },
+      { min: 18, max: 28, level: "normal", label: "正常", description: "18°C < 氣溫 < 28°C" },
+      { minTemp: 28, maxTemp: 16, level: "attention", label: "注意 / 輕度", description: "氣溫 ≥ 28°C 或 ≤ 16°C" },
+      { minTemp: 30, maxTemp: 14, level: "alert", label: "警戒 / 中度", description: "氣溫 ≥ 30°C 或 ≤ 14°C" },
+      { minTemp: 32, maxTemp: 12, level: "danger", label: "嚴重 / 高度", description: "氣溫 ≥ 32°C 或 ≤ 12°C" },
+      { minTemp: 35, maxTemp: 10, level: "extreme", label: "危險", description: "氣溫 ≥ 35°C 或 ≤ 10°C" },
     ],
   },
 };
@@ -2957,11 +2962,7 @@ function pickForecastEntryForMode(timeline, timeMode) {
   const animalKey = dom.industryWeatherAnimal?.value || "cattle";
   const ranked = source
     .map((entry) => {
-      const display = evaluateLivestockRisk(
-        animalKey,
-        getIndustryMetricValueForAnimal(animalKey, entry),
-        entry.temperature
-      );
+      const display = evaluateLivestockRisk(animalKey, entry);
       return {
         ...entry,
         riskRank: getIndustryRiskRank(display.levelKey),
@@ -2984,7 +2985,7 @@ function pickForecastEntryForMode(timeline, timeMode) {
 
 function getIndustryMetricValueForAnimal(animalKey, entry) {
   const config = LIVESTOCK_ANIMALS[animalKey] || LIVESTOCK_ANIMALS.cattle;
-  return config.metric === "thi" ? entry?.thi : entry?.temperature;
+  return config.metric === "thi" || config.metric === "thi_temp" ? entry?.thi : entry?.temperature;
 }
 
 function isForecastEntryInWindow(dataTime, timeMode, now) {
@@ -3245,15 +3246,11 @@ function renderIndustryWeatherInfo() {
   const display = buildIndustryTownDisplay(town);
   const industryLabel = industry === "livestock" ? "畜牧業" : industry === "agriculture" ? "農業" : "漁業";
   const animalLabel = industry === "livestock" ? animalConfig.label : "—";
-  const metricLabel = industry === "livestock" ? (animalConfig.metric === "thi" ? "THI" : "氣溫") : "氣溫";
+  const metricLabel = industry === "livestock" ? getLivestockMetricLabel(animalConfig) : "氣溫";
   const timeMode = getIndustryWeatherTimeMode();
   const worstLabel = town?.worstForecast?.label || "—";
   const worstDisplay = town?.worstForecast
-    ? evaluateLivestockRisk(
-        animalKey,
-        getIndustryMetricValueForAnimal(animalKey, town.worstForecast),
-        town.worstForecast.temperature
-      )
+    ? evaluateLivestockRisk(animalKey, town.worstForecast)
     : null;
   const sourceText =
     industryWeatherState.sourceMode === "cwa"
@@ -3331,13 +3328,12 @@ function renderIndustryWeatherThresholdTable() {
   dom.industryWeatherThresholdBody.innerHTML = animalOrder.map((key) => {
     const config = LIVESTOCK_ANIMALS[key];
     const steps = config.thresholds || [];
-    const highTempWarning = config.highTempWarning?.description || "";
     return `
       <tr>
         <td>${sanitizeText(config.label)}</td>
-        <td>${config.metric === "thi" ? "THI" : "氣溫"}</td>
+        <td>${sanitizeText(getLivestockMetricLabel(config))}</td>
         <td>${sanitizeText(steps[0]?.description || "—")}</td>
-        <td>${sanitizeText([steps[1]?.description, highTempWarning].filter(Boolean).join("；") || "—")}</td>
+        <td>${sanitizeText(steps[1]?.description || "—")}</td>
         <td>${sanitizeText(steps[2]?.description || "—")}</td>
         <td>${sanitizeText(steps[3]?.description || "—")}</td>
         <td>${sanitizeText(steps[4]?.description || "—")}</td>
@@ -3393,23 +3389,47 @@ function buildIndustryTownDisplay(row) {
     };
   }
   const config = LIVESTOCK_ANIMALS[animalKey] || LIVESTOCK_ANIMALS.cattle;
-  const metricValue = config.metric === "thi" ? row.thi : row.temperature;
-  const result = evaluateLivestockRisk(animalKey, metricValue, row.temperature);
-  const metricText = isValidObservation(metricValue)
-    ? config.metric === "thi"
-      ? `THI ${Number(metricValue).toFixed(1)}`
-      : `${Number(metricValue).toFixed(1)}°C`
-    : "無資料";
+  const result = evaluateLivestockRisk(animalKey, row);
+  const metricText = formatLivestockMetricText(config, row);
   return {
     ...result,
     tooltip: `${result.label}｜${metricText}`,
   };
 }
 
-function evaluateLivestockRisk(animalKey, metricValue, temperature) {
+function getLivestockMetricLabel(config) {
+  return config?.metricLabel || (config?.metric === "thi" ? "THI" : "氣溫");
+}
+
+function formatLivestockMetricText(config, row) {
+  const thiText = isValidObservation(row?.thi) ? `THI ${Number(row.thi).toFixed(1)}` : "THI —";
+  const tempText = isValidObservation(row?.temperature) ? `${Number(row.temperature).toFixed(1)}°C` : "氣溫—";
+  switch (config?.metric) {
+    case "thi_temp":
+      return `${thiText} / ${tempText}`;
+    case "thi":
+      return thiText;
+    case "temp":
+    case "temp_dual":
+    default:
+      return tempText;
+  }
+}
+
+function evaluateLivestockRisk(animalKey, entry) {
   const config = LIVESTOCK_ANIMALS[animalKey] || LIVESTOCK_ANIMALS.cattle;
   const steps = config.thresholds || [];
-  if (!isValidObservation(metricValue)) {
+  const thi = entry?.thi;
+  const temperature = entry?.temperature;
+  const hasThi = isValidObservation(thi);
+  const hasTemp = isValidObservation(temperature);
+  const hasRequiredMetric =
+    config.metric === "thi"
+      ? hasThi
+      : config.metric === "thi_temp"
+        ? (hasThi || hasTemp)
+        : hasTemp;
+  if (!hasRequiredMetric) {
     return {
       color: INDUSTRY_WEATHER_NEUTRAL_COLOR,
       levelKey: "normal",
@@ -3419,25 +3439,36 @@ function evaluateLivestockRisk(animalKey, metricValue, temperature) {
       thresholdText: "暫無資料",
     };
   }
-  const matched = steps.find((step) => metricValue >= (step.min ?? -Infinity) && metricValue < (step.max ?? Infinity)) || steps[steps.length - 1];
-  const warning = config.highTempWarning;
-  if (
-    animalKey === "chicken" &&
-    warning &&
-    isValidObservation(temperature) &&
-    Number(temperature) >= Number(warning.minTemp) &&
-    matched?.level === "normal"
-  ) {
-    const palette = INDUSTRY_WEATHER_LEVELS.find((item) => item.key === warning.level);
-    return {
-      color: palette?.color || INDUSTRY_WEATHER_NEUTRAL_COLOR,
-      levelKey: warning.level,
-      levelLabel: warning.label,
-      label: warning.label,
-      description: warning.label,
-      thresholdText: `${config.label} ${warning.description}`,
-    };
-  }
+  const matched = [...steps].reverse().find((step) => {
+    if (step.level === "normal") {
+      if (config.metric === "thi") return hasThi && Number(thi) < (step.max ?? Infinity);
+      if (config.metric === "thi_temp") {
+        const thiOk = !Number.isFinite(step.minThi) || !hasThi || Number(thi) < Number(step.minThi);
+        const tempOk = !Number.isFinite(step.minTemp) || !hasTemp || Number(temperature) < Number(step.minTemp);
+        return thiOk && tempOk;
+      }
+      if (config.metric === "temp_dual") {
+        return hasTemp &&
+          (!Number.isFinite(step.min) || Number(temperature) > Number(step.min)) &&
+          (!Number.isFinite(step.max) || Number(temperature) < Number(step.max));
+      }
+      return hasTemp && Number(temperature) < (step.max ?? Infinity);
+    }
+    if (config.metric === "thi") {
+      return hasThi && Number(thi) >= (step.min ?? -Infinity) && Number(thi) < (step.max ?? Infinity);
+    }
+    if (config.metric === "thi_temp") {
+      const thiHit = Number.isFinite(step.minThi) && hasThi && Number(thi) >= Number(step.minThi);
+      const tempHit = Number.isFinite(step.minTemp) && hasTemp && Number(temperature) >= Number(step.minTemp);
+      return thiHit || tempHit;
+    }
+    if (config.metric === "temp_dual") {
+      const hotHit = Number.isFinite(step.minTemp) && hasTemp && Number(temperature) >= Number(step.minTemp);
+      const coldHit = Number.isFinite(step.maxTemp) && hasTemp && Number(temperature) <= Number(step.maxTemp);
+      return hotHit || coldHit;
+    }
+    return hasTemp && Number(temperature) >= (step.min ?? -Infinity) && Number(temperature) < (step.max ?? Infinity);
+  }) || steps[0];
   const palette = INDUSTRY_WEATHER_LEVELS.find((item) => item.key === matched.level);
   return {
     color: palette?.color || INDUSTRY_WEATHER_NEUTRAL_COLOR,
