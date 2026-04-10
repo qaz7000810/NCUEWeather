@@ -3324,7 +3324,7 @@ function renderIndustryWeatherLegend() {
 
 function renderIndustryWeatherThresholdTable() {
   if (!dom.industryWeatherThresholdBody) return;
-  const animalOrder = ["cattle", "pig", "chicken", "goat", "duck", "goose"];
+  const animalOrder = ["cattle", "pig", "goat", "chicken", "duck", "goose"];
   dom.industryWeatherThresholdBody.innerHTML = animalOrder.map((key) => {
     const config = LIVESTOCK_ANIMALS[key];
     const steps = config.thresholds || [];
@@ -5529,7 +5529,12 @@ function parseTrackPoint(p) {
 }
 
 function sanitizeText(text) {
-  return String(text ?? "").replace(/[<>]/g, "");
+  return String(text ?? "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
 }
 
 function normalizeCountyName(name) {
