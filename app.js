@@ -3726,6 +3726,11 @@ async function loadRankingData(view) {
     view.countyFilter = countyPick && countyPick !== "*" ? countyPick : null;
   }
   setRankingStatus(view, "讀取即時資料...");
+
+  if (document.getElementById("changhuaAlertSection")) {
+    loadAndDisplayChanghuaAlerts(view);
+  }
+
   try {
     await ensureRankingGeo(view);
     if (isAirboxMetric(metricKey)) {
@@ -5589,4 +5594,124 @@ function formatAlertDesc(desc, raw) {
     return JSON.stringify(desc);
   }
   return String(desc);
+}
+
+// ----------------- 彰化氣象預警 -----------------
+
+let isChanghuaAlertLoading = false;
+
+async function loadAndDisplayChanghuaAlerts(view) {
+  const alertContent = document.getElementById("changhuaAlertContent");
+  if (!alertContent) return;
+  
+  if (isChanghuaAlertLoading) return;
+  isChanghuaAlertLoading = true;
+  
+  alertContent.innerHTML = `<span style="color: #666;">載入預警資料中...</span>`;
+
+  try {
+    const [cwaData, rainData, aqiData] = await Promise.all([
+      fetchCwaDataset(RANKING_DATASET).catch(() => null),
+      fetchCwaDataset(RAIN_DATASET).catch(() => null),
+      fetchAqiDataset().catch(() => null)
+    ]);
+
+    const cwaStations = cwaData ? extractCwaStations(cwaData) : [];
+    const rainStations = rainData ? extractCwaStations(rainData) : [];
+    const aqiRecords = aqiData ? extractAqiRecords(aqiData) : [];
+
+    await ensureRankingGeo(view);
+    const mockView = {
+      countyFilter: "彰化縣",
+      state: { countyCodeMap: view.state.countyCodeMap || disasterView.state.countyCodeMap }
+    };
+
+    const alertsMap = new Map();
+    const addAlert = (type, town) => {
+      if (!alertsMap.has(type)) alertsMap.set(type, new Set());
+      if (town) alertsMap.get(type).add(town);
+    };
+
+    const processEntries = (stations, metrics) => {
+      metrics.forEach(mk => {
+        const entries = buildDisasterEntries(stations, mk, mockView);
+        entries.forEach(e => {
+          const type = formatDisasterLevel(mk, e.value);
+          if (type !== "—") addAlert(type, e.town || e.name);
+        });
+      });
+    };
+
+    processEntries(cwaStations, ["temp", "apparent", "humidity", "wind", "gust"]);
+    processEntries(rainStations, ["rain", "rain3hr", "rain24hr"]);
+    processEntries(aqiRecords, ["aqi", "pm25", "pm10", "o3"]);
+
+    if (alertsMap.size === 0) {
+      alertContent.innerHTML = `<span style="color: #333;">目前無即時預警</span>`;
+      isChanghuaAlertLoading = false;
+      return;
+    }
+
+    let tagsHtml = `<div style="display: flex; gap: 0.5rem; flex-wrap: wrap; margin-bottom: 0.5rem;">`;
+    let detailsHtml = `<div>`;
+
+    let i = 0;
+    for (const [alertType, townsSet] of alertsMap.entries()) {
+      const towns = Array.from(townsSet).join("、") || "無";
+      const id = `changhua-alert-detail-${i}`;
+      
+      tagsHtml += `
+        <button class="alert-tag-btn" data-target="${id}" style="padding: 4px 12px; border-radius: 999px; background: #ffebee; color: #c62828; border: 1px solid #ffcdd2; cursor: pointer; font-size: 0.9rem; font-weight: bold; transition: background 0.2s;">
+          ${alertType} : ${townsSet.size}
+        </button>
+      `;
+      
+      detailsHtml += `
+        <div id="${id}" class="alert-detail-box" style="display: none; padding: 0.75rem; background: #fff8f8; border-left: 3px solid #ef5350; border-radius: 4px; margin-bottom: 0.5rem; color: #b71c1c; font-size: 0.95rem;">
+          <strong style="display: inline-block; width: auto;">${alertType}：</strong><span>${towns}</span>
+        </div>
+      `;
+      i++;
+    }
+
+    tagsHtml += `</div>`;
+    detailsHtml += `</div>`;
+
+    alertContent.innerHTML = tagsHtml + detailsHtml;
+
+    // Add toggle events
+    const btns = alertContent.querySelectorAll(".alert-tag-btn");
+    btns.forEach(btn => {
+      btn.addEventListener("click", () => {
+        const targetId = btn.getAttribute("data-target");
+        const targetEl = document.getElementById(targetId);
+        const isVisible = targetEl.style.display !== "none";
+        
+        // Hide all
+        alertContent.querySelectorAll(".alert-detail-box").forEach(el => el.style.display = "none");
+        btns.forEach(b => b.style.background = "#ffebee");
+
+        if (!isVisible) {
+          targetEl.style.display = "block";
+          btn.style.background = "#ffcdd2";
+        }
+      });
+      
+      btn.addEventListener("mouseover", () => {
+        if (btn.style.background !== "rgb(255, 205, 210)") btn.style.background = "#ffcdd2";
+      });
+      btn.addEventListener("mouseout", () => {
+        const targetEl = document.getElementById(btn.getAttribute("data-target"));
+        if (!targetEl || targetEl.style.display === "none") {
+          btn.style.background = "#ffebee";
+        }
+      });
+    });
+
+  } catch (err) {
+    console.error("預警資料載入失敗:", err);
+    alertContent.innerHTML = `<span style="color: #d32f2f;">無法載入預警資料</span>`;
+  } finally {
+    isChanghuaAlertLoading = false;
+  }
 }
