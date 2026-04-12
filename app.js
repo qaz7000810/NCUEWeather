@@ -3594,9 +3594,9 @@ function isDisasterThreshold(metricKey, value) {
   if (value == null || !Number.isFinite(value)) return false;
   switch (metricKey) {
     case "temp":
-      return value < DISASTER_TEMP_LOW_THRESHOLD || value > DISASTER_TEMP_HIGH_THRESHOLD;
+      return value <= DISASTER_TEMP_LOW_THRESHOLD || value >= DISASTER_TEMP_HIGH_THRESHOLD;
     case "apparent":
-      return value < DISASTER_TEMP_LOW_THRESHOLD || value > DISASTER_TEMP_HIGH_THRESHOLD;
+      return value <= DISASTER_TEMP_LOW_THRESHOLD || value >= DISASTER_TEMP_HIGH_THRESHOLD;
     case "humidity":
       return value < DISASTER_HUMIDITY_LOW_THRESHOLD || value > DISASTER_HUMIDITY_FOG_THRESHOLD;
     case "wind":
@@ -4395,9 +4395,9 @@ function formatDisasterLevel(metricKey, value) {
   if (value == null || !Number.isFinite(value)) return "—";
   switch (metricKey) {
     case "temp":
-      return value < DISASTER_TEMP_LOW_THRESHOLD ? "低溫警戒" : value > DISASTER_TEMP_HIGH_THRESHOLD ? "高溫警戒" : "—";
+      return value <= DISASTER_TEMP_LOW_THRESHOLD ? "低溫警戒" : value >= DISASTER_TEMP_HIGH_THRESHOLD ? "高溫警戒" : "—";
     case "apparent":
-      return value < DISASTER_TEMP_LOW_THRESHOLD ? "低溫警戒" : value > DISASTER_TEMP_HIGH_THRESHOLD ? "高溫警戒" : "—";
+      return value <= DISASTER_TEMP_LOW_THRESHOLD ? "低溫警戒" : value >= DISASTER_TEMP_HIGH_THRESHOLD ? "高溫警戒" : "—";
     case "humidity":
       return value < DISASTER_HUMIDITY_LOW_THRESHOLD ? "乾燥警戒" : value > DISASTER_HUMIDITY_FOG_THRESHOLD ? "雨霧警戒" : "—";
     case "wind":
