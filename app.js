@@ -5636,7 +5636,11 @@ async function loadAndDisplayChanghuaAlerts(view) {
       metrics.forEach(mk => {
         const entries = buildDisasterEntries(stations, mk, mockView);
         entries.forEach(e => {
-          const type = formatDisasterLevel(mk, e.value);
+          let type = formatDisasterLevel(mk, e.value);
+          if (mk === "apparent") {
+            if (type.includes("高溫")) type = "體感高溫警戒";
+            if (type.includes("低溫")) type = "體感低溫警戒";
+          }
           if (type !== "—") addAlert(type, e.town || e.name);
         });
       });
