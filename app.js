@@ -232,7 +232,8 @@ const AIRBOX_PM25_ENDPOINT = "https://faein.climate-quiz-yuchen.workers.dev/api/
 const AQI_SITE_KEYWORDS = ["彰化"];
 const AQI_API_KEY = "";
 const REALTIME_COUNTY = "彰化縣";
-const RANKING_DATASET = "O-A0001-001";
+const RANKING_DATASET = "O-A0003-001";
+const NON_RAIN_FALLBACK_DATASET = "O-A0001-001";
 const RAIN_DATASET = "O-A0002-001";
 const TOWN_FORECAST_DATASET = "F-D0047-017";
 const COLD_INJURY_DATASET = "F-A0085-003";
@@ -1944,6 +1945,63 @@ function extractCwaStations(payload) {
   return [];
 }
 
+function getStationId(station) {
+  return station?.StationId || station?.stationId || station?.StationID || station?.StationNo || "";
+}
+
+function getStationMergeKey(station) {
+  const id = String(getStationId(station) || "").trim();
+  if (id) return `id:${id}`;
+
+  const geo = station?.GeoInfo || station?.geoInfo || {};
+  const county = normalizeCountyName(geo?.CountyName || geo?.countyName || "");
+  const town = String(geo?.TownName || geo?.townName || "").trim();
+  const name = getStationName(station).trim();
+  const coords = readStationCoords(geo);
+  const coordKey = coords ? `${coords.lat},${coords.lon}` : "";
+  return `meta:${county}|${town}|${name}|${coordKey}`;
+}
+
+function mergeCwaStations(primaryStations, secondaryStations) {
+  const merged = [];
+  const seen = new Set();
+  [primaryStations, secondaryStations].forEach((list) => {
+    (list || []).forEach((station) => {
+      const key = getStationMergeKey(station);
+      if (key && seen.has(key)) return;
+      if (key) seen.add(key);
+      merged.push(station);
+    });
+  });
+  return merged;
+}
+
+async function fetchMergedRealtimeStationBundle() {
+  const [primaryResult, fallbackResult] = await Promise.allSettled([
+    fetchCwaDataset(RANKING_DATASET),
+    fetchCwaDataset(NON_RAIN_FALLBACK_DATASET),
+  ]);
+  const primaryStations = primaryResult.status === "fulfilled" ? extractCwaStations(primaryResult.value) : [];
+  const fallbackStations = fallbackResult.status === "fulfilled" ? extractCwaStations(fallbackResult.value) : [];
+  if (!primaryStations.length && !fallbackStations.length) {
+    throw primaryResult.status === "rejected"
+      ? primaryResult.reason
+      : fallbackResult.status === "rejected"
+        ? fallbackResult.reason
+        : new Error("找不到即時測站資料");
+  }
+  return {
+    primary: primaryStations,
+    fallback: fallbackStations,
+    merged: mergeCwaStations(primaryStations, fallbackStations),
+  };
+}
+
+async function fetchMergedRealtimeStations() {
+  const bundle = await fetchMergedRealtimeStationBundle();
+  return bundle.merged;
+}
+
 function getStationName(station) {
   const raw =
     station?.StationName ||
@@ -2653,8 +2711,7 @@ async function loadIndustryWeatherData() {
     industryWeatherState.forecastIndex = 0;
     stopIndustryWeatherPlayback();
     if (timeMode === "realtime") {
-      const data = await fetchCwaDataset(RANKING_DATASET);
-      const stations = extractCwaStations(data);
+      const stations = await fetchMergedRealtimeStations();
       townData = buildIndustryTownDataFromStations(stations, geo);
       if (!townData.length) throw new Error("彰化即時測站資料不足");
       industryWeatherState.latestTime = findLatestObsTimeFromStations(stations) || "";
@@ -3665,9 +3722,9 @@ async function loadDisasterData() {
       setRankingStatus(disasterView, entries.length ? `已更新 ${entries.length} 筆警戒測站` : "目前無符合門檻測站");
       return;
     }
-    const datasetId = metricKey.startsWith("rain") ? RAIN_DATASET : RANKING_DATASET;
-    const data = await fetchCwaDataset(datasetId);
-    const stations = extractCwaStations(data);
+    const stations = metricKey.startsWith("rain")
+      ? extractCwaStations(await fetchCwaDataset(RAIN_DATASET))
+      : await fetchMergedRealtimeStations();
     const entries = buildDisasterEntries(stations, metricKey, disasterView);
     disasterView.state.entries = entries;
     await renderRanking(entries, metricKey, disasterView);
@@ -3755,13 +3812,20 @@ async function loadRankingData(view) {
       focusViewOnCounty(view);
       return;
     }
-    const datasetId = metricKey.startsWith("rain") ? RAIN_DATASET : RANKING_DATASET;
-    const data = await fetchCwaDataset(datasetId);
-    const stations = extractCwaStations(data);
+    let stations = [];
+    let timeStations = [];
+    if (metricKey.startsWith("rain")) {
+      stations = extractCwaStations(await fetchCwaDataset(RAIN_DATASET));
+      timeStations = stations;
+    } else {
+      const bundle = await fetchMergedRealtimeStationBundle();
+      stations = bundle.merged;
+      timeStations = view.key === "changhua" && bundle.primary.length ? bundle.primary : bundle.merged;
+    }
     const entries = buildRankingEntries(stations, metricKey, view);
     view.state.entries = entries;
     await renderRanking(entries, metricKey, view);
-    setRankingDataTime(stations, view);
+    setRankingDataTime(timeStations, view);
     setRankingStatus(view, entries.length ? `已更新 ${entries.length} 筆測站` : "找不到有效測站資料");
     focusViewOnCounty(view);
   } catch (err) {
@@ -5610,13 +5674,12 @@ async function loadAndDisplayChanghuaAlerts(view) {
   alertContent.innerHTML = `<span style="color: #666;">載入預警資料中...</span>`;
 
   try {
-    const [cwaData, rainData, aqiData] = await Promise.all([
-      fetchCwaDataset(RANKING_DATASET).catch(() => null),
+    const [cwaStations, rainData, aqiData] = await Promise.all([
+      fetchMergedRealtimeStations().catch(() => []),
       fetchCwaDataset(RAIN_DATASET).catch(() => null),
       fetchAqiDataset().catch(() => null)
     ]);
 
-    const cwaStations = cwaData ? extractCwaStations(cwaData) : [];
     const rainStations = rainData ? extractCwaStations(rainData) : [];
     const aqiRecords = aqiData ? extractAqiRecords(aqiData) : [];
 
