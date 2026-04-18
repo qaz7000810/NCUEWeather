@@ -5704,6 +5704,9 @@ async function loadAndDisplayChanghuaAlerts(view) {
             if (type.includes("高溫")) type = "體感高溫警戒";
             if (type.includes("低溫")) type = "體感低溫警戒";
           }
+          if (type === "對敏感族群不健康") {
+            type = "空氣品質(AQI)";
+          }
           if (type !== "—") addAlert(type, e.town || e.name);
         });
       });
