@@ -305,6 +305,14 @@ const PM10_LEVELS = [0, 50, 100, 255, 355, 425];
 const PM10_COLORS = ["#00e400", "#ffff00", "#ff7e00", "#ff0000", "#8f3f97", "#7e0023"];
 const O3_LEVELS = [0, 125, 165, 205, 405];
 const O3_COLORS = ["#00e400", "#ff7e00", "#ff0000","#8f3f97", "#7e0023"];
+const NO2_LEVELS = [0, 100, 360, 649, 1249, 1649];
+const NO2_COLORS = [...AQI_COLORS];
+const SO2_LEVELS = [0, 35, 75, 185, 304, 604];
+const SO2_COLORS = [...AQI_COLORS];
+const CO_LEVELS = [0, 4.5, 9.4, 12.4, 15.4, 30.4];
+const CO_COLORS = [...AQI_COLORS];
+const AIR_QUALITY_LEVEL_LABELS = ["良好", "普通", "敏感族群不健康", "不健康", "非常不健康", "危害"];
+const O3_LEVEL_LABELS = ["良好", "普通", "敏感族群不健康", "不健康", "非常不健康"];
 const DISASTER_TEMP_LOW_THRESHOLD = 10;
 const DISASTER_TEMP_HIGH_THRESHOLD = 34;
 const DISASTER_HUMIDITY_LOW_THRESHOLD = 50;
@@ -2366,8 +2374,9 @@ function pickAqiRecord(payload) {
 
 function renderAqi(record) {
   if (!dom.aqiObservation) return;
+  const aqiVal = toNumber(record.aqi ?? record.AQI);
   realtimeState.latestAqi = {
-    aqi: toNumber(record.aqi ?? record.AQI),
+    aqi: aqiVal,
     pm25: toNumber(record["pm2.5"] ?? record.pm25),
     pm10: toNumber(record.pm10),
     o3: toNumber(record.o3),
@@ -2381,20 +2390,21 @@ function renderAqi(record) {
   const no2Val = toNumber(record.no2);
   const so2Val = toNumber(record.so2);
   const coVal = toNumber(record.co);
+  const publishTime = formatObsTime(record.publishtime || record.PublishTime || "") || record.publishtime || record.PublishTime || "—";
   const rows = [
     { label: "測站", value: record.sitename || record.siteName || record.SiteName || "彰化" },
-    { label: "發布時間", value: record.publishtime || record.PublishTime || "—" },
-    { label: "AQI", value: record.aqi ?? record.AQI ?? "—" },
+    { label: "發布時間", value: publishTime },
+    { label: "AQI", value: aqiVal != null ? String(aqiVal) : "—", tone: getRealtimeAqiTone("aqi", aqiVal) },
     { label: "狀態", value: record.status || record.Status || "—" },
-    { label: "PM2.5", value: pm25Val != null ? `${pm25Val} (μg/m3)` : "—" },
-    { label: "PM10", value: pm10Val != null ? `${pm10Val} (μg/m3)` : "—" },
-    { label: "O3", value: o3Val != null ? `${o3Val} (ppb)` : "—" },
-    { label: "NO2", value: no2Val != null ? `${no2Val} (ppb)` : "—" },
-    { label: "SO2", value: so2Val != null ? `${so2Val} (ppb)` : "—" },
-    { label: "CO", value: coVal != null ? `${coVal} (ppm)` : "—" },
+    { label: "PM2.5", value: pm25Val != null ? `${pm25Val} (μg/m3)` : "—", tone: getRealtimeAqiTone("pm25", pm25Val) },
+    { label: "PM10", value: pm10Val != null ? `${pm10Val} (μg/m3)` : "—", tone: getRealtimeAqiTone("pm10", pm10Val) },
+    { label: "O3", value: o3Val != null ? `${o3Val} (ppb)` : "—", tone: getRealtimeAqiTone("o3", o3Val) },
+    { label: "NO2", value: no2Val != null ? `${no2Val} (ppb)` : "—", tone: getRealtimeAqiTone("no2", no2Val) },
+    { label: "SO2", value: so2Val != null ? `${so2Val} (ppb)` : "—", tone: getRealtimeAqiTone("so2", so2Val) },
+    { label: "CO", value: coVal != null ? `${coVal} (ppm)` : "—", tone: getRealtimeAqiTone("co", coVal) },
   ];
   dom.aqiObservation.innerHTML = rows
-    .map((r) => `<div class="data-row"><span>${sanitizeText(r.label)}</span><strong>${sanitizeText(r.value)}</strong></div>`)
+    .map((row) => renderRealtimeDataRow(row))
     .join("");
   if (realtimeState.alertCache) {
     renderAlerts(realtimeState.alertCache);
@@ -4577,6 +4587,82 @@ function o3Color(value) {
   return O3_COLORS[O3_COLORS.length - 1];
 }
 
+function no2Color(value) {
+  const levels = NO2_LEVELS.slice(1);
+  for (let i = 0; i < levels.length; i += 1) {
+    if (value <= levels[i]) return NO2_COLORS[i] || NO2_COLORS[NO2_COLORS.length - 1];
+  }
+  return NO2_COLORS[NO2_COLORS.length - 1];
+}
+
+function so2Color(value) {
+  const levels = SO2_LEVELS.slice(1);
+  for (let i = 0; i < levels.length; i += 1) {
+    if (value <= levels[i]) return SO2_COLORS[i] || SO2_COLORS[SO2_COLORS.length - 1];
+  }
+  return SO2_COLORS[SO2_COLORS.length - 1];
+}
+
+function coColor(value) {
+  const levels = CO_LEVELS.slice(1);
+  for (let i = 0; i < levels.length; i += 1) {
+    if (value <= levels[i]) return CO_COLORS[i] || CO_COLORS[CO_COLORS.length - 1];
+  }
+  return CO_COLORS[CO_COLORS.length - 1];
+}
+
+function pollutantLevelLabel(value, levels, labels = AIR_QUALITY_LEVEL_LABELS) {
+  if (!Number.isFinite(value)) return "";
+  const thresholds = levels.slice(1);
+  for (let i = 0; i < thresholds.length; i += 1) {
+    if (value <= thresholds[i]) return labels[i] || labels[labels.length - 1] || "";
+  }
+  return labels[labels.length - 1] || "";
+}
+
+function getRealtimeAqiTone(metricKey, value) {
+  if (!Number.isFinite(value)) return null;
+  switch (metricKey) {
+    case "aqi":
+      return { color: aqiColor(value), label: pollutantLevelLabel(value, AQI_LEVELS) };
+    case "pm25":
+      return { color: pm25Color(value), label: pollutantLevelLabel(value, PM25_LEVELS) };
+    case "pm10":
+      return { color: pm10Color(value), label: pollutantLevelLabel(value, PM10_LEVELS) };
+    case "o3":
+      return { color: o3Color(value), label: pollutantLevelLabel(value, O3_LEVELS, O3_LEVEL_LABELS) };
+    case "no2":
+      return { color: no2Color(value), label: pollutantLevelLabel(value, NO2_LEVELS) };
+    case "so2":
+      return { color: so2Color(value), label: pollutantLevelLabel(value, SO2_LEVELS) };
+    case "co":
+      return { color: coColor(value), label: pollutantLevelLabel(value, CO_LEVELS) };
+    default:
+      return null;
+  }
+}
+
+function renderRealtimeDataRow(row) {
+  const label = sanitizeText(row.label);
+  const value = sanitizeText(row.value);
+  if (!row.tone) {
+    return `<div class="data-row"><span>${label}</span><strong>${value}</strong></div>`;
+  }
+  const color = row.tone.color || "#334155";
+  const readableColor = darkenHex(color, 0.6);
+  const badgeBg = toRgba(color, 0.14);
+  const badgeBorder = toRgba(readableColor, 0.4);
+  const badgeLabel = sanitizeText(row.tone.label || "");
+  return `
+    <div class="data-row data-row-pollutant">
+      <span>${label}</span>
+      <div class="data-value-group">
+        <strong style="color:${readableColor}; text-shadow: 0 1px 0 rgba(255, 255, 255, 0.65);">${value}</strong>
+        ${badgeLabel ? `<span class="aqi-badge" style="background:${badgeBg}; border-color:${badgeBorder}; color:${readableColor}; box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.35);">${badgeLabel}</span>` : ""}
+      </div>
+    </div>`;
+}
+
 function windColor(value) {
   const scale = [
     { max: 0.2, color: "#5f6266" },
@@ -4643,6 +4729,13 @@ function hexToRgb(hex) {
 
 function toHex(value) {
   return value.toString(16).padStart(2, "0");
+}
+
+function darkenHex(hex, factor = 0.7) {
+  if (!hex || typeof hex !== "string") return "#334155";
+  const [r, g, b] = hexToRgb(hex);
+  const ratio = Math.max(0, Math.min(1, factor));
+  return `#${toHex(Math.round(r * ratio))}${toHex(Math.round(g * ratio))}${toHex(Math.round(b * ratio))}`;
 }
 
 function toRgba(hex, alpha) {
