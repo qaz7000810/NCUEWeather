@@ -1047,6 +1047,11 @@ table tbody tr:nth-child(odd) {
   font-weight: 600;
 }
 
+.data-row-alert span,
+.data-row-alert strong {
+  color: #b42318;
+}
+
 .data-row-pollutant {
   align-items: flex-start;
 }

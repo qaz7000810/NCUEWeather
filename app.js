@@ -317,6 +317,9 @@ const DISASTER_TEMP_LOW_THRESHOLD = 10;
 const DISASTER_TEMP_HIGH_THRESHOLD = 34;
 const DISASTER_HUMIDITY_LOW_THRESHOLD = 50;
 const DISASTER_HUMIDITY_FOG_THRESHOLD = 97;
+const DISASTER_RAIN_THRESHOLD = 40;
+const DISASTER_RAIN_3HR_THRESHOLD = 100;
+const DISASTER_RAIN_24HR_THRESHOLD = 200;
 const DISASTER_PM10_THRESHOLD = 255;
 const DISASTER_O3_THRESHOLD = 125;
 const HEALTH_WARNING_COLORS = ["#f5d64a", "#f39c34", "#dd4b39", "#9f1239"];
@@ -1723,16 +1726,16 @@ function buildLocalAlerts() {
 
   if (obs) {
     if (Number.isFinite(obs.temp) && obs.temp >= DISASTER_TEMP_HIGH_THRESHOLD) add(`溫度 ≥ ${DISASTER_TEMP_HIGH_THRESHOLD}（目前溫度偏高）`);
-    if (Number.isFinite(obs.temp) && obs.temp <= 12) add("溫度 ≤ 12（目前溫度偏低）");
+    if (Number.isFinite(obs.temp) && obs.temp < DISASTER_TEMP_LOW_THRESHOLD) add(`溫度 < ${DISASTER_TEMP_LOW_THRESHOLD}（目前溫度偏低）`);
     if (Number.isFinite(obs.apparent) && obs.apparent >= DISASTER_TEMP_HIGH_THRESHOLD) add(`體感溫度 ≥ ${DISASTER_TEMP_HIGH_THRESHOLD}（目前體感溫度偏高）`);
-    if (Number.isFinite(obs.apparent) && obs.apparent <= 12) add("體感溫度 ≤ 12（目前體感溫度偏低）");
+    if (Number.isFinite(obs.apparent) && obs.apparent < DISASTER_TEMP_LOW_THRESHOLD) add(`體感溫度 < ${DISASTER_TEMP_LOW_THRESHOLD}（目前體感溫度偏低）`);
     if (Number.isFinite(obs.humidity) && obs.humidity < DISASTER_HUMIDITY_LOW_THRESHOLD) add(`濕度 < ${DISASTER_HUMIDITY_LOW_THRESHOLD}%（目前濕度偏低）`);
     if (Number.isFinite(obs.humidity) && obs.humidity > DISASTER_HUMIDITY_FOG_THRESHOLD) add(`濕度 > ${DISASTER_HUMIDITY_FOG_THRESHOLD}%（可能起霧）`);
     const windLevel = windToBeaufortLevel(obs.windSpeed);
     const gustLevel = windToBeaufortLevel(obs.gust);
     if (Number.isFinite(windLevel) && windLevel >= 4) add("風速 ≥ 4級（目前風速偏大）");
     if (Number.isFinite(gustLevel) && gustLevel >= 6) add("陣風 ≥ 6級（目前陣風偏大）");
-    if (Number.isFinite(obs.rain) && obs.rain >= 30) add("雨量 ≥ 30（今日雨量偏大）");
+    if (Number.isFinite(obs.rain) && obs.rain > DISASTER_RAIN_THRESHOLD) add(`雨量 > ${DISASTER_RAIN_THRESHOLD}（目前雨量偏大）`);
   }
 
   if (aqi) {
@@ -2282,23 +2285,25 @@ function renderNCUEObservation(station) {
   const rows = [
     { label: "測站", value: name },
     { label: "觀測時間", value: obsTimeFormatted || "—" },
-    { label: "氣溫", value: formatValue(temp, "°C", 1) },
-    { label: "體感溫度", value: formatValue(apparent, "°C", 1) },
-    { label: "相對濕度", value: formatValue(humidity, "%", 0) },
+    { label: "氣溫", value: formatValue(temp, "°C", 1), alert: isDisasterThreshold("temp", temp) },
+    { label: "體感溫度", value: formatValue(apparent, "°C", 1), alert: isDisasterThreshold("apparent", apparent) },
+    { label: "相對濕度", value: formatValue(humidity, "%", 0), alert: isDisasterThreshold("humidity", humidity) },
     {
       label: "風速",
       value: windSpeed != null ? `${windLevel} (${formatValue(windSpeed, " m/s", 1)})` : "—",
+      alert: isDisasterThreshold("wind", windSpeed),
     },
     { label: "風向", value: formatWindDirection(windDir) },
     {
       label: "陣風",
       value: gustRaw != null ? `${gustLevel} (${formatValue(gustRaw, " m/s", 1)})` : "—",
+      alert: isDisasterThreshold("gust", gustRaw),
     },
-    { label: "降雨量", value: formatValue(rain, " mm", 1) },
+    { label: "降雨量", value: formatValue(rain, " mm", 1), alert: isDisasterThreshold("rain", rain) },
     { label: "天氣現象", value: weather ? String(weather) : "—" },
   ];
   dom.ncueObservation.innerHTML = rows
-    .map((r) => `<div class="data-row"><span>${sanitizeText(r.label)}</span><strong>${sanitizeText(r.value)}</strong></div>`)
+    .map((row) => renderRealtimeDataRow(row))
     .join("");
   if (realtimeState.alertCache) {
     renderAlerts(realtimeState.alertCache);
@@ -2394,8 +2399,8 @@ function renderAqi(record) {
   const rows = [
     { label: "測站", value: record.sitename || record.siteName || record.SiteName || "彰化" },
     { label: "發布時間", value: publishTime },
-    { label: "AQI", value: aqiVal != null ? String(aqiVal) : "—", tone: getRealtimeAqiTone("aqi", aqiVal) },
     { label: "狀態", value: record.status || record.Status || "—" },
+    { label: "AQI", value: aqiVal != null ? String(aqiVal) : "—", tone: getRealtimeAqiTone("aqi", aqiVal) },
     { label: "PM2.5", value: pm25Val != null ? `${pm25Val} (μg/m3)` : "—", tone: getRealtimeAqiTone("pm25", pm25Val) },
     { label: "PM10", value: pm10Val != null ? `${pm10Val} (μg/m3)` : "—", tone: getRealtimeAqiTone("pm10", pm10Val) },
     { label: "O3", value: o3Val != null ? `${o3Val} (ppb)` : "—", tone: getRealtimeAqiTone("o3", o3Val) },
@@ -3661,9 +3666,9 @@ function isDisasterThreshold(metricKey, value) {
   if (value == null || !Number.isFinite(value)) return false;
   switch (metricKey) {
     case "temp":
-      return value <= DISASTER_TEMP_LOW_THRESHOLD || value >= DISASTER_TEMP_HIGH_THRESHOLD;
+      return value < DISASTER_TEMP_LOW_THRESHOLD || value >= DISASTER_TEMP_HIGH_THRESHOLD;
     case "apparent":
-      return value <= DISASTER_TEMP_LOW_THRESHOLD || value >= DISASTER_TEMP_HIGH_THRESHOLD;
+      return value < DISASTER_TEMP_LOW_THRESHOLD || value >= DISASTER_TEMP_HIGH_THRESHOLD;
     case "humidity":
       return value < DISASTER_HUMIDITY_LOW_THRESHOLD || value > DISASTER_HUMIDITY_FOG_THRESHOLD;
     case "wind":
@@ -3671,11 +3676,11 @@ function isDisasterThreshold(metricKey, value) {
     case "gust":
       return windToBeaufortLevel(value) >= 8;
     case "rain":
-      return value > 40;
+      return value > DISASTER_RAIN_THRESHOLD;
     case "rain3hr":
-      return value > 100;
+      return value > DISASTER_RAIN_3HR_THRESHOLD;
     case "rain24hr":
-      return value > 200;
+      return value > DISASTER_RAIN_24HR_THRESHOLD;
     case "aqi":
       return value >= 101;
     case "pm25":
@@ -4469,9 +4474,9 @@ function formatDisasterLevel(metricKey, value) {
   if (value == null || !Number.isFinite(value)) return "—";
   switch (metricKey) {
     case "temp":
-      return value <= DISASTER_TEMP_LOW_THRESHOLD ? "低溫警戒" : value >= DISASTER_TEMP_HIGH_THRESHOLD ? "高溫警戒" : "—";
+      return value < DISASTER_TEMP_LOW_THRESHOLD ? "低溫警戒" : value >= DISASTER_TEMP_HIGH_THRESHOLD ? "高溫警戒" : "—";
     case "apparent":
-      return value <= DISASTER_TEMP_LOW_THRESHOLD ? "低溫警戒" : value >= DISASTER_TEMP_HIGH_THRESHOLD ? "高溫警戒" : "—";
+      return value < DISASTER_TEMP_LOW_THRESHOLD ? "低溫警戒" : value >= DISASTER_TEMP_HIGH_THRESHOLD ? "高溫警戒" : "—";
     case "humidity":
       return value < DISASTER_HUMIDITY_LOW_THRESHOLD ? "乾燥警戒" : value > DISASTER_HUMIDITY_FOG_THRESHOLD ? "雨霧警戒" : "—";
     case "wind":
@@ -4479,11 +4484,11 @@ function formatDisasterLevel(metricKey, value) {
     case "gust":
       return windToBeaufortLevel(value) >= 8 ? "強陣風警戒" : "—";
     case "rain":
-      return value > 40 ? "短時強降雨" : "—";
+      return value > DISASTER_RAIN_THRESHOLD ? "短時強降雨" : "—";
     case "rain3hr":
-      return value > 100 ? "大雨警戒(3hr)" : "—";
+      return value > DISASTER_RAIN_3HR_THRESHOLD ? "大雨警戒(3hr)" : "—";
     case "rain24hr":
-      return value > 200 ? "豪雨警戒(24hr)" : "—";
+      return value > DISASTER_RAIN_24HR_THRESHOLD ? "豪雨警戒(24hr)" : "—";
     case "aqi":
       if (value >= 401) return "危害";
       if (value >= 301) return "危害";
@@ -4646,7 +4651,8 @@ function renderRealtimeDataRow(row) {
   const label = sanitizeText(row.label);
   const value = sanitizeText(row.value);
   if (!row.tone) {
-    return `<div class="data-row"><span>${label}</span><strong>${value}</strong></div>`;
+    const alertClass = row.alert ? " data-row-alert" : "";
+    return `<div class="data-row${alertClass}"><span>${label}</span><strong>${value}</strong></div>`;
   }
   const color = row.tone.color || "#334155";
   const readableColor = darkenHex(color, 0.6);
