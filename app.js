@@ -303,8 +303,8 @@ const PM25_LEVELS = [0, 15, 35, 55, 150, 250];
 const PM25_COLORS = ["#00e400", "#ffff00", "#ff7e00", "#ff0000", "#8f3f97", "#7e0023"];
 const PM10_LEVELS = [0, 50, 100, 255, 355, 425];
 const PM10_COLORS = ["#00e400", "#ffff00", "#ff7e00", "#ff0000", "#8f3f97", "#7e0023"];
-const O3_LEVELS = [0, 125, 165, 205, 405];
-const O3_COLORS = ["#00e400", "#ff7e00", "#ff0000","#8f3f97", "#7e0023"];
+const O3_LEVELS = [0, 100, 134, 204, 404];
+const O3_COLORS = ["#00e400", "#ff7e00", "#ff0000", "#8f3f97", "#7e0023"];
 const NO2_LEVELS = [0, 100, 360, 649, 1249, 1649];
 const NO2_COLORS = [...AQI_COLORS];
 const SO2_LEVELS = [0, 35, 75, 185, 304, 604];
@@ -312,7 +312,7 @@ const SO2_COLORS = [...AQI_COLORS];
 const CO_LEVELS = [0, 4.5, 9.4, 12.4, 15.4, 30.4];
 const CO_COLORS = [...AQI_COLORS];
 const AIR_QUALITY_LEVEL_LABELS = ["良好", "普通", "敏感族群不健康", "不健康", "非常不健康", "危害"];
-const O3_LEVEL_LABELS = ["良好", "普通", "敏感族群不健康", "不健康", "非常不健康"];
+const O3_LEVEL_LABELS = ["良好", "對敏感族群不健康", "對所有族群不健康", "非常不健康", "危害"];
 const DISASTER_TEMP_LOW_THRESHOLD = 10;
 const DISASTER_TEMP_HIGH_THRESHOLD = 34;
 const DISASTER_HUMIDITY_LOW_THRESHOLD = 50;
@@ -321,7 +321,7 @@ const DISASTER_RAIN_THRESHOLD = 40;
 const DISASTER_RAIN_3HR_THRESHOLD = 100;
 const DISASTER_RAIN_24HR_THRESHOLD = 200;
 const DISASTER_PM10_THRESHOLD = 255;
-const DISASTER_O3_THRESHOLD = 125;
+const DISASTER_O3_THRESHOLD = 101;
 const HEALTH_WARNING_COLORS = ["#f5d64a", "#f39c34", "#dd4b39", "#9f1239"];
 const HEALTH_WARNING_LEVELS = {
   coldInjury: [
@@ -1699,10 +1699,10 @@ function buildLocalAlerts() {
       { min: 425, max: 504, level: { label: "危害標準", className: "local-alert--aqi-maroon" } },
     ],
     o3: [
-      { min: 71, max: 85, level: { label: "偏高", className: "local-alert--aqi-orange" } },
-      { min: 86, max: 105, level: { label: "過高", className: "local-alert--aqi-red" } },
-      { min: 106, max: 200, level: { label: "影響人體健康", className: "local-alert--aqi-purple" } },
-      { min: 201, max: 10000, level: { label: "危害標準", className: "local-alert--aqi-maroon" } },
+      { min: 101, max: 134, level: { label: "偏高", className: "local-alert--aqi-orange" } },
+      { min: 135, max: 204, level: { label: "過高", className: "local-alert--aqi-red" } },
+      { min: 205, max: 404, level: { label: "影響人體健康", className: "local-alert--aqi-purple" } },
+      { min: 405, max: 10000, level: { label: "危害標準", className: "local-alert--aqi-maroon" } },
     ],
     co: [
       { min: 9.5, max: 12.4, level: { label: "偏高", className: "local-alert--aqi-orange" } },
@@ -1747,7 +1747,7 @@ function buildLocalAlerts() {
     const pm10Level = getPollutantLevel(aqi.pm10, pollutantLevels.pm10);
     if (pm10Level) add(`PM10 ${pm10Level.label}（${aqi.pm10} μg/m3）`, { levelClass: pm10Level.className });
     const o3Level = getPollutantLevel(aqi.o3, pollutantLevels.o3);
-    if (o3Level) add(`O3 ${o3Level.label}（${aqi.o3} ppb）`, { levelClass: o3Level.className });
+    if (o3Level) add(`O3(1hr) ${o3Level.label}（${aqi.o3} ppb）`, { levelClass: o3Level.className });
     const so2Level = getPollutantLevel(aqi.so2, pollutantLevels.so2);
     if (so2Level) add(`SO2 ${so2Level.label}（${aqi.so2} ppb）`, { levelClass: so2Level.className });
     const no2Level = getPollutantLevel(aqi.no2, pollutantLevels.no2);
@@ -2403,7 +2403,7 @@ function renderAqi(record) {
     { label: "AQI", value: aqiVal != null ? String(aqiVal) : "—", tone: getRealtimeAqiTone("aqi", aqiVal) },
     { label: "PM2.5", value: pm25Val != null ? `${pm25Val} (μg/m3)` : "—", tone: getRealtimeAqiTone("pm25", pm25Val) },
     { label: "PM10", value: pm10Val != null ? `${pm10Val} (μg/m3)` : "—", tone: getRealtimeAqiTone("pm10", pm10Val) },
-    { label: "O3", value: o3Val != null ? `${o3Val} (ppb)` : "—", tone: getRealtimeAqiTone("o3", o3Val) },
+    { label: "O3(1hr)", value: o3Val != null ? `${o3Val} (ppb)` : "—", tone: getRealtimeAqiTone("o3", o3Val) },
     { label: "NO2", value: no2Val != null ? `${no2Val} (ppb)` : "—", tone: getRealtimeAqiTone("no2", no2Val) },
     { label: "SO2", value: so2Val != null ? `${so2Val} (ppb)` : "—", tone: getRealtimeAqiTone("so2", so2Val) },
     { label: "CO", value: coVal != null ? `${coVal} (ppm)` : "—", tone: getRealtimeAqiTone("co", coVal) },
@@ -3908,7 +3908,7 @@ function buildAqiEntries(records, metricKey, view) {
     } else if (metricKey === "pm10") {
       value = toNumber(record?.pm10 ?? record?.pm10_avg);
     } else if (metricKey === "o3") {
-      value = toNumber(record?.o3_8hr ?? record?.o3);
+      value = toNumber(record?.o3);
     } else {
       value = toNumber(record?.aqi ?? record?.AQI);
     }
@@ -5030,13 +5030,20 @@ function buildColorbarConfig(metricKey, metric) {
   }
   if (metric.colorScale === "o3") {
     const blocks = O3_COLORS.length;
-    const ticks = O3_LEVELS.map((v) => String(v));
-    const positions = O3_LEVELS.map((_, idx) => idx / blocks);
+    const ticks = ["0", "101", "135", "205", "405"];
+    const positions = [0, 1 / blocks, 2 / blocks, 3 / blocks, 4 / blocks];
     return {
       title: `${metric.label} (${metric.unit})`,
       stops: O3_COLORS,
       ticks,
       tickPositions: positions,
+      legend: [
+        { label: "<101", color: O3_COLORS[0] },
+        { label: "101-134", color: O3_COLORS[1] },
+        { label: "135-204", color: O3_COLORS[2] },
+        { label: "205-404", color: O3_COLORS[3] },
+        { label: "405+", color: O3_COLORS[4] },
+      ],
     };
   }
   if (metric.colorScale === "health") {
