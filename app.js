@@ -2399,8 +2399,8 @@ function renderAqi(record) {
   const rows = [
     { label: "測站", value: record.sitename || record.siteName || record.SiteName || "彰化" },
     { label: "發布時間", value: publishTime },
-    { label: "AQI", value: aqiVal != null ? String(aqiVal) : "—", tone: getRealtimeAqiTone("aqi", aqiVal) },
     { label: "狀態", value: record.status || record.Status || "—" },
+    { label: "AQI", value: aqiVal != null ? String(aqiVal) : "—", tone: getRealtimeAqiTone("aqi", aqiVal) },
     { label: "PM2.5", value: pm25Val != null ? `${pm25Val} (μg/m3)` : "—", tone: getRealtimeAqiTone("pm25", pm25Val) },
     { label: "PM10", value: pm10Val != null ? `${pm10Val} (μg/m3)` : "—", tone: getRealtimeAqiTone("pm10", pm10Val) },
     { label: "O3", value: o3Val != null ? `${o3Val} (ppb)` : "—", tone: getRealtimeAqiTone("o3", o3Val) },
