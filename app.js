@@ -311,8 +311,8 @@ const SO2_LEVELS = [0, 35, 75, 185, 304, 604];
 const SO2_COLORS = [...AQI_COLORS];
 const CO_LEVELS = [0, 4.5, 9.4, 12.4, 15.4, 30.4];
 const CO_COLORS = [...AQI_COLORS];
-const AIR_QUALITY_LEVEL_LABELS = ["良好", "普通", "敏感族群不健康", "不健康", "非常不健康", "危害"];
-const O3_LEVEL_LABELS = ["良好", "對敏感族群不健康", "對所有族群不健康", "非常不健康", "危害"];
+const AIR_QUALITY_LEVEL_LABELS = ["良好", "普通", "注意", "警戒", "嚴重", "危害"];
+const O3_LEVEL_LABELS = ["良好", "注意", "警戒", "嚴重", "危害"];
 const DISASTER_TEMP_LOW_THRESHOLD = 10;
 const DISASTER_TEMP_HIGH_THRESHOLD = 34;
 const DISASTER_HUMIDITY_LOW_THRESHOLD = 50;
@@ -1667,10 +1667,10 @@ function buildLocalAlerts() {
   const getAqiLevel = (value) => {
     const v = Number(value);
     if (!Number.isFinite(v)) return null;
-    if (v >= 301) return { label: "危害標準", className: "local-alert--aqi-maroon" };
-    if (v >= 201) return { label: "影響人體健康", className: "local-alert--aqi-purple" };
-    if (v >= 151) return { label: "過高", className: "local-alert--aqi-red" };
-    if (v >= 101) return { label: "偏高", className: "local-alert--aqi-orange" };
+    if (v >= 301) return { label: "危害 (已達危害健康標準)", className: "local-alert--aqi-maroon" };
+    if (v >= 201) return { label: "嚴重 (已達影響健康標準)", className: "local-alert--aqi-purple" };
+    if (v >= 151) return { label: "過高 (所有人員應注意)", className: "local-alert--aqi-red" };
+    if (v >= 101) return { label: "偏高 (過敏體質者注意)", className: "local-alert--aqi-orange" };
     return null;
   };
   const getPollutantLevel = (value, thresholds) => {
@@ -1687,40 +1687,40 @@ function buildLocalAlerts() {
   const aqiLevel = aqi ? getAqiLevel(aqi.aqi) : null;
   const pollutantLevels = {
     pm25: [
-      { min: 30.5, max: 50.4, level: { label: "偏高", className: "local-alert--aqi-orange" } },
-      { min: 50.5, max: 125.4, level: { label: "過高", className: "local-alert--aqi-red" } },
-      { min: 125.5, max: 225.4, level: { label: "影響人體健康", className: "local-alert--aqi-purple" } },
-      { min: 225.5, max: 325.4, level: { label: "危害標準", className: "local-alert--aqi-maroon" } },
+      { min: 36, max: 55, level: { label: "偏高 (過敏體質者注意)", className: "local-alert--aqi-orange" } },
+      { min: 56, max: 150, level: { label: "過高 (所有人員應注意)", className: "local-alert--aqi-red" } },
+      { min: 151, max: 250, level: { label: "嚴重 (已達影響健康標準)", className: "local-alert--aqi-purple" } },
+      { min: 251, max: 10000, level: { label: "危害 (已達危害健康標準)", className: "local-alert--aqi-maroon" } },
     ],
     pm10: [
-      { min: 76, max: 190, level: { label: "偏高", className: "local-alert--aqi-orange" } },
-      { min: 191, max: 354, level: { label: "過高", className: "local-alert--aqi-red" } },
-      { min: 355, max: 424, level: { label: "影響人體健康", className: "local-alert--aqi-purple" } },
-      { min: 425, max: 504, level: { label: "危害標準", className: "local-alert--aqi-maroon" } },
+      { min: 101, max: 255, level: { label: "偏高 (過敏體質者注意)", className: "local-alert--aqi-orange" } },
+      { min: 256, max: 355, level: { label: "過高 (所有人員應注意)", className: "local-alert--aqi-red" } },
+      { min: 356, max: 425, level: { label: "嚴重 (已達影響健康標準)", className: "local-alert--aqi-purple" } },
+      { min: 426, max: 10000, level: { label: "危害 (已達危害健康標準)", className: "local-alert--aqi-maroon" } },
     ],
     o3: [
-      { min: 101, max: 134, level: { label: "偏高", className: "local-alert--aqi-orange" } },
-      { min: 135, max: 204, level: { label: "過高", className: "local-alert--aqi-red" } },
-      { min: 205, max: 404, level: { label: "影響人體健康", className: "local-alert--aqi-purple" } },
-      { min: 405, max: 10000, level: { label: "危害標準", className: "local-alert--aqi-maroon" } },
+      { min: 101, max: 134, level: { label: "偏高 (過敏體質者注意)", className: "local-alert--aqi-orange" } },
+      { min: 135, max: 204, level: { label: "過高 (所有人員應注意)", className: "local-alert--aqi-red" } },
+      { min: 205, max: 404, level: { label: "嚴重 (已達影響健康標準)", className: "local-alert--aqi-purple" } },
+      { min: 405, max: 10000, level: { label: "危害 (已達危害健康標準)", className: "local-alert--aqi-maroon" } },
     ],
     co: [
-      { min: 9.5, max: 12.4, level: { label: "偏高", className: "local-alert--aqi-orange" } },
-      { min: 12.5, max: 15.4, level: { label: "過高", className: "local-alert--aqi-red" } },
-      { min: 15.5, max: 30.4, level: { label: "影響人體健康", className: "local-alert--aqi-purple" } },
-      { min: 30.5, max: 40.4, level: { label: "危害標準", className: "local-alert--aqi-maroon" } },
+      { min: 9.5, max: 12.4, level: { label: "偏高 (過敏體質者注意)", className: "local-alert--aqi-orange" } },
+      { min: 12.5, max: 15.4, level: { label: "過高 (所有人員應注意)", className: "local-alert--aqi-red" } },
+      { min: 15.5, max: 30.4, level: { label: "嚴重 (已達影響健康標準)", className: "local-alert--aqi-purple" } },
+      { min: 30.5, max: 10000, level: { label: "危害 (已達危害健康標準)", className: "local-alert--aqi-maroon" } },
     ],
     so2: [
-      { min: 66, max: 160, level: { label: "偏高", className: "local-alert--aqi-orange" } },
-      { min: 161, max: 304, level: { label: "過高", className: "local-alert--aqi-red" } },
-      { min: 305, max: 604, level: { label: "影響人體健康", className: "local-alert--aqi-purple" } },
-      { min: 605, max: 804, level: { label: "危害標準", className: "local-alert--aqi-maroon" } },
+      { min: 76, max: 185, level: { label: "偏高 (過敏體質者注意)", className: "local-alert--aqi-orange" } },
+      { min: 186, max: 304, level: { label: "過高 (所有人員應注意)", className: "local-alert--aqi-red" } },
+      { min: 305, max: 604, level: { label: "嚴重 (已達影響健康標準)", className: "local-alert--aqi-purple" } },
+      { min: 605, max: 10000, level: { label: "危害 (已達危害健康標準)", className: "local-alert--aqi-maroon" } },
     ],
     no2: [
-      { min: 101, max: 360, level: { label: "偏高", className: "local-alert--aqi-orange" } },
-      { min: 361, max: 649, level: { label: "過高", className: "local-alert--aqi-red" } },
-      { min: 650, max: 1249, level: { label: "影響人體健康", className: "local-alert--aqi-purple" } },
-      { min: 1250, max: 1649, level: { label: "危害標準", className: "local-alert--aqi-maroon" } },
+      { min: 361, max: 649, level: { label: "偏高 (過敏體質者注意)", className: "local-alert--aqi-orange" } },
+      { min: 650, max: 1249, level: { label: "過高 (所有人員應注意)", className: "local-alert--aqi-red" } },
+      { min: 1250, max: 1649, level: { label: "嚴重 (已達影響健康標準)", className: "local-alert--aqi-purple" } },
+      { min: 1650, max: 10000, level: { label: "危害 (已達危害健康標準)", className: "local-alert--aqi-maroon" } },
     ],
   };
 
