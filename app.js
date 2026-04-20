@@ -2288,12 +2288,12 @@ function renderNCUEObservation(station) {
     { label: "氣溫", value: formatValue(temp, "°C", 1), alert: isDisasterThreshold("temp", temp) },
     { label: "體感溫度", value: formatValue(apparent, "°C", 1), alert: isDisasterThreshold("apparent", apparent) },
     { label: "相對濕度", value: formatValue(humidity, "%", 0), alert: isDisasterThreshold("humidity", humidity) },
+    { label: "風向", value: formatWindDirection(windDir) },
     {
       label: "風速",
       value: windSpeed != null ? `${windLevel} (${formatValue(windSpeed, " m/s", 1)})` : "—",
       alert: isDisasterThreshold("wind", windSpeed),
     },
-    { label: "風向", value: formatWindDirection(windDir) },
     {
       label: "陣風",
       value: gustRaw != null ? `${gustLevel} (${formatValue(gustRaw, " m/s", 1)})` : "—",
