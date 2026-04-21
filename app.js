@@ -299,17 +299,17 @@ const RAIN_LEVELS_3HR = [0, 1, 2, 6, 10, 15, 20, 25, 30, 35, 40, 50, 60, 70, 80,
 const RAIN_LEVELS_1HR = [0, 1, 2, 6, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 100];
 const AQI_LEVELS = [0, 50, 100, 150, 200, 300];
 const AQI_COLORS = ["#00e400", "#ffff00", "#ff7e00", "#ff0000", "#8f3f97", "#7e0023"];
-const PM25_LEVELS = [0, 15, 35, 55, 150, 250];
+const PM25_LEVELS = [0, 12.4, 30.4, 50.4, 125.4, 225.4];
 const PM25_COLORS = ["#00e400", "#ffff00", "#ff7e00", "#ff0000", "#8f3f97", "#7e0023"];
-const PM10_LEVELS = [0, 50, 100, 255, 355, 425];
+const PM10_LEVELS = [0, 30, 75, 190, 354, 424];
 const PM10_COLORS = ["#00e400", "#ffff00", "#ff7e00", "#ff0000", "#8f3f97", "#7e0023"];
 const O3_LEVELS = [0, 100, 134, 204, 404];
 const O3_COLORS = ["#00e400", "#ff7e00", "#ff0000", "#8f3f97", "#7e0023"];
-const NO2_LEVELS = [0, 100, 360, 649, 1249, 1649];
+const NO2_LEVELS = [0, 21, 100, 360, 649, 1249];
 const NO2_COLORS = [...AQI_COLORS];
-const SO2_LEVELS = [0, 35, 75, 185, 304, 604];
+const SO2_LEVELS = [0, 8, 65, 160, 304, 604];
 const SO2_COLORS = [...AQI_COLORS];
-const CO_LEVELS = [0, 4.5, 9.4, 12.4, 15.4, 30.4];
+const CO_LEVELS = [0, 4.4, 9.4, 12.4, 15.4, 30.4];
 const CO_COLORS = [...AQI_COLORS];
 const AIR_QUALITY_LEVEL_LABELS = ["良好", "普通", "注意", "警戒", "嚴重", "危害"];
 const O3_LEVEL_LABELS = ["良好", "注意", "警戒", "嚴重", "危害"];
@@ -4490,21 +4490,33 @@ function formatDisasterLevel(metricKey, value) {
     case "rain24hr":
       return value > DISASTER_RAIN_24HR_THRESHOLD ? "豪雨警戒(24hr)" : "—";
     case "aqi":
-      if (value >= 401) return "危害";
-      if (value >= 301) return "危害";
-      if (value >= 201) return "非常不健康";
-      if (value >= 151) return "對所有族群不健康";
-      return "對敏感族群不健康";
+      if (value >= 301) return "危害 (已達危害健康標準)";
+      if (value >= 201) return "嚴重(已達影響健康標準)";
+      if (value >= 151) return "過高(所有人員應注意)";
+      if (value >= 101) return "偏高 (過敏體質者注意)";
+      return null;
     case "pm25":
     case "pm25Airbox":
+      if (value >= 225.5) return "危害 (已達危害健康標準)";
+      if (value >= 125.5) return "嚴重(已達影響健康標準)";
+      if (value >= 50.5) return "過高(所有人員應注意)";
+      if (value >= 30.5) return "偏高 (過敏體質者注意)";
+      return null;
     case "pm1Airbox":
       return value >= 55 ? "細懸浮微粒警戒" : "細懸浮微粒注意";
     case "pm10Airbox":
-      return value >= DISASTER_PM10_THRESHOLD ? "PM10警戒" : "PM10注意";
     case "pm10":
-      return value >= DISASTER_PM10_THRESHOLD ? "PM10警戒" : "—";
+      if (value >= 425) return "危害 (已達危害健康標準)";
+      if (value >= 355) return "嚴重(已達影響健康標準)";
+      if (value >= 191) return "過高(所有人員應注意)";
+      if (value >= 76) return "偏高 (過敏體質者注意)";
+      return null;
     case "o3":
-      return value >= DISASTER_O3_THRESHOLD ? "臭氧警戒" : "—";
+      if (value >= 405) return "危害 (已達危害健康標準)";
+      if (value >= 205) return "嚴重(已達影響健康標準)";
+      if (value >= 135) return "過高(所有人員應注意)";
+      if (value >= 101) return "偏高 (過敏體質者注意)";
+      return null;
     default:
       return "—";
   }
@@ -5810,8 +5822,30 @@ async function loadAndDisplayChanghuaAlerts(view) {
             if (type.includes("高溫")) type = "體感高溫警戒";
             if (type.includes("低溫")) type = "體感低溫警戒";
           }
-          if (type === "對敏感族群不健康") {
-            type = "空氣品質(AQI)";
+          if (mk === "aqi") {
+            if (type.includes("偏高") || type.includes("過高")|| type.includes("嚴重")|| type.includes("危害")) {
+              type = "空氣品質"
+            }
+          }
+          if (mk === "pm1Airbox") {
+            if (type.includes("細懸浮微粒")) {
+              type = "PM1"
+            }
+          }
+          if (mk === "pm25" || mk === "pm25Airbox") {
+            if (type.includes("偏高") || type.includes("過高")|| type.includes("嚴重")|| type.includes("危害")) {
+              type = "PM2.5"
+            }
+          }
+          if (mk === "pm10" || mk === "pm10Airbox") {
+            if (type.includes("偏高") || type.includes("過高")|| type.includes("嚴重")|| type.includes("危害")) {
+              type = "PM10"
+            }
+          }
+          if (mk === "o3") {
+            if (type.includes("偏高") || type.includes("過高")|| type.includes("嚴重")|| type.includes("危害")) {
+              type = "O3"
+            }
           }
           if (type !== "—") addAlert(type, e.town || e.name);
         });
