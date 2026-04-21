@@ -5824,7 +5824,7 @@ async function loadAndDisplayChanghuaAlerts(view) {
           }
           if (mk === "aqi") {
             if (type.includes("偏高") || type.includes("過高")|| type.includes("嚴重")|| type.includes("危害")) {
-              type = "空氣品質"
+              type = "空氣品質(AQI)"
             }
           }
           if (mk === "pm1Airbox") {
