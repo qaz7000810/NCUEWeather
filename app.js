@@ -4496,6 +4496,11 @@ function formatDisasterLevel(metricKey, value) {
       if (value >= 101) return "偏高 (過敏體質者注意)";
       return null;
     case "pm25":
+      if (value >= 225.5) return "危害 (已達危害健康標準)";
+      if (value >= 125.5) return "嚴重(已達影響健康標準)";
+      if (value >= 50.5) return "過高(所有人員應注意)";
+      if (value >= 30.5) return "偏高 (過敏體質者注意)";
+      return null;
     case "pm25Airbox":
       if (value >= 225.5) return "危害 (已達危害健康標準)";
       if (value >= 125.5) return "嚴重(已達影響健康標準)";
