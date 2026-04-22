@@ -3685,7 +3685,7 @@ function isDisasterThreshold(metricKey, value) {
       return value >= 101;
     case "pm25":
     case "pm25Airbox":
-      return value >= 35;
+      return value >= 30.5;
     case "pm10Airbox":
       return value >= DISASTER_PM10_THRESHOLD;
     case "pm1Airbox":
