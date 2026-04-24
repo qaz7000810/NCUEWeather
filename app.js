@@ -146,6 +146,7 @@ const realtimeState = {
   countiesGeo: null,
   latestObservation: null,
   latestAqi: null,
+  rainTownAlerts: [],
 };
 
 const rankingState = {
@@ -1570,6 +1571,7 @@ function clearRealtimeDisplay() {
   if (dom.aqiStatus) dom.aqiStatus.textContent = "尚未載入";
   if (dom.radarStatus) dom.radarStatus.textContent = "尚未載入";
   if (dom.lightningStatus) dom.lightningStatus.textContent = "尚未載入";
+  realtimeState.rainTownAlerts = [];
   updateLightningSummary();
   if (realtimeState.typhoonLayer && realtimeState.typhoonMap) {
     realtimeState.typhoonMap.removeLayer(realtimeState.typhoonLayer);
@@ -1603,13 +1605,25 @@ async function fetchCwaDataset(datasetId, params = {}) {
 }
 
 async function loadWeatherAlerts() {
-  setRealtimeStatus("讀取天氣警特報...");
+  setRealtimeStatus("讀取天氣警特報與降雨提醒...");
   try {
-    const data = await fetchCwaDataset("W-C0033-001");
-    const list = normalizeAlerts(data);
+    const [alertResult, rainResult] = await Promise.allSettled([
+      fetchCwaDataset("W-C0033-001"),
+      loadChanghuaRainTownAlerts(),
+    ]);
+    if (rainResult.status === "rejected") {
+      console.warn("rain town alerts unavailable:", rainResult.reason);
+      realtimeState.rainTownAlerts = [];
+    }
+    if (alertResult.status === "rejected") {
+      throw alertResult.reason;
+    }
+    const list = normalizeAlerts(alertResult.value);
     renderAlerts(list);
     realtimeState.alertCache = list;
-    setRealtimeStatus(list.length ? `已更新 ${list.length} 則警特報` : "目前無警特報。");
+    const rainCount = realtimeState.rainTownAlerts?.length || 0;
+    const rainText = rainCount ? `，${rainCount} 個鄉鎮有降雨` : "";
+    setRealtimeStatus(list.length ? `已更新 ${list.length} 則警特報${rainText}` : `目前無警特報${rainText}。`);
   } catch (err) {
     console.error(err);
     renderAlerts([]);
@@ -1765,12 +1779,28 @@ function buildLocalAlerts() {
     if (Number.isFinite(obs.apparent) && obs.apparent >= DISASTER_TEMP_HIGH_THRESHOLD) add(`體感溫度 ≥ ${DISASTER_TEMP_HIGH_THRESHOLD}（目前體感溫度偏高）`);
     if (Number.isFinite(obs.apparent) && obs.apparent < DISASTER_TEMP_LOW_THRESHOLD) add(`體感溫度 < ${DISASTER_TEMP_LOW_THRESHOLD}（目前體感溫度偏低）`);
     if (Number.isFinite(obs.humidity) && obs.humidity < DISASTER_HUMIDITY_LOW_THRESHOLD) add(`濕度 < ${DISASTER_HUMIDITY_LOW_THRESHOLD}%（目前濕度偏低）`);
-    if (Number.isFinite(obs.humidity) && obs.humidity > DISASTER_HUMIDITY_FOG_THRESHOLD) add(`濕度 > ${DISASTER_HUMIDITY_FOG_THRESHOLD}%（可能起霧會下雨）`);
+    if (Number.isFinite(obs.humidity) && obs.humidity > DISASTER_HUMIDITY_FOG_THRESHOLD) add(`濕度 > ${DISASTER_HUMIDITY_FOG_THRESHOLD}%（可能起霧或下雨）`);
     const windLevel = windToBeaufortLevel(obs.windSpeed);
     const gustLevel = windToBeaufortLevel(obs.gust);
     if (Number.isFinite(windLevel) && windLevel >= 4) add("風速 ≥ 4級（目前風速偏大）");
     if (Number.isFinite(gustLevel) && gustLevel >= 6) add("陣風 ≥ 6級（目前陣風偏大）");
     if (Number.isFinite(obs.rain) && obs.rain > DISASTER_RAIN_THRESHOLD) add(`雨量 > ${DISASTER_RAIN_THRESHOLD}（目前雨量偏大）`);
+  }
+
+  const rainTownAlerts = Array.isArray(realtimeState.rainTownAlerts) ? realtimeState.rainTownAlerts : [];
+  if (rainTownAlerts.length) {
+    const townText = rainTownAlerts
+      .map((item) => item.town)
+      .join("、");
+    const latestTime = rainTownAlerts.find((item) => item.time)?.time || "";
+    alerts.push({
+      area: townText,
+      title: "降雨提醒 (過去一小時)",
+      desc: `過去一小時降雨量 > 0${latestTime ? `（資料時間：${latestTime}）` : ""}`,
+      severity: "提醒",
+      isLocal: true,
+      levelClass: "local-alert--rain",
+    });
   }
 
   if (aqi) {
@@ -5258,6 +5288,37 @@ async function loadLightningData() {
     renderLightningData({ points: [], title: "", rangeText: "", latestTime: "" });
     setLightningStatus(err.message || "落雷資料讀取失敗");
   }
+}
+
+async function loadChanghuaRainTownAlerts() {
+  const data = await fetchCwaDataset(RAIN_DATASET);
+  const stations = extractCwaStations(data);
+  const entries = buildRankingEntries(stations, "rain", {
+    countyFilter: REALTIME_COUNTY,
+    state: { countyCodeMap: COUNTY_CODE_MAP },
+  });
+  realtimeState.rainTownAlerts = buildRainTownAlerts(entries);
+  return realtimeState.rainTownAlerts;
+}
+
+function buildRainTownAlerts(entries) {
+  const byTown = new Map();
+  entries.forEach((entry) => {
+    const rain = Number(entry.value);
+    if (!Number.isFinite(rain) || rain <= 0) return;
+    const town = String(entry.town || "").trim();
+    if (!town) return;
+    const current = byTown.get(town);
+    if (!current || rain > current.value) {
+      byTown.set(town, {
+        town,
+        value: rain,
+        station: entry.name || "",
+        time: entry.time || "",
+      });
+    }
+  });
+  return Array.from(byTown.values()).sort((a, b) => b.value - a.value || a.town.localeCompare(b.town, "zh-Hant"));
 }
 
 async function fetchLightningKmz() {
