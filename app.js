@@ -30,11 +30,15 @@ const dom = {
   reloadForecastBtn: document.getElementById("reloadForecastBtn"),
   reloadLiveTyphoonBtn: document.getElementById("reloadLiveTyphoonBtn"),
   reloadRadarBtn: document.getElementById("reloadRadarBtn"),
+  reloadLightningBtn: document.getElementById("reloadLightningBtn"),
   clearRealtimeBtn: document.getElementById("clearRealtimeBtn"),
   liveTyphoonMap: document.getElementById("liveTyphoonMap"),
   typhoonLiveList: document.getElementById("typhoonLiveList"),
   radarMap: document.getElementById("radarMap"),
   radarStatus: document.getElementById("radarStatus"),
+  lightningMap: document.getElementById("lightningMap"),
+  lightningStatus: document.getElementById("lightningStatus"),
+  lightningSummary: document.getElementById("lightningSummary"),
   reloadNCUEBtn: document.getElementById("reloadNCUEBtn"),
   ncueStatus: document.getElementById("ncueStatus"),
   ncueObservation: document.getElementById("ncueObservation"),
@@ -136,6 +140,8 @@ const realtimeState = {
   typhoonLayer: null,
   radarMap: null,
   radarLayer: null,
+  lightningMap: null,
+  lightningLayer: null,
   radarTime: null,
   countiesGeo: null,
   latestObservation: null,
@@ -223,6 +229,12 @@ const GEO_ASSETS_PAGES_BASE = "https://qaz7000810.github.io/geo-assets";
 const CHANGHUA_DATA_BASE = `${GEO_ASSETS_BASE}/changhua`;
 const TYPHOON_COUNTIES_URL = `${GEO_ASSETS_BASE}/typhoon/counties.geojson`;
 const RADAR_DATASET = "O-A0059-001";
+const LIGHTNING_DATASET = "O-A0039-001";
+const LIGHTNING_SAMPLE_URL = "./data/lightning/O-A0039-001.kmz";
+const TAIWAN_MAIN_ISLAND_BOUNDS = [
+  [21.75, 119.9],
+  [25.45, 122.15],
+];
 const RADAR_LEVELS = [0, 5, 10, 20, 30, 40, 50, 60];
 const RADAR_COLORS = ["#d2f5ff", "#9be7ff", "#5bc0ff", "#1f78ff", "#00d26a", "#f6f930", "#ff8c1a", "#ff2d2d"];
 const CWA_API_KEY = "";
@@ -788,6 +800,7 @@ function bindEvents() {
   });
   dom.reloadLiveTyphoonBtn?.addEventListener("click", loadLiveTyphoon);
   dom.reloadRadarBtn?.addEventListener("click", loadRadarComposite);
+  dom.reloadLightningBtn?.addEventListener("click", loadLightningData);
   dom.reloadNCUEBtn?.addEventListener("click", loadNCUEObservation);
   dom.reloadAqiBtn?.addEventListener("click", loadAqiData);
   dom.clearRealtimeBtn?.addEventListener("click", clearRealtimeDisplay);
@@ -1459,12 +1472,14 @@ function initRealtimeView() {
   setRealtimeStatus("已使用 Cloudflare Proxy，直接點「更新全部」即可。");
   initRealtimeMap();
   initRadarMap();
+  initLightningMap();
   loadNCUEObservation();
   loadAqiData();
   loadForecast(REALTIME_COUNTY);
   loadWeatherAlerts();
   loadLiveTyphoon();
   loadRadarComposite();
+  loadLightningData();
 }
 
 function buildRealtimeCountyOptions() {
@@ -1498,6 +1513,16 @@ function initRadarMap() {
   }).addTo(realtimeState.radarMap);
 }
 
+function initLightningMap() {
+  if (!dom.lightningMap || realtimeState.lightningMap) return;
+  realtimeState.lightningMap = L.map("lightningMap", { zoomControl: true, preferCanvas: true });
+  L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+    maxZoom: 10,
+    attribution: "&copy; OpenStreetMap contributors",
+  }).addTo(realtimeState.lightningMap);
+  resetLightningMapView();
+}
+
 function ensureRealtimeMapSized() {
   if (!realtimeState.typhoonMap) return;
   realtimeState.typhoonMap.invalidateSize();
@@ -1509,6 +1534,9 @@ function ensureRealtimeMapSized() {
   }
   if (realtimeState.radarMap) {
     realtimeState.radarMap.invalidateSize();
+  }
+  if (realtimeState.lightningMap) {
+    realtimeState.lightningMap.invalidateSize();
   }
 }
 
@@ -1523,6 +1551,7 @@ async function refreshRealtimeAll() {
       loadNCUEObservation(),
       loadAqiData(),
       loadRadarComposite(),
+      loadLightningData(),
     ]);
     setRealtimeStatus("已完成最新一次更新。");
   } catch (err) {
@@ -1540,6 +1569,8 @@ function clearRealtimeDisplay() {
   if (dom.ncueStatus) dom.ncueStatus.textContent = "尚未載入";
   if (dom.aqiStatus) dom.aqiStatus.textContent = "尚未載入";
   if (dom.radarStatus) dom.radarStatus.textContent = "尚未載入";
+  if (dom.lightningStatus) dom.lightningStatus.textContent = "尚未載入";
+  updateLightningSummary();
   if (realtimeState.typhoonLayer && realtimeState.typhoonMap) {
     realtimeState.typhoonMap.removeLayer(realtimeState.typhoonLayer);
     realtimeState.typhoonLayer = null;
@@ -1547,6 +1578,10 @@ function clearRealtimeDisplay() {
   if (realtimeState.radarLayer && realtimeState.radarMap) {
     realtimeState.radarMap.removeLayer(realtimeState.radarLayer);
     realtimeState.radarLayer = null;
+  }
+  if (realtimeState.lightningLayer && realtimeState.lightningMap) {
+    realtimeState.lightningMap.removeLayer(realtimeState.lightningLayer);
+    realtimeState.lightningLayer = null;
   }
   setRealtimeStatus("已清空資料。");
 }
@@ -1730,7 +1765,7 @@ function buildLocalAlerts() {
     if (Number.isFinite(obs.apparent) && obs.apparent >= DISASTER_TEMP_HIGH_THRESHOLD) add(`體感溫度 ≥ ${DISASTER_TEMP_HIGH_THRESHOLD}（目前體感溫度偏高）`);
     if (Number.isFinite(obs.apparent) && obs.apparent < DISASTER_TEMP_LOW_THRESHOLD) add(`體感溫度 < ${DISASTER_TEMP_LOW_THRESHOLD}（目前體感溫度偏低）`);
     if (Number.isFinite(obs.humidity) && obs.humidity < DISASTER_HUMIDITY_LOW_THRESHOLD) add(`濕度 < ${DISASTER_HUMIDITY_LOW_THRESHOLD}%（目前濕度偏低）`);
-    if (Number.isFinite(obs.humidity) && obs.humidity > DISASTER_HUMIDITY_FOG_THRESHOLD) add(`濕度 > ${DISASTER_HUMIDITY_FOG_THRESHOLD}%（可能起霧）`);
+    if (Number.isFinite(obs.humidity) && obs.humidity > DISASTER_HUMIDITY_FOG_THRESHOLD) add(`濕度 > ${DISASTER_HUMIDITY_FOG_THRESHOLD}%（可能起霧會下雨）`);
     const windLevel = windToBeaufortLevel(obs.windSpeed);
     const gustLevel = windToBeaufortLevel(obs.gust);
     if (Number.isFinite(windLevel) && windLevel >= 4) add("風速 ≥ 4級（目前風速偏大）");
@@ -5204,6 +5239,186 @@ async function loadRadarComposite() {
 
 function setRadarStatus(text) {
   if (dom.radarStatus) dom.radarStatus.textContent = text;
+}
+
+async function loadLightningData() {
+  if (!dom.lightningStatus) return;
+  setLightningStatus("讀取落雷資料...");
+  try {
+    const { buffer: kmzBuffer, source } = await fetchLightningKmz();
+    const kmlText = await extractKmlFromKmz(kmzBuffer);
+    const lightning = parseLightningKml(kmlText);
+    renderLightningData(lightning);
+    const rangeText = lightning.rangeText || lightning.latestTime || "";
+    const sourceText = source === "sample" ? "（範例檔）" : "";
+    const label = rangeText ? `更新時間：${rangeText}${sourceText}` : `已更新落雷資料${sourceText}`;
+    setLightningStatus(`${label}，共 ${lightning.points.length} 筆`);
+  } catch (err) {
+    console.error(err);
+    renderLightningData({ points: [], title: "", rangeText: "", latestTime: "" });
+    setLightningStatus(err.message || "落雷資料讀取失敗");
+  }
+}
+
+async function fetchLightningKmz() {
+  try {
+    return { buffer: await fetchCwaFileDataset(LIGHTNING_DATASET, "KMZ"), source: "live" };
+  } catch (liveErr) {
+    console.warn("lightning live dataset fallback to sample:", liveErr);
+    const res = await fetch(LIGHTNING_SAMPLE_URL);
+    if (!res.ok) {
+      throw liveErr;
+    }
+    return { buffer: await res.arrayBuffer(), source: "sample" };
+  }
+}
+
+function setLightningStatus(text) {
+  if (dom.lightningStatus) dom.lightningStatus.textContent = text;
+}
+
+async function fetchCwaFileDataset(datasetId, format = "KMZ") {
+  const search = new URLSearchParams({ downloadType: "WEB", format });
+  if (CWA_API_KEY) search.set("Authorization", CWA_API_KEY);
+  const url = `${CWA_FILEAPI_BASE}/${datasetId}?${search.toString()}`;
+  const res = await fetch(url);
+  if (!res.ok) {
+    throw new Error(`無法取得 ${datasetId}（${res.status}）`);
+  }
+  return res.arrayBuffer();
+}
+
+async function extractKmlFromKmz(arrayBuffer) {
+  if (!window.JSZip) {
+    throw new Error("缺少 KMZ 解壓縮套件，無法讀取落雷資料");
+  }
+  const zip = await window.JSZip.loadAsync(arrayBuffer);
+  const kmlFile = Object.values(zip.files).find((file) => !file.dir && /\.kml$/i.test(file.name));
+  if (!kmlFile) {
+    throw new Error("落雷 KMZ 中找不到 KML 檔");
+  }
+  return kmlFile.async("text");
+}
+
+function parseLightningKml(kmlText) {
+  const doc = new DOMParser().parseFromString(kmlText, "application/xml");
+  if (doc.querySelector("parsererror")) {
+    throw new Error("落雷 KML 格式錯誤");
+  }
+  const title = getXmlText(doc, "Document > name") || getXmlText(doc, "name");
+  const placemarks = Array.from(doc.getElementsByTagNameNS("*", "Placemark"));
+  const points = placemarks
+    .map((placemark, index) => parseLightningPlacemark(placemark, index))
+    .filter(Boolean);
+  const latest = points
+    .map((p) => Date.parse(p.timestamp || ""))
+    .filter((ms) => Number.isFinite(ms))
+    .sort((a, b) => b - a)[0];
+  return {
+    title,
+    rangeText: extractLightningRangeText(title),
+    latestTime: Number.isFinite(latest) ? formatObsTime(new Date(latest).toISOString()) : "",
+    latestMs: Number.isFinite(latest) ? latest : null,
+    points,
+  };
+}
+
+function parseLightningPlacemark(placemark, index) {
+  const name = getXmlText(placemark, "name");
+  const description = getXmlText(placemark, "description");
+  const timestamp = getXmlText(placemark, "when");
+  const coordText = getXmlText(placemark, "coordinates");
+  const [lonRaw, latRaw] = String(coordText || "").trim().split(",");
+  const lon = Number(lonRaw);
+  const lat = Number(latRaw);
+  if (!Number.isFinite(lat) || !Number.isFinite(lon)) return null;
+  const typeMatch = description.match(/閃電種類:\s*([^\r\n]+)/);
+  const timeMatch = description.match(/時間:\s*([^\r\n]+)/);
+  const type = (typeMatch?.[1] || (name.includes("對地") ? "對地" : name.includes("雲間") ? "雲間" : "")).trim();
+  const timeText = (timeMatch?.[1] || "").trim();
+  return {
+    id: `${type || "lightning"}-${index}`,
+    name,
+    type,
+    timeText,
+    timestamp,
+    lat,
+    lon,
+  };
+}
+
+function renderLightningData(lightning) {
+  const points = Array.isArray(lightning?.points) ? lightning.points : [];
+  updateLightningSummary(points);
+  if (realtimeState.lightningLayer && realtimeState.lightningMap) {
+    realtimeState.lightningMap.removeLayer(realtimeState.lightningLayer);
+    realtimeState.lightningLayer = null;
+  }
+  if (!realtimeState.lightningMap || !points.length) return;
+  const latestMs =
+    Number.isFinite(lightning?.latestMs)
+      ? lightning.latestMs
+      : points
+          .map((p) => Date.parse(p.timestamp || ""))
+          .filter((ms) => Number.isFinite(ms))
+          .sort((a, b) => b - a)[0];
+  const markers = points.map((point) => {
+    const isGround = point.type.includes("對地");
+    const pointMs = Date.parse(point.timestamp || "");
+    const ageMinutes = Number.isFinite(latestMs) && Number.isFinite(pointMs) ? Math.max(0, (latestMs - pointMs) / 60000) : null;
+    const ageClass = getLightningAgeClass(ageMinutes);
+    const shapeClass = isGround ? "lightning-marker-ground" : "lightning-marker-cloud";
+    const iconSize = isGround ? [18, 18] : [15, 15];
+    const marker = L.marker([point.lat, point.lon], {
+      icon: L.divIcon({
+        className: "",
+        html: `<span class="lightning-marker ${shapeClass} ${ageClass}"></span>`,
+        iconSize,
+        iconAnchor: [iconSize[0] / 2, iconSize[1] / 2],
+      }),
+    });
+    const time = point.timestamp ? formatObsTime(point.timestamp) : point.timeText;
+    const ageText = Number.isFinite(ageMinutes) ? `<br>距最新資料：約 ${Math.round(ageMinutes)} 分鐘` : "";
+    marker.bindPopup(`<strong>${sanitizeText(point.type || "閃電")}</strong><br>時間：${sanitizeText(time || "—")}${ageText}<br>經緯度：${point.lon.toFixed(3)}, ${point.lat.toFixed(3)}`);
+    return marker;
+  });
+  realtimeState.lightningLayer = L.layerGroup(markers).addTo(realtimeState.lightningMap);
+  resetLightningMapView();
+}
+
+function getLightningAgeClass(ageMinutes) {
+  if (!Number.isFinite(ageMinutes)) return "lightning-age-3";
+  if (ageMinutes <= 5) return "lightning-age-0";
+  if (ageMinutes <= 10) return "lightning-age-1";
+  if (ageMinutes <= 30) return "lightning-age-2";
+  return "lightning-age-3";
+}
+
+function resetLightningMapView() {
+  if (!realtimeState.lightningMap) return;
+  realtimeState.lightningMap.fitBounds(TAIWAN_MAIN_ISLAND_BOUNDS, { padding: [18, 18] });
+}
+
+function updateLightningSummary(points = []) {
+  if (!dom.lightningSummary) return;
+  const ground = points.filter((p) => p.type.includes("對地")).length;
+  const cloud = points.filter((p) => p.type.includes("雲間")).length;
+  const hasData = points.length > 0;
+  dom.lightningSummary.innerHTML = `
+    <span>總筆數：${hasData ? points.length : "--"}</span>
+    <span>對地：${hasData ? ground : "--"}</span>
+    <span>雲間：${hasData ? cloud : "--"}</span>
+  `;
+}
+
+function extractLightningRangeText(title) {
+  const match = String(title || "").match(/(\d{4}-\d{2}-\d{2}\s+\d{2}:\d{2}\s*~\s*\d{4}-\d{2}-\d{2}\s+\d{2}:\d{2})/);
+  return match ? match[1].replace(/-/g, "/") : "";
+}
+
+function getXmlText(node, selector) {
+  const found = node.querySelector(selector);
+  return found ? found.textContent.trim() : "";
 }
 
 async function fetchRadarFileDataset(datasetId) {

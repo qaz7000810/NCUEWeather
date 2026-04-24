@@ -120,6 +120,62 @@
     <section class="panel">
       <div class="realtime-card-header">
         <div>
+          <p class="eyebrow">O-A0039-001</p>
+          <h3>落雷資料</h3>
+        </div>
+        <button id="reloadLightningBtn" class="ghost">重新整理</button>
+      </div>
+      <div id="lightningMap" class="map-shell small-map"></div>
+      <div class="lightning-note" aria-label="落雷資料說明">
+        <div class="lightning-note-title">註</div>
+        <ul class="lightning-note-list">
+          <li>閃電資料每隔 5 分鐘更新 1 次。</li>
+          <li>每張圖表示過去 1 小時內閃電資料分佈情況。</li>
+          <li>
+            閃電資料符號說明：
+            <div class="lightning-symbol-row">
+              <span><i class="lightning-sample lightning-sample-cloud lightning-age-0"></i> / <i class="lightning-sample lightning-sample-cloud lightning-age-1"></i> / <i class="lightning-sample lightning-sample-cloud lightning-age-2"></i> / <i class="lightning-sample lightning-sample-cloud lightning-age-3"></i> 表示雲間閃電。</span>
+              <span><i class="lightning-sample lightning-sample-ground lightning-age-0"></i> / <i class="lightning-sample lightning-sample-ground lightning-age-1"></i> / <i class="lightning-sample lightning-sample-ground lightning-age-2"></i> / <i class="lightning-sample lightning-sample-ground lightning-age-3"></i> 表示對地閃電。</span>
+            </div>
+          </li>
+          <li>
+            閃電資料顏色說明：
+            <div class="lightning-color-text">
+              <span>紅色表示 0 至 5 分鐘內閃電資料。</span>
+              <span>黃色表示 5 至 10 分鐘內閃電資料。</span>
+              <span>綠色表示 10 至 30 分鐘內閃電資料。</span>
+              <span>藍色表示 30 至 60 分鐘內閃電資料。</span>
+            </div>
+          </li>
+        </ul>
+        <div class="lightning-scale" aria-label="落雷資料顏色說明">
+          <div class="lightning-scale-title">閃電資料顏色說明：</div>
+          <div class="lightning-scale-bar">
+            <span class="lightning-scale-red"></span>
+            <span class="lightning-scale-yellow"></span>
+            <span class="lightning-scale-green"></span>
+            <span class="lightning-scale-blue"></span>
+          </div>
+          <div class="lightning-scale-labels">
+            <span>0</span>
+            <span>5</span>
+            <span>10</span>
+            <span>30</span>
+            <span>60</span>
+          </div>
+        </div>
+        <div class="lightning-summary" id="lightningSummary">
+          <span>總筆數：--</span>
+          <span>對地：--</span>
+          <span>雲間：--</span>
+        </div>
+      </div>
+      <div class="status" id="lightningStatus">尚未載入</div>
+    </section>
+
+    <section class="panel">
+      <div class="realtime-card-header">
+        <div>
           <p class="eyebrow">W-C0034-005</p>
           <h3>即時颱風消息與路徑</h3>
         </div>
@@ -554,6 +610,7 @@
     </section>
   </main>
 
+  <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
   <script src="./app.js" type="module"></script>
 </body>
 </html>

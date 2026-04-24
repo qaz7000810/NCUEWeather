@@ -398,6 +398,189 @@ code {
   box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.6);
 }
 
+.lightning-note {
+  margin-top: 14px;
+  color: var(--muted);
+  font-size: 14px;
+  line-height: 1.7;
+}
+
+.lightning-note-title {
+  width: min(100%, 330px);
+  padding-bottom: 6px;
+  border-bottom: 2px solid #2563eb;
+  color: #374151;
+  font-weight: 700;
+}
+
+.lightning-note-list {
+  margin: 10px 0 0;
+  padding-left: 22px;
+  list-style: none;
+}
+
+.lightning-note-list li {
+  position: relative;
+  margin: 8px 0;
+}
+
+.lightning-note-list li::before {
+  content: "";
+  position: absolute;
+  left: -18px;
+  top: 0.72em;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: #c73a22;
+  transform: translateY(-50%);
+  box-shadow: inset 0 0 0 3px #ffffff;
+}
+
+.lightning-symbol-row,
+.lightning-color-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin-top: 2px;
+}
+
+.lightning-sample,
+.lightning-marker {
+  --lightning-color: #d43f2a;
+  display: inline-block;
+}
+
+.lightning-sample-cloud,
+.lightning-marker-cloud {
+  width: 11px;
+  height: 11px;
+  border-radius: 50%;
+  background: var(--lightning-color);
+}
+
+.lightning-sample-ground,
+.lightning-marker-ground {
+  width: 13px;
+  height: 13px;
+  position: relative;
+}
+
+.lightning-sample-ground::before,
+.lightning-sample-ground::after,
+.lightning-marker-ground::before,
+.lightning-marker-ground::after {
+  content: "";
+  position: absolute;
+  background: var(--lightning-color);
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+}
+
+.lightning-sample-ground::before,
+.lightning-marker-ground::before {
+  width: 13px;
+  height: 4px;
+}
+
+.lightning-sample-ground::after,
+.lightning-marker-ground::after {
+  width: 4px;
+  height: 13px;
+}
+
+.lightning-marker-cloud {
+  box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.9), 0 1px 4px rgba(15, 23, 42, 0.28);
+}
+
+.lightning-marker-ground {
+  filter: drop-shadow(0 1px 2px rgba(15, 23, 42, 0.32));
+}
+
+.lightning-age-0 {
+  --lightning-color: #d43f2a;
+}
+
+.lightning-age-1 {
+  --lightning-color: #f4d33f;
+}
+
+.lightning-age-2 {
+  --lightning-color: #2f7d32;
+}
+
+.lightning-age-3 {
+  --lightning-color: #245ba7;
+}
+
+.lightning-scale {
+  margin-top: 22px;
+  max-width: 315px;
+}
+
+.lightning-scale-title {
+  margin-bottom: 4px;
+  color: #374151;
+}
+
+.lightning-scale-bar {
+  display: grid;
+  grid-template-columns: 5fr 5fr 20fr 30fr;
+  height: 20px;
+}
+
+.lightning-scale-bar span {
+  display: block;
+}
+
+.lightning-scale-red {
+  background: #d43f2a;
+}
+
+.lightning-scale-yellow {
+  background: #f4d33f;
+}
+
+.lightning-scale-green {
+  background: #2f7d32;
+}
+
+.lightning-scale-blue {
+  background: #245ba7;
+}
+
+.lightning-scale-labels {
+  display: flex;
+  justify-content: space-between;
+  color: #4b5563;
+  line-height: 1.2;
+}
+
+.lightning-scale-labels span {
+  min-width: 1.5em;
+  text-align: left;
+}
+
+.lightning-scale-labels span:last-child {
+  text-align: right;
+}
+
+.lightning-summary {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.lightning-summary span {
+  padding: 2px 8px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: #ffffff;
+  color: #374151;
+}
+
 .typhoon-side {
   display: flex;
   flex-direction: column;
