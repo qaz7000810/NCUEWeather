@@ -146,7 +146,6 @@ const realtimeState = {
   countiesGeo: null,
   latestObservation: null,
   latestAqi: null,
-  rainTownAlerts: [],
 };
 
 const rankingState = {
@@ -1571,7 +1570,6 @@ function clearRealtimeDisplay() {
   if (dom.aqiStatus) dom.aqiStatus.textContent = "尚未載入";
   if (dom.radarStatus) dom.radarStatus.textContent = "尚未載入";
   if (dom.lightningStatus) dom.lightningStatus.textContent = "尚未載入";
-  realtimeState.rainTownAlerts = [];
   updateLightningSummary();
   if (realtimeState.typhoonLayer && realtimeState.typhoonMap) {
     realtimeState.typhoonMap.removeLayer(realtimeState.typhoonLayer);
@@ -1605,25 +1603,13 @@ async function fetchCwaDataset(datasetId, params = {}) {
 }
 
 async function loadWeatherAlerts() {
-  setRealtimeStatus("讀取天氣警特報與降雨提醒...");
+  setRealtimeStatus("讀取天氣警特報...");
   try {
-    const [alertResult, rainResult] = await Promise.allSettled([
-      fetchCwaDataset("W-C0033-001"),
-      loadChanghuaRainTownAlerts(),
-    ]);
-    if (rainResult.status === "rejected") {
-      console.warn("rain town alerts unavailable:", rainResult.reason);
-      realtimeState.rainTownAlerts = [];
-    }
-    if (alertResult.status === "rejected") {
-      throw alertResult.reason;
-    }
-    const list = normalizeAlerts(alertResult.value);
+    const data = await fetchCwaDataset("W-C0033-001");
+    const list = normalizeAlerts(data);
     renderAlerts(list);
     realtimeState.alertCache = list;
-    const rainCount = realtimeState.rainTownAlerts?.length || 0;
-    const rainText = rainCount ? `，${rainCount} 個鄉鎮有降雨` : "";
-    setRealtimeStatus(list.length ? `已更新 ${list.length} 則警特報${rainText}` : `目前無警特報${rainText}。`);
+    setRealtimeStatus(list.length ? `已更新 ${list.length} 則警特報` : "目前無警特報。");
   } catch (err) {
     console.error(err);
     renderAlerts([]);
@@ -1785,22 +1771,6 @@ function buildLocalAlerts() {
     if (Number.isFinite(windLevel) && windLevel >= 4) add("風速 ≥ 4級（目前風速偏大）");
     if (Number.isFinite(gustLevel) && gustLevel >= 6) add("陣風 ≥ 6級（目前陣風偏大）");
     if (Number.isFinite(obs.rain) && obs.rain > DISASTER_RAIN_THRESHOLD) add(`雨量 > ${DISASTER_RAIN_THRESHOLD}（目前雨量偏大）`);
-  }
-
-  const rainTownAlerts = Array.isArray(realtimeState.rainTownAlerts) ? realtimeState.rainTownAlerts : [];
-  if (rainTownAlerts.length) {
-    const townText = rainTownAlerts
-      .map((item) => item.town)
-      .join("、");
-    const latestTime = rainTownAlerts.find((item) => item.time)?.time || "";
-    alerts.push({
-      area: townText,
-      title: "降雨提醒 (過去一小時)",
-      desc: `過去一小時降雨量 > 0${latestTime ? `（資料時間：${latestTime}）` : ""}`,
-      severity: "提醒",
-      isLocal: true,
-      levelClass: "local-alert--rain",
-    });
   }
 
   if (aqi) {
@@ -5290,17 +5260,6 @@ async function loadLightningData() {
   }
 }
 
-async function loadChanghuaRainTownAlerts() {
-  const data = await fetchCwaDataset(RAIN_DATASET);
-  const stations = extractCwaStations(data);
-  const entries = buildRankingEntries(stations, "rain", {
-    countyFilter: REALTIME_COUNTY,
-    state: { countyCodeMap: COUNTY_CODE_MAP },
-  });
-  realtimeState.rainTownAlerts = buildRainTownAlerts(entries);
-  return realtimeState.rainTownAlerts;
-}
-
 function buildRainTownAlerts(entries) {
   const byTown = new Map();
   entries.forEach((entry) => {
@@ -6093,6 +6052,11 @@ async function loadAndDisplayChanghuaAlerts(view) {
       if (!alertsMap.has(type)) alertsMap.set(type, new Set());
       if (town) alertsMap.get(type).add(town);
     };
+
+    const rainTownAlerts = buildRainTownAlerts(buildRankingEntries(rainStations, "rain", mockView));
+    rainTownAlerts.forEach((item) => {
+      addAlert("降雨提醒 (過去一小時)", item.town);
+    });
 
     const processEntries = (stations, metrics) => {
       metrics.forEach(mk => {
