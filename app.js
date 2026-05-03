@@ -451,7 +451,7 @@ const rankingMetrics = {
   temp: {
     label: "即時氣溫",
     unit: "°C",
-    value: (station) => toNumber(readWeatherElement(station, "AirTemperature")),
+    value: (station) => normalizeObservationNumber(readWeatherElement(station, "AirTemperature"), { min: -80, max: 80 }),
     direction: null,
     colorScale: "temp",
   },
@@ -459,10 +459,10 @@ const rankingMetrics = {
     label: "體感溫度",
     unit: "°C",
     value: (station) => {
-      const temp = toNumber(readWeatherElement(station, "AirTemperature"));
-      let humidity = toNumber(readWeatherElement(station, "RelativeHumidity"));
+      const temp = normalizeObservationNumber(readWeatherElement(station, "AirTemperature"), { min: -80, max: 80 });
+      let humidity = normalizeObservationNumber(readWeatherElement(station, "RelativeHumidity"), { min: 0, max: 100 });
       if (humidity != null && humidity >= 0 && humidity <= 1) humidity *= 100;
-      const windSpeed = toNumber(readWeatherElement(station, "WindSpeed"));
+      const windSpeed = normalizeObservationNumber(readWeatherElement(station, "WindSpeed"), { min: 0 });
       return calcApparentTemp(temp, humidity, windSpeed);
     },
     direction: null,
@@ -472,7 +472,7 @@ const rankingMetrics = {
     label: "相對濕度",
     unit: "%",
     value: (station) => {
-      let h = toNumber(readWeatherElement(station, "RelativeHumidity"));
+      let h = normalizeObservationNumber(readWeatherElement(station, "RelativeHumidity"), { min: 0, max: 100 });
       if (h != null && h <= 1) h *= 100;
       return h;
     },
@@ -482,42 +482,42 @@ const rankingMetrics = {
   wind: {
     label: "平均風速",
     unit: "m/s",
-    value: (station) => toNumber(readWeatherElement(station, "WindSpeed")),
-    direction: (station) => toNumber(readWeatherElement(station, "WindDirection")),
+    value: (station) => normalizeObservationNumber(readWeatherElement(station, "WindSpeed"), { min: 0 }),
+    direction: (station) => normalizeObservationNumber(readWeatherElement(station, "WindDirection"), { min: 0, max: 360 }),
     colorScale: "wind",
   },
   gust: {
     label: "最大陣風",
     unit: "m/s",
     value: (station) =>
-      toNumber(readWeatherNested(station, "GustInfo.PeakGustSpeed")) ??
-      toNumber(readWeatherElement(station, "PeakGustSpeed")) ??
-      toNumber(readWeatherElement(station, "GustWindSpeed")),
+      normalizeObservationNumber(readWeatherNested(station, "GustInfo.PeakGustSpeed"), { min: 0 }) ??
+      normalizeObservationNumber(readWeatherElement(station, "PeakGustSpeed"), { min: 0 }) ??
+      normalizeObservationNumber(readWeatherElement(station, "GustWindSpeed"), { min: 0 }),
     direction: (station) =>
-      toNumber(readWeatherNested(station, "GustInfo.Occurred_at.WindDirection")) ??
-      toNumber(readWeatherElement(station, "WindDirection")),
+      normalizeObservationNumber(readWeatherNested(station, "GustInfo.Occurred_at.WindDirection"), { min: 0, max: 360 }) ??
+      normalizeObservationNumber(readWeatherElement(station, "WindDirection"), { min: 0, max: 360 }),
     colorScale: "wind",
   },
   rain: {
     label: "1小時雨量",
     unit: "mm",
     value: (station) =>
-      toNumber(readRainElement(station, "Past1hr")) ??
-      toNumber(readRainElement(station, "Now")),
+      normalizeObservationNumber(readRainElement(station, "Past1hr"), { min: 0 }) ??
+      normalizeObservationNumber(readRainElement(station, "Now"), { min: 0 }),
     direction: null,
     colorScale: "rain",
   },
   rain3hr: {
     label: "3小時雨量",
     unit: "mm",
-    value: (station) => toNumber(readRainElement(station, "Past3hr")),
+    value: (station) => normalizeObservationNumber(readRainElement(station, "Past3hr"), { min: 0 }),
     direction: null,
     colorScale: "rain",
   },
   rain24hr: {
     label: "24小時雨量",
     unit: "mm",
-    value: (station) => toNumber(readRainElement(station, "Past24hr")),
+    value: (station) => normalizeObservationNumber(readRainElement(station, "Past24hr"), { min: 0 }),
     direction: null,
     colorScale: "rain",
   },
@@ -525,8 +525,8 @@ const rankingMetrics = {
     label: "溫濕度指數 (THI)",
     unit: "",
     value: (station) => {
-      const temp = toNumber(readWeatherElement(station, "AirTemperature"));
-      let humidity = toNumber(readWeatherElement(station, "RelativeHumidity"));
+      const temp = normalizeObservationNumber(readWeatherElement(station, "AirTemperature"), { min: -80, max: 80 });
+      let humidity = normalizeObservationNumber(readWeatherElement(station, "RelativeHumidity"), { min: 0, max: 100 });
       if (humidity != null && humidity <= 1) humidity *= 100;
       return computeThi(temp, humidity);
     },
@@ -2124,14 +2124,22 @@ function readRainElement(station, key) {
 
 function toNumber(value) {
   if (value == null) return null;
+  if (typeof value === "string" && value.trim() === "") return null;
   const n = Number(value);
   return Number.isFinite(n) ? n : null;
 }
 
+function normalizeObservationNumber(value, options = {}) {
+  const num = toNumber(value);
+  if (!isValidObservation(num)) return null;
+  if (Number.isFinite(options.min) && num < options.min) return null;
+  if (Number.isFinite(options.max) && num > options.max) return null;
+  return num;
+}
+
 function formatValue(value, unit = "", digits = 1) {
-  if (value == null) return "—";
+  if (!isValidObservation(value)) return "—";
   const num = Number(value);
-  if (!Number.isFinite(num)) return "—";
   const fixed = typeof digits === "number" ? num.toFixed(digits) : String(num);
   return `${fixed}${unit}`;
 }
@@ -2177,8 +2185,9 @@ function formatDateInTaipei(date) {
 }
 
 function formatWindDirection(value) {
+  if (!isValidObservation(value)) return "—";
   const deg = Number(value);
-  if (!Number.isFinite(deg)) return "—";
+  if (!Number.isFinite(deg) || deg < 0 || deg > 360) return "—";
   const dirs = [
     "北",
     "北北東",
@@ -2202,8 +2211,9 @@ function formatWindDirection(value) {
 }
 
 function windToBeaufort(mps) {
+  if (!isValidObservation(mps)) return "--";
   const v = Number(mps);
-  if (!Number.isFinite(v)) return "--";
+  if (!Number.isFinite(v) || v < 0) return "--";
   const scale = [
     [0.0, 0.2, "靜風"],
     [0.3, 1.5, "1級"],
@@ -2231,8 +2241,9 @@ function windToBeaufort(mps) {
 }
 
 function windToBeaufortLevel(mps) {
+  if (!isValidObservation(mps)) return NaN;
   const v = Number(mps);
-  if (!Number.isFinite(v)) return NaN;
+  if (!Number.isFinite(v) || v < 0) return NaN;
   const scale = [
     [0.0, 0.2, 0],
     [0.3, 1.5, 1],
@@ -2285,24 +2296,24 @@ function renderNCUEObservation(station) {
     station?.obsTime?.DateTime ||
     "";
   const obsTimeFormatted = formatObsTime(obsTime);
-  const temp = toNumber(readWeatherElement(station, "AirTemperature"));
-  let humidity = toNumber(readWeatherElement(station, "RelativeHumidity"));
+  const temp = normalizeObservationNumber(readWeatherElement(station, "AirTemperature"), { min: -80, max: 80 });
+  let humidity = normalizeObservationNumber(readWeatherElement(station, "RelativeHumidity"), { min: 0, max: 100 });
   if (humidity != null && humidity <= 1) humidity *= 100;
-  const windSpeed = toNumber(readWeatherElement(station, "WindSpeed"));
-  const windDir = toNumber(readWeatherElement(station, "WindDirection"));
+  const windSpeed = normalizeObservationNumber(readWeatherElement(station, "WindSpeed"), { min: 0 });
+  const windDir = normalizeObservationNumber(readWeatherElement(station, "WindDirection"), { min: 0, max: 360 });
   const gustRaw =
-    toNumber(readWeatherNested(station, "GustInfo.PeakGustSpeed")) ??
-    toNumber(readWeatherNested(station, "Max10MinAverage.WindSpeed")) ??
-    toNumber(readWeatherElement(station, "Max10MinAverage")) ??
-    toNumber(readWeatherElement(station, "Max10MinAverageWindSpeed")) ??
-    toNumber(readWeatherElement(station, "Max10MinWindSpeed")) ??
-    toNumber(readWeatherElement(station, "GustWindSpeed")) ??
-    toNumber(readWeatherElement(station, "PeakGustSpeed"));
+    normalizeObservationNumber(readWeatherNested(station, "GustInfo.PeakGustSpeed"), { min: 0 }) ??
+    normalizeObservationNumber(readWeatherNested(station, "Max10MinAverage.WindSpeed"), { min: 0 }) ??
+    normalizeObservationNumber(readWeatherElement(station, "Max10MinAverage"), { min: 0 }) ??
+    normalizeObservationNumber(readWeatherElement(station, "Max10MinAverageWindSpeed"), { min: 0 }) ??
+    normalizeObservationNumber(readWeatherElement(station, "Max10MinWindSpeed"), { min: 0 }) ??
+    normalizeObservationNumber(readWeatherElement(station, "GustWindSpeed"), { min: 0 }) ??
+    normalizeObservationNumber(readWeatherElement(station, "PeakGustSpeed"), { min: 0 });
   const rain =
-    toNumber(readWeatherElement(station, "NowPrecipitation")) ??
-    toNumber(readWeatherElement(station, "Precipitation")) ??
-    toNumber(readWeatherElement(station, "HourlyPrecipitation")) ??
-    toNumber(readWeatherElement(station, "DailyRainfall"));
+    normalizeObservationNumber(readWeatherElement(station, "NowPrecipitation"), { min: 0 }) ??
+    normalizeObservationNumber(readWeatherElement(station, "Precipitation"), { min: 0 }) ??
+    normalizeObservationNumber(readWeatherElement(station, "HourlyPrecipitation"), { min: 0 }) ??
+    normalizeObservationNumber(readWeatherElement(station, "DailyRainfall"), { min: 0 });
   const weather = readWeatherElement(station, "Weather");
   const windLevel = windToBeaufort(windSpeed);
   const gustLevel = windToBeaufort(gustRaw);
@@ -2326,12 +2337,12 @@ function renderNCUEObservation(station) {
     { label: "風向", value: formatWindDirection(windDir) },
     {
       label: "風速",
-      value: windSpeed != null ? `${windLevel} (${formatValue(windSpeed, " m/s", 1)})` : "—",
+      value: isValidObservation(windSpeed) ? `${windLevel} (${formatValue(windSpeed, " m/s", 1)})` : "—",
       alert: isDisasterThreshold("wind", windSpeed),
     },
     {
       label: "陣風",
-      value: gustRaw != null ? `${gustLevel} (${formatValue(gustRaw, " m/s", 1)})` : "—",
+      value: isValidObservation(gustRaw) ? `${gustLevel} (${formatValue(gustRaw, " m/s", 1)})` : "—",
       alert: isDisasterThreshold("gust", gustRaw),
     },
     { label: "降雨量", value: formatValue(rain, " mm", 1), alert: isDisasterThreshold("rain", rain) },
@@ -2826,8 +2837,8 @@ function buildIndustryTownDataFromStations(stations, geo) {
       const county = normalizeCountyName(geoInfo?.CountyName || geoInfo?.countyName || "");
       if (county !== REALTIME_COUNTY) return null;
       const coords = readStationCoords(geoInfo);
-      const temp = toNumber(readWeatherElement(station, "AirTemperature"));
-      let humidity = toNumber(readWeatherElement(station, "RelativeHumidity"));
+      const temp = normalizeObservationNumber(readWeatherElement(station, "AirTemperature"), { min: -80, max: 80 });
+      let humidity = normalizeObservationNumber(readWeatherElement(station, "RelativeHumidity"), { min: 0, max: 100 });
       if (humidity != null && humidity >= 0 && humidity <= 1) humidity *= 100;
       if (!coords || !isValidObservation(temp)) return null;
       const obsTime =
@@ -3698,7 +3709,7 @@ function toggleHealthTimelinePlayback() {
 }
 
 function isDisasterThreshold(metricKey, value) {
-  if (value == null || !Number.isFinite(value)) return false;
+  if (!isValidObservation(value)) return false;
   switch (metricKey) {
     case "temp":
       return value < DISASTER_TEMP_LOW_THRESHOLD || value >= DISASTER_TEMP_HIGH_THRESHOLD;
@@ -3915,9 +3926,9 @@ function buildRankingEntries(stations, metricKey, view) {
       lon: coords.lon,
       value,
       direction: metric.direction ? metric.direction(station) : null,
-      temperature: toNumber(readWeatherElement(station, "AirTemperature")),
+      temperature: normalizeObservationNumber(readWeatherElement(station, "AirTemperature"), { min: -80, max: 80 }),
       humidity: (() => {
-        let h = toNumber(readWeatherElement(station, "RelativeHumidity"));
+        let h = normalizeObservationNumber(readWeatherElement(station, "RelativeHumidity"), { min: 0, max: 100 });
         if (h != null && h >= 0 && h <= 1) h *= 100;
         return h;
       })(),
@@ -4466,7 +4477,7 @@ function focusViewOnCounty(view) {
 }
 
 function formatRankingValue(metricKey, value, unit) {
-  if (value == null || !Number.isFinite(value)) return "—";
+  if (!isValidObservation(value)) return "—";
   const digits =
     metricKey === "humidity" || metricKey === "aqi" || metricKey === "pm25" || metricKey === "pm25Airbox" || metricKey === "pm10Airbox" || metricKey === "pm1Airbox" || metricKey === "pm10" || metricKey === "o3"
       ? 0
@@ -4506,7 +4517,7 @@ function formatHealthWarningText(entry) {
 }
 
 function formatDisasterLevel(metricKey, value) {
-  if (value == null || !Number.isFinite(value)) return "—";
+  if (!isValidObservation(value)) return "—";
   switch (metricKey) {
     case "temp":
       return value < DISASTER_TEMP_LOW_THRESHOLD ? "低溫警戒" : value >= DISASTER_TEMP_HIGH_THRESHOLD ? "高溫警戒" : "—";
@@ -4563,7 +4574,7 @@ function formatDisasterLevel(metricKey, value) {
 }
 
 function getMetricColor(metricKey, metric, value) {
-  if (value == null || !Number.isFinite(value)) return "#cbd5f5";
+  if (!isValidObservation(value)) return "#cbd5f5";
   switch (metric.colorScale) {
     case "temp":
       return gradientColor(value, 6, 36, ["#1b6fd1", "#26b16f", "#e6e447", "#f4a13d", "#e04a3b", "#8a2bd8"]);
@@ -4812,6 +4823,7 @@ function computeThi(temperature, humidity) {
 
 function isValidObservation(value) {
   if (value == null) return false;
+  if (typeof value === "string" && value.trim() === "") return false;
   const num = Number(value);
   if (!Number.isFinite(num)) return false;
   if (num <= -90) return false;
