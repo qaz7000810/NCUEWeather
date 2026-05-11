@@ -2833,7 +2833,7 @@ const TOWN_FORECAST_METRICS = {
   minTemperature: { label: "最低溫", unit: "°C", precision: 1, colors: ["#2166ac", "#67a9cf", "#fddbc7", "#b2182b"], min: 5, max: 32 },
   maxApparentTemperature: { label: "最高體感溫度", unit: "°C", precision: 1, colors: ["#e8f7ff", "#8fd3ff", "#ffd166", "#ef476f"], min: 10, max: 45 },
   minApparentTemperature: { label: "最低體感溫度", unit: "°C", precision: 1, colors: ["#2166ac", "#67a9cf", "#fddbc7", "#b2182b"], min: 5, max: 35 },
-  qpesumsRain: { label: "QPESUMS未來1小時", unit: "mm", precision: 1, colors: RAIN_COLORS_BASE, min: 0, max: 120 },
+  qpesumsRain: { label: "QPESUMS未來1小時降雨量", unit: "mm", precision: 1, colors: RAIN_COLORS_BASE, min: 0, max: 120 },
 };
 
 const TOWN_FORECAST_ELEMENT_ALIASES = {
@@ -2849,6 +2849,21 @@ const TOWN_FORECAST_ELEMENT_ALIASES = {
   maxApparentTemperature: ["最高體感溫度", "MaxApparentTemperature", "MaxAT"],
   minApparentTemperature: ["最低體感溫度", "MinApparentTemperature", "MinAT"],
 };
+
+const TOWN_FORECAST_INFO_ORDER = [
+  "temperature",
+  "apparentTemperature",
+  "humidity",
+  "pop",
+  "comfort",
+  "uvIndex",
+  "maxTemperature",
+  "minTemperature",
+  "maxApparentTemperature",
+  "minApparentTemperature",
+  "windSpeed",
+  "qpesumsRain",
+];
 
 function initTownForecastMap() {
   if (!dom.townForecastMap || townForecastState.map) return;
@@ -3410,16 +3425,15 @@ function renderTownForecastInfo() {
       </div>
     </div>
     <div class="industry-info-grid">
-      ${Object.keys(TOWN_FORECAST_METRICS).map((key) => `
+      ${TOWN_FORECAST_INFO_ORDER.map((key) => {
+        const value = key === "qpesumsRain" ? qpesumsValue : town?.[key];
+        return `
         <div class="industry-info-card">
           <span>${sanitizeText(TOWN_FORECAST_METRICS[key].label)}</span>
-          <strong>${sanitizeText(formatTownForecastValue(key, town?.[key]))}</strong>
+          <strong>${sanitizeText(formatTownForecastValue(key, value))}</strong>
         </div>
-      `).join("")}
-      <div class="industry-info-card">
-        <span>QPESUMS未來1小時</span>
-        <strong>${qpesumsValue != null ? formatValue(qpesumsValue, "mm", 1) : "—"}</strong>
-      </div>
+      `;
+      }).join("")}
     </div>
     <div class="industry-text-card">
       <p><strong>資料來源：</strong>${sanitizeText(townForecastState.activeForecastDataset || CHANGHUA_TOWN_FORECAST_DATASET)} 鄉鎮預報；QPESUMS 取自 ${QPESUMS_FORECAST_DATASET}。</p>
@@ -3464,7 +3478,10 @@ function renderTownForecastTimelineTable() {
     dom.townForecastTimelineTable.innerHTML = '<div class="town-forecast-empty">暫無序列資料。</div>';
     return;
   }
-  const rows = timeline.slice(0, 36);
+  const frameSet = new Set(townForecastState.forecastFrames || []);
+  const rows = timeline
+    .filter((row) => !frameSet.size || frameSet.has(row.dataTime))
+    .slice(0, 36);
   dom.townForecastTimelineTable.innerHTML = `
     <table class="town-forecast-table">
       <thead>
