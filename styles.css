@@ -888,6 +888,29 @@ table tbody tr:nth-child(odd) {
   white-space: nowrap;
 }
 
+.town-forecast-table-wrap {
+  overflow-x: auto;
+  padding: 12px 14px;
+}
+
+.town-forecast-table {
+  min-width: 920px;
+}
+
+.town-forecast-table th,
+.town-forecast-table td {
+  white-space: nowrap;
+}
+
+.town-forecast-empty {
+  padding: 12px 14px;
+  color: var(--muted);
+}
+
+.town-forecast-colorbar {
+  padding: 12px 14px;
+}
+
 .industry-map-tooltip {
   background: #ffffff;
   border: 1px solid var(--border);

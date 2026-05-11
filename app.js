@@ -109,6 +109,22 @@ const dom = {
   industryWeatherInfo: document.getElementById("industryWeatherInfo"),
   industryWeatherLegend: document.getElementById("industryWeatherLegend"),
   industryWeatherThresholdBody: document.getElementById("industryWeatherThresholdBody"),
+  townForecastMode: document.getElementById("townForecastMode"),
+  townForecastMetric: document.getElementById("townForecastMetric"),
+  townForecastTown: document.getElementById("townForecastTown"),
+  townForecastTimelineWrap: document.getElementById("townForecastTimelineWrap"),
+  townForecastTimeline: document.getElementById("townForecastTimeline"),
+  townForecastTimelineLabel: document.getElementById("townForecastTimelineLabel"),
+  townForecastTimelinePlayBtn: document.getElementById("townForecastTimelinePlayBtn"),
+  townForecastReloadBtn: document.getElementById("townForecastReloadBtn"),
+  townForecastStatus: document.getElementById("townForecastStatus"),
+  townForecastMap: document.getElementById("townForecastMap"),
+  townForecastDataTime: document.getElementById("townForecastDataTime"),
+  townForecastInfo: document.getElementById("townForecastInfo"),
+  townForecastLegend: document.getElementById("townForecastLegend"),
+  townForecastTimelineTable: document.getElementById("townForecastTimelineTable"),
+  townForecastQpesums: document.getElementById("townForecastQpesums"),
+  townForecastQpesumsTime: document.getElementById("townForecastQpesumsTime"),
   visitTotal: document.getElementById("visitTotal"),
   visitToday: document.getElementById("visitToday"),
   visitStatus: document.getElementById("visitStatus"),
@@ -221,6 +237,26 @@ const industryWeatherState = {
   forecastPlaying: false,
 };
 
+const townForecastState = {
+  map: null,
+  townLayer: null,
+  qpesumsLayer: null,
+  townGeo: null,
+  selectedTownKey: "",
+  selectedTownName: "",
+  townData: [],
+  forecastByTown: new Map(),
+  forecastFrames: [],
+  forecastIndex: 0,
+  forecastTimer: null,
+  forecastPlaying: false,
+  latestTime: "",
+  activeForecastDataset: "F-D0047-019",
+  qpesums: null,
+  primaryDatasetBlocked: false,
+  qpesumsBlocked: false,
+};
+
 const CWA_BASE = "https://faein.climate-quiz-yuchen.workers.dev/api/v1/rest/datastore";
 const CWA_FILEAPI_BASE = "https://faein.climate-quiz-yuchen.workers.dev/api/v1/fileapi/v1/opendataapi";
 const GEO_ASSETS_BASE = "https://raw.githubusercontent.com/qaz7000810/geo-assets/main";
@@ -248,6 +284,8 @@ const RANKING_DATASET = "O-A0003-001";
 const NON_RAIN_FALLBACK_DATASET = "O-A0001-001";
 const RAIN_DATASET = "O-A0002-001";
 const TOWN_FORECAST_DATASET = "F-D0047-017";
+const CHANGHUA_TOWN_FORECAST_DATASET = "F-D0047-019";
+const QPESUMS_FORECAST_DATASET = "F-B0046-001";
 const COLD_INJURY_DATASET = "F-A0085-003";
 const TEMP_DIFF_DATASET = "F-A0085-005";
 const HEAT_INJURY_DATASET = "M-A0085-001";
@@ -736,6 +774,7 @@ async function init() {
   initRankingViews();
   initDisasterView();
   initHealthView();
+  initTownForecastView();
   initIndustryWeatherView();
 }
 
@@ -775,6 +814,11 @@ function bindTabs() {
           ensureIndustryWeatherMapSized();
         });
       }
+      if (target === "town-forecast") {
+        requestAnimationFrame(() => {
+          ensureTownForecastMapSized();
+        });
+      }
     });
   });
 }
@@ -808,6 +852,7 @@ function bindEvents() {
   bindRankingViewEvents(rankingViews.taiwan);
   bindDisasterViewEvents();
   bindHealthViewEvents();
+  bindTownForecastEvents();
   bindIndustryWeatherEvents();
 }
 async function loadIndex() {
@@ -2638,6 +2683,13 @@ function initIndustryWeatherView() {
   loadIndustryWeatherData();
 }
 
+function initTownForecastView() {
+  if (!dom.townForecastMap || !dom.townForecastMode) return;
+  syncTownForecastControls();
+  initTownForecastMap();
+  loadTownForecastData();
+}
+
 function bindDisasterViewEvents() {
   if (!disasterView?.dom) return;
   disasterView.dom.reloadBtn?.addEventListener("click", loadDisasterData);
@@ -2721,6 +2773,961 @@ function bindIndustryWeatherEvents() {
     renderIndustryWeatherInfo();
   });
   dom.industryWeatherReloadBtn?.addEventListener("click", loadIndustryWeatherData);
+}
+
+function bindTownForecastEvents() {
+  dom.townForecastMode?.addEventListener("change", () => {
+    stopTownForecastPlayback();
+    townForecastState.forecastIndex = 0;
+    syncTownForecastControls();
+    loadTownForecastData();
+  });
+  dom.townForecastMetric?.addEventListener("change", () => {
+    renderTownForecastMap();
+    renderTownForecastInfo();
+    renderTownForecastLegend();
+  });
+  dom.townForecastTown?.addEventListener("change", () => {
+    const townKey = dom.townForecastTown?.value || "";
+    if (!townKey) return;
+    townForecastState.selectedTownKey = townKey;
+    townForecastState.selectedTownName = townKey;
+    renderTownForecastMap();
+    renderTownForecastInfo();
+  });
+  dom.townForecastTimeline?.addEventListener("input", () => {
+    const idx = Number(dom.townForecastTimeline?.value || 0);
+    townForecastState.forecastIndex = Number.isFinite(idx) ? idx : 0;
+    stopTownForecastPlayback();
+    syncTownForecastFrame();
+  });
+  dom.townForecastTimelinePlayBtn?.addEventListener("click", toggleTownForecastPlayback);
+  dom.townForecastReloadBtn?.addEventListener("click", loadTownForecastData);
+}
+
+function syncTownForecastControls() {
+  const isQpesums = getTownForecastMode().key === "qpesums";
+  const metricControl = dom.townForecastMetric?.closest(".control");
+  const townControl = dom.townForecastTown?.closest(".control");
+  if (metricControl) metricControl.style.display = isQpesums ? "none" : "";
+  if (townControl) townControl.style.display = isQpesums ? "none" : "";
+  if (dom.townForecastTimelineWrap) dom.townForecastTimelineWrap.style.display = isQpesums ? "none" : "";
+}
+
+const TOWN_FORECAST_MODES = {
+  day1: { key: "day1", label: "未來1天逐1小時", hours: 24, stepHours: 1, datasetId: TOWN_FORECAST_DATASET },
+  day3: { key: "day3", label: "未來3天逐3小時", hours: 72, stepHours: 3, datasetId: TOWN_FORECAST_DATASET },
+  day7: { key: "day7", label: "未來7天逐12小時", hours: 168, stepHours: 12, datasetId: CHANGHUA_TOWN_FORECAST_DATASET },
+  qpesums: { key: "qpesums", label: "QPESUMS未來1小時定量降水", hours: 1, stepHours: 1, datasetId: QPESUMS_FORECAST_DATASET },
+};
+
+const TOWN_FORECAST_METRICS = {
+  temperature: { label: "溫度", unit: "°C", precision: 1, colors: ["#e8f7ff", "#8fd3ff", "#ffd166", "#ef476f"], min: 10, max: 38 },
+  humidity: { label: "相對溼度", unit: "%", precision: 0, colors: ["#fff7bc", "#a1dab4", "#41b6c4", "#225ea8"], min: 35, max: 100 },
+  pop: { label: "降雨機率", unit: "%", precision: 0, colors: ["#f7fbff", "#bdd7e7", "#6baed6", "#08519c"], min: 0, max: 100 },
+  windSpeed: { label: "風速", unit: "m/s", precision: 1, colors: ["#edf8fb", "#b3cde3", "#8c96c6", "#88419d"], min: 0, max: 15 },
+  comfort: { label: "舒適度指數", unit: "", precision: 0, colors: ["#f7fbff", "#c7e9b4", "#fed976", "#f03b20"], min: 0, max: 100 },
+  apparentTemperature: { label: "體感溫度", unit: "°C", precision: 1, colors: ["#e8f7ff", "#8fd3ff", "#ffd166", "#ef476f"], min: 10, max: 42 },
+  uvIndex: { label: "紫外線指數", unit: "", precision: 0, colors: ["#2dc937", "#e7b416", "#db7b2b", "#cc3232"], min: 0, max: 11 },
+  maxTemperature: { label: "最高溫", unit: "°C", precision: 1, colors: ["#e8f7ff", "#8fd3ff", "#ffd166", "#ef476f"], min: 10, max: 40 },
+  minTemperature: { label: "最低溫", unit: "°C", precision: 1, colors: ["#2166ac", "#67a9cf", "#fddbc7", "#b2182b"], min: 5, max: 32 },
+  maxApparentTemperature: { label: "最高體感溫度", unit: "°C", precision: 1, colors: ["#e8f7ff", "#8fd3ff", "#ffd166", "#ef476f"], min: 10, max: 45 },
+  minApparentTemperature: { label: "最低體感溫度", unit: "°C", precision: 1, colors: ["#2166ac", "#67a9cf", "#fddbc7", "#b2182b"], min: 5, max: 35 },
+  qpesumsRain: { label: "QPESUMS未來1小時", unit: "mm", precision: 1, colors: RAIN_COLORS_BASE, min: 0, max: 120 },
+};
+
+const TOWN_FORECAST_ELEMENT_ALIASES = {
+  temperature: ["溫度", "平均溫度", "Temperature", "T"],
+  humidity: ["相對濕度", "相對溼度", "平均相對濕度", "RelativeHumidity", "RH"],
+  pop: ["降雨機率", "3小時降雨機率", "12小時降雨機率", "ProbabilityOfPrecipitation", "PoP", "POP"],
+  windSpeed: ["風速", "WindSpeed", "WS"],
+  comfort: ["舒適度指數", "舒適度", "最大舒適度指數", "最小舒適度指數", "ComfortIndex", "CI"],
+  apparentTemperature: ["體感溫度", "ApparentTemperature", "AT"],
+  uvIndex: ["紫外線指數", "紫外線", "UVIndex", "UVI"],
+  maxTemperature: ["最高溫度", "最高溫", "MaxTemperature", "MaxT"],
+  minTemperature: ["最低溫度", "最低溫", "MinTemperature", "MinT"],
+  maxApparentTemperature: ["最高體感溫度", "MaxApparentTemperature", "MaxAT"],
+  minApparentTemperature: ["最低體感溫度", "MinApparentTemperature", "MinAT"],
+};
+
+function initTownForecastMap() {
+  if (!dom.townForecastMap || townForecastState.map) return;
+  townForecastState.map = L.map(dom.townForecastMap.id, { zoomControl: true }).setView([23.98, 120.46], 10);
+  L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+    maxZoom: 12,
+    attribution: "&copy; OpenStreetMap contributors",
+  }).addTo(townForecastState.map);
+}
+
+function ensureTownForecastMapSized() {
+  if (!townForecastState.map) return;
+  townForecastState.map.invalidateSize(false);
+  if (townForecastState.townGeo) fitTownForecastBounds();
+}
+
+function setTownForecastStatus(text) {
+  if (dom.townForecastStatus) dom.townForecastStatus.textContent = text;
+}
+
+async function ensureTownForecastGeo() {
+  if (townForecastState.townGeo) return townForecastState.townGeo;
+  const res = await fetch("./data/changhua/changhua_townships.geojson");
+  if (!res.ok) throw new Error("無法載入彰化鄉鎮邊界");
+  townForecastState.townGeo = await res.json();
+  return townForecastState.townGeo;
+}
+
+async function loadTownForecastData() {
+  if (!dom.townForecastMap) return;
+  const mode = getTownForecastMode();
+  setTownForecastStatus(`讀取彰化鄉鎮預報（${mode.label}）...`);
+  stopTownForecastPlayback();
+  try {
+    await ensureTownForecastGeo();
+    if (mode.key === "qpesums") {
+      await loadTownForecastQpesumsMode(mode);
+      return;
+    }
+    const [forecastPayload, qpesumsPayload] = await Promise.allSettled([
+      fetchTownForecastDataset(mode),
+      fetchQpesumsForecastDataset(),
+    ]);
+    if (forecastPayload.status !== "fulfilled") throw forecastPayload.reason;
+    const rows = buildTownForecastData(forecastPayload.value.payload, mode);
+    if (!rows.length) throw new Error("彰化鄉鎮預報資料不足");
+    townForecastState.townData = rows;
+    townForecastState.activeForecastDataset = forecastPayload.value.datasetId;
+    townForecastState.latestTime = findForecastIssueTime(forecastPayload.value.payload) || "";
+    townForecastState.qpesums = qpesumsPayload.status === "fulfilled" && qpesumsPayload.value
+      ? buildQpesumsSummary(qpesumsPayload.value)
+      : null;
+    configureTownForecastTimeline();
+    populateTownForecastOptions();
+    ensureTownForecastSelection();
+    renderTownForecastMap();
+    renderTownForecastInfo();
+    renderTownForecastLegend();
+    updateTownForecastDataTime();
+    fitTownForecastBounds();
+    const fallbackText = townForecastState.activeForecastDataset === mode.datasetId ? "" : `；${mode.datasetId} 暫不可用，目前使用 ${townForecastState.activeForecastDataset}`;
+    setTownForecastStatus(`已更新 ${rows.length} 個彰化鄉鎮（${mode.label}）${fallbackText}`);
+  } catch (err) {
+    console.error(err);
+    setTownForecastStatus(err.message || "鄉鎮預報資料載入失敗");
+  }
+}
+
+async function loadTownForecastQpesumsMode(mode) {
+  setTownForecastStatus(`讀取${mode.label}...`);
+  const payload = await fetchQpesumsForecastDataset();
+  const summary = payload ? buildQpesumsSummary(payload) : null;
+  if (!summary) throw new Error("QPESUMS 資料暫不可用");
+  townForecastState.qpesums = summary;
+  townForecastState.forecastByTown = new Map();
+  townForecastState.forecastFrames = summary.time ? [summary.time] : [];
+  townForecastState.forecastIndex = 0;
+  townForecastState.activeForecastDataset = QPESUMS_FORECAST_DATASET;
+  townForecastState.latestTime = formatObsTime(summary.time) || summary.time || "";
+  townForecastState.townData = [];
+  configureTownForecastTimeline();
+  populateTownForecastOptions();
+  ensureTownForecastSelection();
+  renderTownForecastMap();
+  renderTownForecastInfo();
+  renderTownForecastLegend();
+  updateTownForecastDataTime();
+  fitTownForecastBounds();
+  setTownForecastStatus(`已更新 ${summary.count || 0} 個彰化周邊有效格點（${mode.label}）`);
+}
+
+async function fetchTownForecastDataset(mode) {
+  const preferredDataset = mode?.datasetId || TOWN_FORECAST_DATASET;
+  if (preferredDataset === TOWN_FORECAST_DATASET) {
+    const payload = await fetchCwaDataset(TOWN_FORECAST_DATASET);
+    return { datasetId: TOWN_FORECAST_DATASET, payload };
+  }
+  if (!townForecastState.primaryDatasetBlocked) {
+    try {
+      const payload = await fetchCwaDataset(preferredDataset);
+      return { datasetId: preferredDataset, payload };
+    } catch (err) {
+      townForecastState.primaryDatasetBlocked = true;
+    }
+  }
+  const payload = await fetchCwaDataset(TOWN_FORECAST_DATASET);
+  return { datasetId: TOWN_FORECAST_DATASET, payload };
+}
+
+async function fetchQpesumsForecastDataset() {
+  if (townForecastState.qpesumsBlocked) return null;
+  try {
+    const buffer = await fetchCwaFileDataset(QPESUMS_FORECAST_DATASET, "JSON");
+    const text = new TextDecoder("utf-8").decode(buffer);
+    return JSON.parse(text);
+  } catch (err) {
+    try {
+      return await fetchCwaDataset(QPESUMS_FORECAST_DATASET);
+    } catch (fallbackErr) {
+      townForecastState.qpesumsBlocked = true;
+      return null;
+    }
+  }
+}
+
+function buildTownForecastData(payload, mode) {
+  const locations = extractTownForecastLocations(payload);
+  const forecastByTown = new Map();
+  const frameSet = new Set();
+  locations.forEach((location) => {
+    const townName = normalizeIndustryTownName(location?.LocationName || location?.locationName || location?.name || "");
+    if (!townName) return;
+    const timeline = buildTownForecastTimelineForLocation(location, mode);
+    if (!timeline.length) return;
+    forecastByTown.set(townName, timeline);
+    timeline.forEach((entry) => frameSet.add(entry.dataTime));
+  });
+  townForecastState.forecastByTown = forecastByTown;
+  townForecastState.forecastFrames = selectTownForecastFrames(Array.from(frameSet).sort(), mode);
+  townForecastState.forecastIndex = Math.max(0, Math.min(townForecastState.forecastIndex, townForecastState.forecastFrames.length - 1));
+  return buildTownForecastRowsForFrame(townForecastState.forecastFrames[townForecastState.forecastIndex]);
+}
+
+function buildTownForecastTimelineForLocation(location, mode) {
+  const elementSeries = {};
+  Object.keys(TOWN_FORECAST_ELEMENT_ALIASES).forEach((key) => {
+    elementSeries[key] = buildTownForecastElementSeries(location, TOWN_FORECAST_ELEMENT_ALIASES[key], key);
+  });
+  const lat = toNumber(location?.Latitude || location?.latitude || location?.lat);
+  const lon = toNumber(location?.Longitude || location?.longitude || location?.lon || location?.lng);
+  const keys = Array.from(new Set(Object.values(elementSeries).flatMap((series) => series.map((item) => item.dataTime)))).sort();
+  const now = new Date();
+  return keys
+    .filter((dataTime) => isTownForecastFrameInMode(dataTime, mode, now))
+    .map((dataTime) => {
+      const row = { dataTime, lat, lon };
+      Object.keys(elementSeries).forEach((key) => {
+        row[key] = readTownForecastValueAtTime(elementSeries[key], dataTime) ?? null;
+      });
+      row.label = formatObsTime(dataTime) || dataTime;
+      return row;
+    })
+    .filter((row) => Object.keys(TOWN_FORECAST_METRICS).some((key) => row[key] != null));
+}
+
+function buildTownForecastElementSeries(location, elementNames, valueKey) {
+  const series = [];
+  const weatherElements =
+    (Array.isArray(location?.WeatherElement) && location.WeatherElement) ||
+    (Array.isArray(location?.weatherElement) && location.weatherElement) ||
+    (Array.isArray(location?.Element) && location.Element) ||
+    (Array.isArray(location?.element) && location.element) ||
+    [];
+  const targets = weatherElements.filter((element) => {
+    const name = String(element?.ElementName || element?.elementName || element?.name || "").trim();
+    return elementNames.includes(name);
+  });
+  targets.forEach((target) => {
+    const times = Array.isArray(target?.Time) ? target.Time : Array.isArray(target?.time) ? target.time : [];
+    times.forEach((entry) => {
+      const dataTime = entry?.DataTime || entry?.dataTime || entry?.StartTime || entry?.startTime || entry?.Time || entry?.time;
+      if (!dataTime) return;
+      const value = readTownForecastElementValue(entry, valueKey);
+      if (value != null && value !== "") {
+        series.push({
+          dataTime,
+          endTime: entry?.EndTime || entry?.endTime || "",
+          value,
+        });
+      }
+    });
+  });
+  return series.sort((a, b) => Date.parse(a.dataTime) - Date.parse(b.dataTime));
+}
+
+function readTownForecastValueAtTime(series, dataTime) {
+  const exact = (series || []).find((item) => item.dataTime === dataTime);
+  if (exact) return exact.value;
+  const ts = Date.parse(dataTime || "");
+  if (!Number.isFinite(ts)) return null;
+  const interval = (series || []).find((item) => {
+    const start = Date.parse(item.dataTime || "");
+    const end = Date.parse(item.endTime || "");
+    return Number.isFinite(start) && Number.isFinite(end) && ts >= start && ts < end;
+  });
+  return interval?.value ?? null;
+}
+
+function readTownForecastElementValue(entry, valueKey) {
+  const numericKeys = [
+    valueKey,
+    "Value",
+    "value",
+    "Measure",
+    "measure",
+    "Temperature",
+    "RelativeHumidity",
+    "ProbabilityOfPrecipitation",
+    "WindSpeed",
+    "ComfortIndex",
+    "ApparentTemperature",
+    "UVIndex",
+    "MaxTemperature",
+    "MinTemperature",
+    "MaxApparentTemperature",
+    "MinApparentTemperature",
+  ];
+  const containers = [
+    entry?.ElementValue,
+    entry?.elementValue,
+    entry?.Parameter,
+    entry?.parameter,
+    entry?.WeatherElement,
+    entry?.weatherElement,
+  ].filter(Boolean);
+  for (const container of containers) {
+    const list = Array.isArray(container) ? container : [container];
+    for (const item of list) {
+      for (const key of numericKeys) {
+        if (item?.[key] != null) {
+          const numeric = toNumber(item[key]);
+          return Number.isFinite(numeric) ? numeric : String(item[key]);
+        }
+      }
+      const fallbackKey = Object.keys(item || {}).find((key) => item[key] != null && key !== "Measures" && key !== "measures");
+      if (fallbackKey) {
+        const numeric = toNumber(item[fallbackKey]);
+        return Number.isFinite(numeric) ? numeric : String(item[fallbackKey]);
+      }
+    }
+  }
+  const direct = entry?.value ?? entry?.Value ?? null;
+  const numeric = toNumber(direct);
+  return Number.isFinite(numeric) ? numeric : direct;
+}
+
+function isTownForecastFrameInMode(dataTime, mode, now) {
+  const ts = Date.parse(dataTime || "");
+  if (!Number.isFinite(ts)) return false;
+  const base = now instanceof Date ? now.getTime() : Date.now();
+  if (ts < base || ts > base + mode.hours * 3600 * 1000) return false;
+  return true;
+}
+
+function selectTownForecastFrames(frames, mode) {
+  const sorted = (frames || []).filter(Boolean).sort();
+  if (mode.stepHours <= 1 || sorted.length <= 1) return sorted;
+  const selected = [];
+  let lastMs = null;
+  const stepMs = mode.stepHours * 3600 * 1000;
+  sorted.forEach((frame) => {
+    const ts = Date.parse(frame);
+    if (!Number.isFinite(ts)) return;
+    if (lastMs == null || ts - lastMs >= stepMs - 60 * 1000) {
+      selected.push(frame);
+      lastMs = ts;
+    }
+  });
+  return selected.length ? selected : sorted;
+}
+
+function buildTownForecastRowsForFrame(frameTime) {
+  const rows = [];
+  for (const [townName, timeline] of townForecastState.forecastByTown.entries()) {
+    const source = (timeline || []).find((entry) => entry.dataTime === frameTime) || timeline?.[0];
+    if (!source) continue;
+    rows.push({
+      townKey: townName,
+      townName,
+      ...source,
+    });
+  }
+  return rows;
+}
+
+function configureTownForecastTimeline() {
+  const total = townForecastState.forecastFrames.length;
+  if (!dom.townForecastTimeline) return;
+  dom.townForecastTimeline.min = "0";
+  dom.townForecastTimeline.max = String(Math.max(0, total - 1));
+  dom.townForecastTimeline.step = "1";
+  dom.townForecastTimeline.value = String(townForecastState.forecastIndex);
+  syncTownForecastFrame();
+  updateTownForecastPlaybackButton();
+}
+
+function syncTownForecastFrame() {
+  const frameTime = townForecastState.forecastFrames[townForecastState.forecastIndex];
+  if (!frameTime) return;
+  townForecastState.townData = buildTownForecastRowsForFrame(frameTime);
+  if (dom.townForecastTimeline) dom.townForecastTimeline.value = String(townForecastState.forecastIndex);
+  if (dom.townForecastTimelineLabel) dom.townForecastTimelineLabel.textContent = formatObsTime(frameTime) || frameTime;
+  ensureTownForecastSelection();
+  renderTownForecastMap();
+  renderTownForecastInfo();
+}
+
+function updateTownForecastPlaybackButton() {
+  const btn = dom.townForecastTimelinePlayBtn;
+  if (!btn) return;
+  btn.disabled = (townForecastState.forecastFrames?.length || 0) <= 1;
+  btn.textContent = townForecastState.forecastPlaying ? "暫停" : "播放";
+}
+
+function stopTownForecastPlayback() {
+  if (townForecastState.forecastTimer) {
+    clearInterval(townForecastState.forecastTimer);
+    townForecastState.forecastTimer = null;
+  }
+  townForecastState.forecastPlaying = false;
+  updateTownForecastPlaybackButton();
+}
+
+function startTownForecastPlayback() {
+  const total = townForecastState.forecastFrames?.length || 0;
+  if (total <= 1) return;
+  stopTownForecastPlayback();
+  townForecastState.forecastPlaying = true;
+  townForecastState.forecastTimer = setInterval(() => {
+    const count = townForecastState.forecastFrames?.length || 0;
+    if (count <= 1) {
+      stopTownForecastPlayback();
+      return;
+    }
+    townForecastState.forecastIndex = (townForecastState.forecastIndex + 1) % count;
+    syncTownForecastFrame();
+  }, 1300);
+  updateTownForecastPlaybackButton();
+}
+
+function toggleTownForecastPlayback() {
+  if (townForecastState.forecastPlaying) {
+    stopTownForecastPlayback();
+    return;
+  }
+  startTownForecastPlayback();
+}
+
+function getTownForecastMode() {
+  return TOWN_FORECAST_MODES[dom.townForecastMode?.value || "day1"] || TOWN_FORECAST_MODES.day1;
+}
+
+function getTownForecastMetricKey() {
+  if (getTownForecastMode().key === "qpesums") return "qpesumsRain";
+  return dom.townForecastMetric?.value || "temperature";
+}
+
+function populateTownForecastOptions() {
+  if (!dom.townForecastTown) return;
+  const towns = (townForecastState.townData || []).map((item) => item.townKey).filter(Boolean);
+  dom.townForecastTown.innerHTML = towns.length
+    ? towns.map((town) => `<option value="${town}">${sanitizeText(town)}</option>`).join("")
+    : '<option value="">暫無資料</option>';
+  syncTownForecastSelect();
+}
+
+function ensureTownForecastSelection() {
+  const list = townForecastState.townData || [];
+  if (!list.length) {
+    townForecastState.selectedTownKey = "";
+    townForecastState.selectedTownName = "";
+    syncTownForecastSelect();
+    return;
+  }
+  const matched = list.find((item) => item.townKey === townForecastState.selectedTownKey);
+  if (matched) {
+    townForecastState.selectedTownName = matched.townName;
+    syncTownForecastSelect();
+    return;
+  }
+  const preferred = list.find((item) => item.townKey === "彰化市") || list[0];
+  townForecastState.selectedTownKey = preferred.townKey;
+  townForecastState.selectedTownName = preferred.townName;
+  syncTownForecastSelect();
+}
+
+function syncTownForecastSelect() {
+  if (!dom.townForecastTown || !townForecastState.selectedTownKey) return;
+  dom.townForecastTown.value = townForecastState.selectedTownKey;
+}
+
+function getSelectedTownForecastRow() {
+  return (townForecastState.townData || []).find((item) => item.townKey === townForecastState.selectedTownKey) || null;
+}
+
+function renderTownForecastMap() {
+  if (!townForecastState.map || !townForecastState.townGeo) return;
+  if (getTownForecastMode().key === "qpesums") {
+    renderQpesumsGridMap();
+    return;
+  }
+  const map = townForecastState.map;
+  clearQpesumsGridLayer();
+  if (townForecastState.townLayer) {
+    map.removeLayer(townForecastState.townLayer);
+    townForecastState.townLayer = null;
+  }
+  const current = getSelectedTownForecastRow();
+  const metricKey = getTownForecastMetricKey();
+  const metric = TOWN_FORECAST_METRICS[metricKey] || TOWN_FORECAST_METRICS.temperature;
+  townForecastState.townLayer = L.geoJSON(townForecastState.townGeo, {
+    style: (feature) => {
+      const townName = normalizeIndustryTownName(feature?.properties?.[TOWN_NAME_FIELD] || "");
+      const row = (townForecastState.townData || []).find((item) => item.townKey === townName);
+      const selected = current && current.townKey === townName;
+      return {
+        color: selected ? "#0f172a" : "#2b3a55",
+        weight: selected ? 2.5 : 1,
+        fillOpacity: row ? 0.72 : 0.18,
+        fillColor: getTownForecastMetricColor(metricKey, row?.[metricKey]),
+      };
+    },
+    onEachFeature: (feature, layer) => {
+      const townName = normalizeIndustryTownName(feature?.properties?.[TOWN_NAME_FIELD] || "");
+      const row = (townForecastState.townData || []).find((item) => item.townKey === townName);
+      const value = formatTownForecastValue(metricKey, row?.[metricKey]);
+      layer.bindTooltip(
+        `<strong>${sanitizeText(townName)}</strong>${sanitizeText(metric.label)}：${sanitizeText(value)}`,
+        { sticky: true, className: "industry-map-tooltip" }
+      );
+      layer.on("click", () => {
+        townForecastState.selectedTownKey = townName;
+        townForecastState.selectedTownName = townName;
+        syncTownForecastSelect();
+        renderTownForecastMap();
+        renderTownForecastInfo();
+      });
+    },
+  }).addTo(map);
+}
+
+function clearQpesumsGridLayer() {
+  if (townForecastState.qpesumsLayer && townForecastState.map) {
+    townForecastState.map.removeLayer(townForecastState.qpesumsLayer);
+    townForecastState.qpesumsLayer = null;
+  }
+}
+
+function renderQpesumsGridMap() {
+  const map = townForecastState.map;
+  if (!map || !townForecastState.townGeo) return;
+  if (townForecastState.townLayer) {
+    map.removeLayer(townForecastState.townLayer);
+    townForecastState.townLayer = null;
+  }
+  clearQpesumsGridLayer();
+
+  const summary = townForecastState.qpesums;
+  const points = summary?.points || [];
+  townForecastState.qpesumsLayer = L.layerGroup().addTo(map);
+  points.forEach((point) => {
+    const halfLat = (summary.latResolution || 0.0125) / 2;
+    const halfLon = (summary.lonResolution || 0.0125) / 2;
+    const rect = L.rectangle(
+      [
+        [point.lat - halfLat, point.lon - halfLon],
+        [point.lat + halfLat, point.lon + halfLon],
+      ],
+      {
+        stroke: false,
+        fillColor: getTownForecastMetricColor("qpesumsRain", point.value),
+        fillOpacity: point.value > 0 ? 0.8 : 0.18,
+        interactive: true,
+      }
+    );
+    rect.bindTooltip(
+      `<strong>QPESUMS格點</strong>${sanitizeText(formatTownForecastValue("qpesumsRain", point.value))}<br>${sanitizeText(formatObsTime(summary.time) || summary.time || "")}`,
+      { sticky: true, className: "industry-map-tooltip" }
+    );
+    rect.addTo(townForecastState.qpesumsLayer);
+  });
+
+  townForecastState.townLayer = L.geoJSON(townForecastState.townGeo, {
+    style: () => ({
+      color: "#1f2937",
+      weight: 1,
+      fillOpacity: 0,
+      fillColor: "transparent",
+    }),
+    onEachFeature: (feature, layer) => {
+      const townName = normalizeIndustryTownName(feature?.properties?.[TOWN_NAME_FIELD] || "");
+      layer.bindTooltip(`<strong>${sanitizeText(townName)}</strong>`, { sticky: true, className: "industry-map-tooltip" });
+    },
+  }).addTo(map);
+}
+
+function renderTownForecastInfo() {
+  if (!dom.townForecastInfo) return;
+  const mode = getTownForecastMode();
+  if (mode.key === "qpesums") {
+    const summary = townForecastState.qpesums;
+    if (!summary) {
+      dom.townForecastInfo.innerHTML = '<div class="industry-text-card"><p>QPESUMS 資料暫不可用。</p></div>';
+      renderTownForecastTimelineTable();
+      return;
+    }
+    dom.townForecastInfo.innerHTML = `
+      <div class="industry-summary">
+        <div>
+          <p class="eyebrow">${sanitizeText(QPESUMS_FORECAST_DATASET)}</p>
+          <h3>${sanitizeText(mode.label)}</h3>
+          <p class="subtitle">${sanitizeText(formatObsTime(summary.time) || summary.time || "—")}｜原始格點值</p>
+        </div>
+        <div class="industry-risk-badge">
+          <span class="industry-risk-dot" style="background:${getTownForecastMetricColor("qpesumsRain", summary.max)};"></span>
+          <span>最大 ${sanitizeText(formatTownForecastValue("qpesumsRain", summary.max))}</span>
+        </div>
+      </div>
+      <div class="industry-info-grid">
+        <div class="industry-info-card"><span>平均降水</span><strong>${sanitizeText(formatTownForecastValue("qpesumsRain", summary.mean))}</strong></div>
+        <div class="industry-info-card"><span>最大降水</span><strong>${sanitizeText(formatTownForecastValue("qpesumsRain", summary.max))}</strong></div>
+        <div class="industry-info-card"><span>資料時間</span><strong>${sanitizeText(formatObsTime(summary.time) || summary.time || "—")}</strong></div>
+      </div>
+      <div class="industry-text-card">
+        <p><strong>資料來源：</strong>${QPESUMS_FORECAST_DATASET}；地圖直接顯示原始格點值，單位 mm。</p>
+      </div>
+    `;
+    renderTownForecastTimelineTable();
+    return;
+  }
+  const town = getSelectedTownForecastRow();
+  if (!town) {
+    dom.townForecastInfo.innerHTML = '<div class="industry-text-card"><p>請點選地圖查看詳細資訊。</p></div>';
+    return;
+  }
+  const metricKey = getTownForecastMetricKey();
+  const metric = TOWN_FORECAST_METRICS[metricKey] || TOWN_FORECAST_METRICS.temperature;
+  const qpesumsValue = getTownQpesumsValue(town);
+  dom.townForecastInfo.innerHTML = `
+    <div class="industry-summary">
+      <div>
+        <p class="eyebrow">彰化縣 ${sanitizeText(town.townName)}</p>
+        <h3>${sanitizeText(mode.label)}</h3>
+        <p class="subtitle">${sanitizeText(metric.label)}｜${sanitizeText(formatObsTime(town.dataTime) || town.dataTime || "—")}</p>
+      </div>
+      <div class="industry-risk-badge">
+        <span class="industry-risk-dot" style="background:${getTownForecastMetricColor(metricKey, town?.[metricKey])};"></span>
+        <span>${sanitizeText(formatTownForecastValue(metricKey, town?.[metricKey]))}</span>
+      </div>
+    </div>
+    <div class="industry-info-grid">
+      ${Object.keys(TOWN_FORECAST_METRICS).map((key) => `
+        <div class="industry-info-card">
+          <span>${sanitizeText(TOWN_FORECAST_METRICS[key].label)}</span>
+          <strong>${sanitizeText(formatTownForecastValue(key, town?.[key]))}</strong>
+        </div>
+      `).join("")}
+      <div class="industry-info-card">
+        <span>QPESUMS未來1小時</span>
+        <strong>${qpesumsValue != null ? formatValue(qpesumsValue, "mm", 1) : "—"}</strong>
+      </div>
+    </div>
+    <div class="industry-text-card">
+      <p><strong>資料來源：</strong>${sanitizeText(townForecastState.activeForecastDataset || CHANGHUA_TOWN_FORECAST_DATASET)} 鄉鎮預報；QPESUMS 取自 ${QPESUMS_FORECAST_DATASET}。</p>
+    </div>
+  `;
+  renderTownForecastTimelineTable();
+}
+
+function renderTownForecastTimelineTable() {
+  if (!dom.townForecastTimelineTable) return;
+  if (getTownForecastMode().key === "qpesums") {
+    const rows = (townForecastState.qpesums?.points || [])
+      .slice()
+      .sort((a, b) => toNumber(b.value) - toNumber(a.value))
+      .slice(0, 100);
+    dom.townForecastTimelineTable.innerHTML = rows.length ? `
+      <table class="town-forecast-table">
+        <thead>
+          <tr>
+            <th>緯度</th>
+            <th>經度</th>
+            <th>格點值</th>
+            <th>資料時間</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${rows.map((row) => `
+            <tr>
+              <td>${sanitizeText(Number(row.lat).toFixed(4))}</td>
+              <td>${sanitizeText(Number(row.lon).toFixed(4))}</td>
+              <td>${sanitizeText(formatTownForecastValue("qpesumsRain", row.value))}</td>
+              <td>${sanitizeText(formatObsTime(townForecastState.qpesums?.time) || townForecastState.qpesums?.time || "—")}</td>
+            </tr>
+          `).join("")}
+        </tbody>
+      </table>
+    ` : '<div class="town-forecast-empty">暫無 QPESUMS 資料。</div>';
+    return;
+  }
+  const timeline = townForecastState.forecastByTown.get(townForecastState.selectedTownKey) || [];
+  if (!timeline.length) {
+    dom.townForecastTimelineTable.innerHTML = '<div class="town-forecast-empty">暫無序列資料。</div>';
+    return;
+  }
+  const rows = timeline.slice(0, 36);
+  dom.townForecastTimelineTable.innerHTML = `
+    <table class="town-forecast-table">
+      <thead>
+        <tr>
+          <th>時間</th>
+          <th>溫度</th>
+          <th>相對溼度</th>
+          <th>降雨機率</th>
+          <th>風速</th>
+          <th>體感溫度</th>
+          <th>紫外線</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${rows.map((row) => `
+          <tr>
+            <td>${sanitizeText(formatObsTime(row.dataTime) || row.dataTime || "—")}</td>
+            <td>${sanitizeText(formatTownForecastValue("temperature", row.temperature))}</td>
+            <td>${sanitizeText(formatTownForecastValue("humidity", row.humidity))}</td>
+            <td>${sanitizeText(formatTownForecastValue("pop", row.pop))}</td>
+            <td>${sanitizeText(formatTownForecastValue("windSpeed", row.windSpeed))}</td>
+            <td>${sanitizeText(formatTownForecastValue("apparentTemperature", row.apparentTemperature))}</td>
+            <td>${sanitizeText(formatTownForecastValue("uvIndex", row.uvIndex))}</td>
+          </tr>
+        `).join("")}
+      </tbody>
+    </table>
+  `;
+}
+
+function renderTownForecastLegend() {
+  if (!dom.townForecastLegend) return;
+  const metricKey = getTownForecastMetricKey();
+  renderColorbarConfig(buildTownForecastColorbarConfig(metricKey), dom.townForecastLegend);
+}
+
+function buildTownForecastColorbarConfig(metricKey) {
+  const metric = TOWN_FORECAST_METRICS[metricKey] || TOWN_FORECAST_METRICS.temperature;
+  if (["temperature", "apparentTemperature", "maxTemperature", "maxApparentTemperature"].includes(metricKey)) {
+    const tempBar = buildTempColorbar();
+    return {
+      title: `${metric.label} (${metric.unit})`,
+      stops: tempBar.stops,
+      ticks: tempBar.labels,
+      tickPositions: tempBar.positions,
+      scaleMin: 6,
+      scaleMax: 36,
+    };
+  }
+  if (["minTemperature", "minApparentTemperature"].includes(metricKey)) {
+    const ticks = buildGradientTicks(metric.min, metric.max, 6, false);
+    return {
+      title: `${metric.label} (${metric.unit})`,
+      stops: buildGradientStops(["#2166ac", "#67a9cf", "#fddbc7", "#b2182b"], 18),
+      ticks: ticks.labels,
+      tickPositions: ticks.positions,
+      scaleMin: metric.min,
+      scaleMax: metric.max,
+    };
+  }
+  if (metricKey === "humidity") {
+    return buildColorbarConfig("humidity", { label: metric.label, unit: metric.unit, colorScale: "humidity" });
+  }
+  if (metricKey === "qpesumsRain") {
+    return buildColorbarConfig("rain", { label: metric.label, unit: metric.unit, colorScale: "rain" });
+  }
+  if (metricKey === "windSpeed") {
+    return buildColorbarConfig("wind", { label: metric.label, unit: metric.unit, colorScale: "wind" });
+  }
+  const ticks = buildGradientTicks(metric.min, metric.max, 4, metricKey === "uvIndex");
+  return {
+    title: metric.unit ? `${metric.label} (${metric.unit})` : metric.label,
+    stops: buildGradientStops(metric.colors, 12),
+    ticks: ticks.labels,
+    tickPositions: ticks.positions,
+    scaleMin: metric.min,
+    scaleMax: metric.max,
+  };
+}
+
+function renderTownForecastQpesums() {
+  if (!dom.townForecastQpesums) return;
+  const summary = townForecastState.qpesums;
+  if (dom.townForecastQpesumsTime) dom.townForecastQpesumsTime.textContent = summary?.time ? formatObsTime(summary.time) || summary.time : "";
+  if (!summary) {
+    dom.townForecastQpesums.innerHTML = '<div class="industry-text-card"><p>QPESUMS 資料暫不可用。</p></div>';
+    return;
+  }
+  dom.townForecastQpesums.innerHTML = `
+    <div class="industry-info-grid">
+      <div class="industry-info-card"><span>彰化格點數</span><strong>${sanitizeText(String(summary.count || 0))}</strong></div>
+      <div class="industry-info-card"><span>平均降水</span><strong>${formatValue(summary.mean, "mm", 1)}</strong></div>
+      <div class="industry-info-card"><span>最大降水</span><strong>${formatValue(summary.max, "mm", 1)}</strong></div>
+      <div class="industry-info-card"><span>資料時間</span><strong>${sanitizeText(formatObsTime(summary.time) || summary.time || "—")}</strong></div>
+    </div>
+    <div class="industry-text-card">
+      <p>右側鄉鎮面板會以鄉鎮中心最近格點顯示未來1小時定量降水。</p>
+    </div>
+  `;
+}
+
+function updateTownForecastDataTime() {
+  if (!dom.townForecastDataTime) return;
+  const suffix = townForecastState.activeForecastDataset || CHANGHUA_TOWN_FORECAST_DATASET;
+  dom.townForecastDataTime.textContent = townForecastState.latestTime ? `${townForecastState.latestTime}｜${suffix}` : suffix;
+}
+
+function getTownForecastMetricColor(metricKey, value) {
+  const metric = TOWN_FORECAST_METRICS[metricKey] || TOWN_FORECAST_METRICS.temperature;
+  const config = buildTownForecastColorbarConfig(metricKey);
+  const stops = config?.stops?.length ? config.stops : metric.colors;
+  const numeric = toNumber(value);
+  if (!Number.isFinite(numeric)) return INDUSTRY_WEATHER_NEUTRAL_COLOR;
+  const min = Number.isFinite(config?.scaleMin) ? config.scaleMin : metric.min;
+  const max = Number.isFinite(config?.scaleMax) ? config.scaleMax : metric.max;
+  const ratio = Math.max(0, Math.min(0.999, (numeric - min) / Math.max(1, max - min)));
+  const idx = Math.min(stops.length - 1, Math.floor(ratio * stops.length));
+  return stops[idx];
+}
+
+function formatTownForecastValue(metricKey, value) {
+  const metric = TOWN_FORECAST_METRICS[metricKey] || TOWN_FORECAST_METRICS.temperature;
+  const numeric = toNumber(value);
+  if (Number.isFinite(numeric)) return formatValue(numeric, metric.unit, metric.precision);
+  return value != null && String(value).trim() ? String(value) : "—";
+}
+
+function fitTownForecastBounds() {
+  if (!townForecastState.map || !townForecastState.townGeo) return;
+  const bounds = L.geoJSON(townForecastState.townGeo).getBounds();
+  if (bounds.isValid()) {
+    townForecastState.map.fitBounds(bounds, { padding: [20, 20], maxZoom: 11, animate: false });
+  }
+}
+
+function buildQpesumsSummary(payload) {
+  const root =
+    payload?.cwaopendata?.Dataset ||
+    payload?.cwaopendata?.dataset ||
+    payload?.records ||
+    payload?.Records ||
+    payload?.dataset ||
+    payload?.Dataset ||
+    payload ||
+    {};
+  const info = findQpesumsGridInfo(root);
+  if (!info.values.length || !Number.isFinite(info.startLon) || !Number.isFinite(info.startLat)) return null;
+  const points = [];
+  const xCount = info.xCount || Math.round(Math.sqrt(info.values.length));
+  const yCount = info.yCount || Math.ceil(info.values.length / Math.max(1, xCount));
+  for (let y = 0; y < yCount; y += 1) {
+    for (let x = 0; x < xCount; x += 1) {
+      const idx = y * xCount + x;
+      const value = info.values[idx];
+      if (!Number.isFinite(value) || value <= -90) continue;
+      const lon = info.startLon + x * info.lonResolution;
+      const lat = info.startLat + y * info.latResolution;
+      if (lat < 23.75 || lat > 24.25 || lon < 120.15 || lon > 120.75) continue;
+      points.push({ lat, lon, value });
+    }
+  }
+  const values = points.map((point) => point.value);
+  return {
+    time: info.time,
+    points,
+    lonResolution: info.lonResolution,
+    latResolution: info.latResolution,
+    count: values.length,
+    mean: values.length ? values.reduce((sum, value) => sum + value, 0) / values.length : null,
+    max: values.length ? Math.max(...values) : null,
+  };
+}
+
+function buildTownForecastRowsFromQpesums(summary) {
+  return (townForecastState.townGeo?.features || []).map((feature, index) => {
+    const townName = normalizeIndustryTownName(feature?.properties?.[TOWN_NAME_FIELD] || "");
+    const center = getIndustryFeatureCenter(feature);
+    const nearest = findNearestQpesumsPoint(summary?.points || [], center.lat, center.lon);
+    return {
+      townKey: townName,
+      townName,
+      lat: center.lat,
+      lon: center.lon,
+      dataTime: summary?.time || "",
+      qpesumsRain: nearest?.value ?? null,
+      qpesumsDistanceKm: nearest?.dist ?? null,
+      source: "qpesums",
+    };
+  }).filter((row) => row.townKey);
+}
+
+function findQpesumsGridInfo(root) {
+  const candidates = [];
+  const walk = (node) => {
+    if (!node || typeof node !== "object") return;
+    if (
+      node.StartPointLongitude != null ||
+      node.startPointLongitude != null ||
+      node.GridDimensionX != null ||
+      node.gridDimensionX != null ||
+      node.parameterSet?.StartPointLongitude != null ||
+      node.parameterSet?.startPointLongitude != null
+    ) {
+      candidates.push(node);
+    }
+    Object.values(node).forEach((value) => {
+      if (value && typeof value === "object") {
+        if (Array.isArray(value)) value.slice(0, 20).forEach(walk);
+        else walk(value);
+      }
+    });
+  };
+  walk(root);
+  const source = candidates[0] || root;
+  const params = source.parameterSet || source.ParameterSet || source;
+  const contentNode =
+    source.contents ||
+    source.Contents ||
+    root.contents ||
+    root.Contents ||
+    source;
+  const resolution = parseGridResolution(params.GridResolution || params.gridResolution || params.GridResol || params.gridResol);
+  const content = contentNode.content || contentNode.Content || params.content || params.Content || source.Precipitation || source.precipitation || source.Data || source.data || "";
+  return {
+    startLon: toNumber(params.StartPointLongitude || params.startPointLongitude || params.startLon || params.longitude),
+    startLat: toNumber(params.StartPointLatitude || params.startPointLatitude || params.startLat || params.latitude),
+    lonResolution: resolution.lon || 0.0125,
+    latResolution: resolution.lat || 0.0125,
+    xCount: Math.trunc(toNumber(params.GridDimensionX || params.gridDimensionX || params.DimensionX || params.xCount) || 0),
+    yCount: Math.trunc(toNumber(params.GridDimensionY || params.gridDimensionY || params.DimensionY || params.yCount) || 0),
+    time: params.DateTime || params.dateTime || params.DataTime || params.dataTime || "",
+    values: parseQpesumsValues(content),
+  };
+}
+
+function parseGridResolution(value) {
+  if (Array.isArray(value)) return { lon: toNumber(value[0]) || 0.0125, lat: toNumber(value[1]) || 0.0125 };
+  const text = String(value || "");
+  const nums = text.match(/-?\d+(?:\.\d+)?/g)?.map(Number).filter(Number.isFinite) || [];
+  return { lon: nums[0] || 0.0125, lat: nums[1] || nums[0] || 0.0125 };
+}
+
+function parseQpesumsValues(content) {
+  if (Array.isArray(content)) return content.flat(Infinity).map(toNumber).filter(Number.isFinite);
+  if (content && typeof content === "object") return parseQpesumsValues(Object.values(content));
+  return String(content || "")
+    .match(/-?\d+(?:\.\d+)?(?:E[+-]?\d+)?/gi)
+    ?.map(Number)
+    .filter(Number.isFinite) || [];
+}
+
+function getTownQpesumsValue(town) {
+  return findNearestQpesumsPoint(townForecastState.qpesums?.points || [], town?.lat, town?.lon)?.value ?? null;
+}
+
+function findNearestQpesumsPoint(points, lat, lon) {
+  if (!points.length || !Number.isFinite(lat) || !Number.isFinite(lon)) return null;
+  let best = null;
+  points.forEach((point) => {
+    const dist = distanceKm(lat, lon, point.lat, point.lon);
+    if (!best || dist < best.dist) best = { ...point, dist };
+  });
+  return best;
 }
 
 function syncIndustryWeatherControls() {
@@ -4918,7 +5925,11 @@ function parseAqiTime(value) {
 function renderRankingColorbar(metricKey, colorbarEl) {
   if (!colorbarEl) return;
   const metric = rankingMetrics[metricKey] || rankingMetrics.temp;
-  const config = buildColorbarConfig(metricKey, metric);
+  renderColorbarConfig(buildColorbarConfig(metricKey, metric), colorbarEl);
+}
+
+function renderColorbarConfig(config, colorbarEl) {
+  if (!colorbarEl) return;
   if (!config) {
     colorbarEl.innerHTML = "";
     return;

@@ -39,6 +39,7 @@
     <button class="tab-btn" data-tab-target="taiwan-rankings">台灣氣象</button>
     <button class="tab-btn" data-tab-target="disaster">防災氣象</button>
     <button class="tab-btn" data-tab-target="health">健康氣象</button>
+    <button class="tab-btn" data-tab-target="town-forecast">鄉鎮預報</button>
     <button class="tab-btn" data-tab-target="industry-weather">彰化產業氣象</button>
     <button class="tab-btn" data-tab-target="historical">歷史資料</button>
   </nav>
@@ -502,6 +503,94 @@
           </table>
           <div class="table-footer" id="healthPager"></div>
         </div>
+      </div>
+    </section>
+  </main>
+
+  <main class="tab-panel" data-tab="town-forecast">
+    <section class="panel">
+      <div class="controls industry-controls">
+        <div class="control">
+          <label for="townForecastMode">預報資料</label>
+          <select id="townForecastMode">
+            <option value="day1" selected>未來1天逐1小時</option>
+            <option value="day3">未來3天逐3小時</option>
+            <option value="day7">未來7天逐12小時</option>
+            <option value="qpesums">QPESUMS未來1小時定量降水</option>
+          </select>
+        </div>
+        <div class="control">
+          <label for="townForecastMetric">地圖因子</label>
+          <select id="townForecastMetric">
+            <option value="temperature" selected>溫度</option>
+            <option value="humidity">相對溼度</option>
+            <option value="pop">降雨機率</option>
+            <option value="windSpeed">風速</option>
+            <option value="comfort">舒適度指數</option>
+            <option value="apparentTemperature">體感溫度</option>
+            <option value="uvIndex">紫外線指數</option>
+            <option value="maxTemperature">最高溫</option>
+            <option value="minTemperature">最低溫</option>
+            <option value="maxApparentTemperature">最高體感溫度</option>
+            <option value="minApparentTemperature">最低體感溫度</option>
+          </select>
+        </div>
+        <div class="control">
+          <label for="townForecastTown">鄉鎮市區</label>
+          <select id="townForecastTown">
+            <option value="">載入中...</option>
+          </select>
+        </div>
+        <div class="control buttons">
+          <button id="townForecastReloadBtn" class="primary">更新資料</button>
+        </div>
+        <div class="control">
+          <label>狀態</label>
+          <div class="status" id="townForecastStatus">尚未載入</div>
+        </div>
+      </div>
+      <div class="timeline" id="townForecastTimelineWrap">
+        <div class="timeline-row">
+          <label for="townForecastTimeline">預報時間軸</label>
+          <div class="timeline-actions">
+            <span id="townForecastTimelineLabel">--</span>
+            <button id="townForecastTimelinePlayBtn" class="ghost" type="button">播放</button>
+          </div>
+        </div>
+        <div class="slider">
+          <input type="range" id="townForecastTimeline" min="0" max="0" step="1" value="0" />
+        </div>
+      </div>
+    </section>
+
+    <section class="panel industry-layout">
+      <div class="industry-map-column">
+        <div id="townForecastMap" class="map-shell"></div>
+        <div class="hint">點擊彰化鄉鎮可更新右側資訊面板；地圖顏色依目前時間軸與地圖因子呈現。</div>
+      </div>
+      <aside class="industry-info-panel">
+        <div class="table-card">
+          <div class="table-header">
+            <span>彰化鄉鎮預報資訊</span>
+            <span id="townForecastDataTime" class="table-header-time"></span>
+          </div>
+          <div id="townForecastInfo" class="industry-info-body"></div>
+        </div>
+        <div class="table-card industry-legend-card">
+          <div class="table-header">
+            <span>地圖圖例</span>
+          </div>
+          <div id="townForecastLegend" class="town-forecast-colorbar"></div>
+        </div>
+      </aside>
+    </section>
+
+    <section class="panel industry-supplement">
+      <div class="table-card">
+        <div class="table-header">
+          <span>逐時序列</span>
+        </div>
+        <div id="townForecastTimelineTable" class="town-forecast-table-wrap"></div>
       </div>
     </section>
   </main>
