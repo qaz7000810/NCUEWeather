@@ -241,6 +241,7 @@ const townForecastState = {
   map: null,
   townLayer: null,
   qpesumsLayer: null,
+  detailChart: null,
   townGeo: null,
   selectedTownKey: "",
   selectedTownName: "",
@@ -2848,6 +2849,8 @@ const TOWN_FORECAST_ELEMENT_ALIASES = {
   minTemperature: ["最低溫度", "最低溫", "MinTemperature", "MinT"],
   maxApparentTemperature: ["最高體感溫度", "MaxApparentTemperature", "MaxAT"],
   minApparentTemperature: ["最低體感溫度", "MinApparentTemperature", "MinAT"],
+  weather: ["天氣現象", "Weather"],
+  weatherCode: ["天氣現象", "WeatherCode"],
 };
 
 const TOWN_FORECAST_INFO_ORDER = [
@@ -3079,6 +3082,8 @@ function readTownForecastElementValue(entry, valueKey) {
     "value",
     "Measure",
     "measure",
+    "Weather",
+    "WeatherCode",
     "Temperature",
     "RelativeHumidity",
     "ProbabilityOfPrecipitation",
@@ -3444,6 +3449,7 @@ function renderTownForecastInfo() {
 
 function renderTownForecastTimelineTable() {
   if (!dom.townForecastTimelineTable) return;
+  destroyTownForecastDetailChart();
   if (getTownForecastMode().key === "qpesums") {
     const rows = (townForecastState.qpesums?.points || [])
       .slice()
@@ -3473,6 +3479,7 @@ function renderTownForecastTimelineTable() {
     ` : '<div class="town-forecast-empty">暫無 QPESUMS 資料。</div>';
     return;
   }
+  const mode = getTownForecastMode();
   const timeline = townForecastState.forecastByTown.get(townForecastState.selectedTownKey) || [];
   if (!timeline.length) {
     dom.townForecastTimelineTable.innerHTML = '<div class="town-forecast-empty">暫無序列資料。</div>';
@@ -3482,6 +3489,221 @@ function renderTownForecastTimelineTable() {
   const rows = timeline
     .filter((row) => !frameSet.size || frameSet.has(row.dataTime))
     .slice(0, 36);
+  if (mode.key === "day7") {
+    renderTownForecastSevenDayTable(rows);
+    return;
+  }
+  renderTownForecastChart(rows, mode);
+}
+
+function renderTownForecastChart(rows, mode) {
+  const selected = getSelectedTownForecastRow();
+  const title = `${mode.label} - 彰化縣${townForecastState.selectedTownName || selected?.townName || ""}`;
+  const summary = selected ? buildTownForecastSummaryHtml(selected) : "";
+  dom.townForecastTimelineTable.innerHTML = `
+    <div class="town-forecast-detail">
+      <h3>${sanitizeText(title)}</h3>
+      ${summary}
+      <div class="town-forecast-chart-wrap">
+        <div class="town-forecast-icons" aria-label="天氣現象">
+          ${renderTownForecastWeatherIcons(rows)}
+        </div>
+        <canvas id="townForecastDetailChart"></canvas>
+      </div>
+      ${buildTownForecastDetailTableHtml(rows)}
+    </div>
+  `;
+  const canvas = document.getElementById("townForecastDetailChart");
+  renderTownForecastChartCanvas(rows, canvas);
+}
+
+function renderTownForecastChartCanvas(rows, canvas = document.getElementById("townForecastDetailChart")) {
+  if (!canvas || typeof Chart === "undefined") {
+    renderTownForecastFallbackTable(rows);
+    return;
+  }
+  const labels = rows.map((row) => getTownForecastMode().key === "day7" ? `${formatForecastDateLabel(row.dataTime)} ${formatForecastPeriodLabel(row.dataTime)}` : formatForecastHourLabel(row.dataTime));
+  townForecastState.detailChart = new Chart(canvas, {
+    data: {
+      labels,
+      datasets: [
+        {
+          type: "line",
+          label: "溫度",
+          data: rows.map((row) => toNumber(row.temperature)),
+          borderColor: "#9ca3af",
+          backgroundColor: "#9ca3af",
+          tension: 0.25,
+          yAxisID: "temp",
+        },
+        {
+          type: "line",
+          label: "體感溫度",
+          data: rows.map((row) => toNumber(row.apparentTemperature)),
+          borderColor: "#f59e0b",
+          backgroundColor: "#f59e0b",
+          tension: 0.25,
+          yAxisID: "temp",
+        },
+        {
+          type: "bar",
+          label: "降雨機率",
+          data: rows.map((row) => toNumber(row.pop)),
+          backgroundColor: "rgba(37, 99, 235, 0.82)",
+          borderColor: "#2563eb",
+          yAxisID: "pop",
+        },
+      ],
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      interaction: { mode: "index", intersect: false },
+      plugins: {
+        legend: { position: "top" },
+        tooltip: {
+          callbacks: {
+            label: (ctx) => {
+              const unit = ctx.dataset.yAxisID === "pop" ? "%" : "°C";
+              return `${ctx.dataset.label}: ${Number.isFinite(ctx.parsed.y) ? ctx.parsed.y : "—"}${unit}`;
+            },
+          },
+        },
+      },
+      scales: {
+        temp: {
+          type: "linear",
+          position: "left",
+          title: { display: true, text: "溫度 (°C)" },
+          ticks: { callback: (value) => `${value}°C` },
+        },
+        pop: {
+          type: "linear",
+          position: "right",
+          min: 0,
+          max: 100,
+          grid: { drawOnChartArea: false },
+          title: { display: true, text: "降雨機率 (%)" },
+          ticks: { callback: (value) => `${value}%` },
+        },
+      },
+    },
+  });
+}
+
+function renderTownForecastSevenDayTable(rows) {
+  const selected = getSelectedTownForecastRow();
+  const title = `未來7天逐12小時 - 彰化縣${townForecastState.selectedTownName || selected?.townName || ""}`;
+  dom.townForecastTimelineTable.innerHTML = `
+    <div class="town-forecast-detail">
+      <h3>${sanitizeText(title)}</h3>
+      ${selected ? buildTownForecastSummaryHtml(selected) : ""}
+      <div class="town-forecast-chart-wrap">
+        <div class="town-forecast-icons" aria-label="天氣現象">
+          ${renderTownForecastWeatherIcons(rows)}
+        </div>
+        <canvas id="townForecastDetailChart"></canvas>
+      </div>
+      <table class="town-forecast-table">
+        <thead>
+          <tr>
+            <th>日期</th>
+            <th>星期</th>
+            <th>時段</th>
+            <th>天氣</th>
+            <th>降雨機率</th>
+            <th>最低溫</th>
+            <th>最高溫</th>
+            <th>相對溼度</th>
+            <th>風速</th>
+            <th>紫外線</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${rows.map((row) => `
+            <tr>
+              <td>${sanitizeText(formatForecastDateLabel(row.dataTime))}</td>
+              <td>${sanitizeText(formatForecastWeekday(row.dataTime))}</td>
+              <td>${sanitizeText(formatForecastPeriodLabel(row.dataTime))}</td>
+              <td>${sanitizeText(row.weather || "—")}</td>
+              <td>${sanitizeText(formatTownForecastValue("pop", row.pop))}</td>
+              <td>${sanitizeText(formatTownForecastValue("minTemperature", row.minTemperature))}</td>
+              <td>${sanitizeText(formatTownForecastValue("maxTemperature", row.maxTemperature))}</td>
+              <td>${sanitizeText(formatTownForecastValue("humidity", row.humidity))}</td>
+              <td>${sanitizeText(formatTownForecastValue("windSpeed", row.windSpeed))}</td>
+              <td>${sanitizeText(formatTownForecastValue("uvIndex", row.uvIndex))}</td>
+            </tr>
+          `).join("")}
+        </tbody>
+      </table>
+    </div>
+  `;
+  renderTownForecastChartCanvas(rows);
+}
+
+function buildTownForecastDetailTableHtml(rows) {
+  return `
+    <table class="town-forecast-table town-forecast-table--detail">
+      <thead>
+        <tr>
+          <th>時間</th>
+          <th>天氣</th>
+          <th>溫度</th>
+          <th>體感溫度</th>
+          <th>相對溼度</th>
+          <th>降雨機率</th>
+          <th>風速</th>
+          <th>舒適度</th>
+          <th>紫外線</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${rows.map((row) => `
+          <tr>
+            <td>${sanitizeText(formatObsTime(row.dataTime) || row.dataTime || "—")}</td>
+            <td>${sanitizeText(`${getTownForecastWeatherIcon(row.weatherCode, row.weather)} ${row.weather || "—"}`)}</td>
+            <td>${sanitizeText(formatTownForecastValue("temperature", row.temperature))}</td>
+            <td>${sanitizeText(formatTownForecastValue("apparentTemperature", row.apparentTemperature))}</td>
+            <td>${sanitizeText(formatTownForecastValue("humidity", row.humidity))}</td>
+            <td>${sanitizeText(formatTownForecastValue("pop", row.pop))}</td>
+            <td>${sanitizeText(formatTownForecastValue("windSpeed", row.windSpeed))}</td>
+            <td>${sanitizeText(formatTownForecastValue("comfort", row.comfort))}</td>
+            <td>${sanitizeText(formatTownForecastValue("uvIndex", row.uvIndex))}</td>
+          </tr>
+        `).join("")}
+      </tbody>
+    </table>
+  `;
+}
+
+function renderTownForecastWeatherIcons(rows) {
+  const count = rows.length || 1;
+  return rows.map((row, idx) => {
+    const icon = getTownForecastWeatherIcon(row.weatherCode, row.weather);
+    const left = count === 1 ? 50 : (idx / (count - 1)) * 100;
+    return `<span style="left:${left}%;" title="${sanitizeText(row.weather || "")}">${sanitizeText(icon)}</span>`;
+  }).join("");
+}
+
+function getTownForecastWeatherIcon(code, weatherText) {
+  const numericCode = Number.parseInt(String(code || "").replace(/\D/g, ""), 10);
+  const text = String(weatherText || "");
+  if (Number.isFinite(numericCode)) {
+    if (numericCode <= 2) return "☀️";
+    if (numericCode <= 4) return "🌤️";
+    if (numericCode <= 7) return "☁️";
+    if (numericCode <= 14) return "🌧️";
+    if (numericCode <= 18) return "⛈️";
+    if (numericCode <= 22) return "🌫️";
+  }
+  if (/雷/.test(text)) return "⛈️";
+  if (/雨/.test(text)) return "🌧️";
+  if (/陰|雲/.test(text)) return "☁️";
+  if (/晴/.test(text)) return "☀️";
+  return "☁️";
+}
+
+function renderTownForecastFallbackTable(rows) {
   dom.townForecastTimelineTable.innerHTML = `
     <table class="town-forecast-table">
       <thead>
@@ -3510,6 +3732,61 @@ function renderTownForecastTimelineTable() {
       </tbody>
     </table>
   `;
+}
+
+function buildTownForecastSummaryHtml(row) {
+  const items = [
+    ["氣溫", formatTownForecastValue("temperature", row.temperature)],
+    ["降雨機率", formatTownForecastValue("pop", row.pop)],
+    ["體感溫度", formatTownForecastValue("apparentTemperature", row.apparentTemperature)],
+    ["相對溼度", formatTownForecastValue("humidity", row.humidity)],
+    ["平均風速", formatTownForecastValue("windSpeed", row.windSpeed)],
+    ["舒適度指數", formatTownForecastValue("comfort", row.comfort)],
+  ];
+  return `
+    <div class="town-forecast-summary-strip">
+      ${items.map(([label, value]) => `
+        <div>
+          <span>${sanitizeText(label)}</span>
+          <strong>${sanitizeText(value)}</strong>
+        </div>
+      `).join("")}
+    </div>
+    <div class="town-forecast-data-time">資料時間：${sanitizeText(formatObsTime(row.dataTime) || row.dataTime || "—")}</div>
+  `;
+}
+
+function destroyTownForecastDetailChart() {
+  if (townForecastState.detailChart) {
+    townForecastState.detailChart.destroy();
+    townForecastState.detailChart = null;
+  }
+}
+
+function formatForecastHourLabel(dataTime) {
+  const date = new Date(dataTime || "");
+  if (Number.isNaN(date.getTime())) return dataTime || "";
+  return `${String(date.getHours()).padStart(2, "0")}:00`;
+}
+
+function formatForecastDateLabel(dataTime) {
+  const date = new Date(dataTime || "");
+  if (Number.isNaN(date.getTime())) return dataTime || "";
+  return `${String(date.getMonth() + 1).padStart(2, "0")}/${String(date.getDate()).padStart(2, "0")}`;
+}
+
+function formatForecastWeekday(dataTime) {
+  const date = new Date(dataTime || "");
+  if (Number.isNaN(date.getTime())) return "—";
+  return ["日", "一", "二", "三", "四", "五", "六"][date.getDay()];
+}
+
+function formatForecastPeriodLabel(dataTime) {
+  const date = new Date(dataTime || "");
+  if (Number.isNaN(date.getTime())) return "—";
+  const hour = date.getHours();
+  if (hour >= 6 && hour < 18) return "白天";
+  return "晚上";
 }
 
 function renderTownForecastLegend() {

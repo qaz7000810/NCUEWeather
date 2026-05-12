@@ -902,9 +902,68 @@ table tbody tr:nth-child(odd) {
   white-space: nowrap;
 }
 
+.town-forecast-table--detail {
+  margin-top: 18px;
+}
+
 .town-forecast-empty {
   padding: 12px 14px;
   color: var(--muted);
+}
+
+.town-forecast-detail {
+  min-width: 920px;
+}
+
+.town-forecast-detail h3 {
+  margin: 0 0 14px;
+  font-size: 18px;
+}
+
+.town-forecast-summary-strip {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(100px, 1fr));
+  gap: 12px;
+  margin-bottom: 14px;
+}
+
+.town-forecast-summary-strip span {
+  display: block;
+  color: var(--muted);
+  font-weight: 700;
+  margin-bottom: 4px;
+}
+
+.town-forecast-summary-strip strong {
+  font-size: 16px;
+}
+
+.town-forecast-data-time {
+  color: var(--muted);
+  margin-bottom: 14px;
+}
+
+.town-forecast-chart-wrap {
+  position: relative;
+  height: 380px;
+  padding-top: 34px;
+}
+
+.town-forecast-icons {
+  position: absolute;
+  top: 0;
+  left: 38px;
+  right: 48px;
+  height: 28px;
+  pointer-events: none;
+}
+
+.town-forecast-icons span {
+  position: absolute;
+  top: 0;
+  transform: translateX(-50%);
+  font-size: 22px;
+  line-height: 1;
 }
 
 .town-forecast-colorbar {
