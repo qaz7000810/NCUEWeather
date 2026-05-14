@@ -162,6 +162,7 @@ const realtimeState = {
   countiesGeo: null,
   latestObservation: null,
   latestAqi: null,
+  latestLightning: null,
 };
 
 const rankingState = {
@@ -268,6 +269,9 @@ const TYPHOON_COUNTIES_URL = `${GEO_ASSETS_BASE}/typhoon/counties.geojson`;
 const RADAR_DATASET = "O-A0059-001";
 const LIGHTNING_DATASET = "O-A0039-001";
 const LIGHTNING_SAMPLE_URL = "./data/lightning/O-A0039-001.kmz";
+const NCUE_COORDS = { lat: 24.0816, lon: 120.5584 };
+const LIGHTNING_ALERT_RADIUS_KM = 10;
+const LIGHTNING_ALERT_RECENT_MINUTES = 60;
 const TAIWAN_MAIN_ISLAND_BOUNDS = [
   [21.75, 119.9],
   [25.45, 122.15],
@@ -1616,6 +1620,7 @@ function clearRealtimeDisplay() {
   if (dom.aqiStatus) dom.aqiStatus.textContent = "尚未載入";
   if (dom.radarStatus) dom.radarStatus.textContent = "尚未載入";
   if (dom.lightningStatus) dom.lightningStatus.textContent = "尚未載入";
+  realtimeState.latestLightning = null;
   updateLightningSummary();
   if (realtimeState.typhoonLayer && realtimeState.typhoonMap) {
     realtimeState.typhoonMap.removeLayer(realtimeState.typhoonLayer);
@@ -1751,7 +1756,7 @@ function buildLocalAlerts() {
     if (v >= 301) return { label: "危害 (已達危害健康標準)", className: "local-alert--aqi-maroon" };
     if (v >= 201) return { label: "嚴重 (已達影響健康標準)", className: "local-alert--aqi-purple" };
     if (v >= 151) return { label: "過高 (所有人員應注意)", className: "local-alert--aqi-red" };
-    if (v >= 101) return { label: "偏高 (過敏體質者注意)", className: "local-alert--aqi-orange" };
+    if (v >= 101) return { label: "不良 (過敏體質者注意)", className: "local-alert--aqi-orange" };
     return null;
   };
   const getPollutantLevel = (value, thresholds) => {
@@ -1837,7 +1842,59 @@ function buildLocalAlerts() {
     if (coLevel) add(`CO ${coLevel.label}（${aqi.co} ppm）`, { levelClass: coLevel.className });
   }
 
+  const lightningAlert = buildLocalLightningAlert(realtimeState.latestLightning, obs);
+  if (lightningAlert) {
+    add(lightningAlert, { levelClass: "local-alert--aqi-red" });
+  }
+
   return alerts;
+}
+
+function buildLocalLightningAlert(lightning, obs) {
+  const center = {
+    lat: Number(obs?.lat ?? NCUE_COORDS.lat),
+    lon: Number(obs?.lon ?? NCUE_COORDS.lon),
+  };
+  const nearby = findLightningAlertPoints(lightning, {
+    center,
+    radiusKm: LIGHTNING_ALERT_RADIUS_KM,
+    recentMinutes: LIGHTNING_ALERT_RECENT_MINUTES,
+    groundOnly: true,
+  });
+  if (!nearby.length) return "";
+  const nearest = nearby[0];
+  const ageText = Number.isFinite(nearest.ageMinutes) ? `，約 ${Math.round(nearest.ageMinutes)} 分鐘前` : "";
+  return `雷擊預警：彰師大 ${LIGHTNING_ALERT_RADIUS_KM} 公里內偵測到對地閃電 ${nearby.length} 筆（最近 ${nearest.distanceKm.toFixed(1)} 公里${ageText}）`;
+}
+
+function buildTownLightningAlerts(lightning, view) {
+  const features = view?.state?.townGeo?.features || [];
+  return features
+    .map((feature) => {
+      const town = getTownFeatureName(feature);
+      if (!town) return null;
+      const center = getIndustryFeatureCenter(feature);
+      const points = findLightningAlertPoints(lightning, {
+        center,
+        radiusKm: LIGHTNING_ALERT_RADIUS_KM,
+        recentMinutes: LIGHTNING_ALERT_RECENT_MINUTES,
+        groundOnly: true,
+      });
+      return points.length ? { town, count: points.length, nearest: points[0] } : null;
+    })
+    .filter(Boolean)
+    .sort((a, b) => b.count - a.count || a.town.localeCompare(b.town, "zh-Hant"));
+}
+
+function getTownFeatureName(feature) {
+  return String(
+    feature?.properties?.TOWNNAME ||
+      feature?.properties?.TownName ||
+      feature?.properties?.townName ||
+      feature?.properties?.[TOWN_NAME_FIELD] ||
+      feature?.properties?.name ||
+      ""
+  ).trim();
 }
 
 function renderAlerts(list) {
@@ -2342,6 +2399,7 @@ function renderNCUEObservation(station) {
     station?.obsTime?.DateTime ||
     "";
   const obsTimeFormatted = formatObsTime(obsTime);
+  const coords = readStationCoords(station?.GeoInfo || station?.geoInfo || {});
   const temp = normalizeObservationNumber(readWeatherElement(station, "AirTemperature"), { min: -80, max: 80 });
   let humidity = normalizeObservationNumber(readWeatherElement(station, "RelativeHumidity"), { min: 0, max: 100 });
   if (humidity != null && humidity <= 1) humidity *= 100;
@@ -2373,6 +2431,8 @@ function renderNCUEObservation(station) {
     rain,
     weather,
     obsTime: obsTimeFormatted || "",
+    lat: coords?.lat ?? NCUE_COORDS.lat,
+    lon: coords?.lon ?? NCUE_COORDS.lon,
   };
   const rows = [
     { label: "測站", value: name },
@@ -5840,7 +5900,7 @@ function formatDisasterLevel(metricKey, value) {
       if (value >= 301) return "危害 (已達危害健康標準)";
       if (value >= 201) return "嚴重(已達影響健康標準)";
       if (value >= 151) return "過高(所有人員應注意)";
-      if (value >= 101) return "偏高 (過敏體質者注意)";
+      if (value >= 101) return "不良 (過敏體質者注意)";
       return null;
     case "pm25":
       if (value >= 225.5) return "危害 (已達危害健康標準)";
@@ -6562,18 +6622,20 @@ async function loadLightningData() {
   if (!dom.lightningStatus) return;
   setLightningStatus("讀取落雷資料...");
   try {
-    const { buffer: kmzBuffer, source } = await fetchLightningKmz();
-    const kmlText = await extractKmlFromKmz(kmzBuffer);
-    const lightning = parseLightningKml(kmlText);
+    const { lightning, source } = await fetchLightningData();
+    realtimeState.latestLightning = lightning;
     renderLightningData(lightning);
     const rangeText = lightning.rangeText || lightning.latestTime || "";
     const sourceText = source === "sample" ? "（範例檔）" : "";
     const label = rangeText ? `更新時間：${rangeText}${sourceText}` : `已更新落雷資料${sourceText}`;
     setLightningStatus(`${label}，共 ${lightning.points.length} 筆`);
+    if (realtimeState.alertCache) renderAlerts(realtimeState.alertCache);
   } catch (err) {
     console.error(err);
+    realtimeState.latestLightning = null;
     renderLightningData({ points: [], title: "", rangeText: "", latestTime: "" });
     setLightningStatus(err.message || "落雷資料讀取失敗");
+    if (realtimeState.alertCache) renderAlerts(realtimeState.alertCache);
   }
 }
 
@@ -6608,6 +6670,12 @@ async function fetchLightningKmz() {
     }
     return { buffer: await res.arrayBuffer(), source: "sample" };
   }
+}
+
+async function fetchLightningData() {
+  const { buffer: kmzBuffer, source } = await fetchLightningKmz();
+  const kmlText = await extractKmlFromKmz(kmzBuffer);
+  return { lightning: parseLightningKml(kmlText), source };
 }
 
 function setLightningStatus(text) {
@@ -6729,6 +6797,44 @@ function getLightningAgeClass(ageMinutes) {
   if (ageMinutes <= 10) return "lightning-age-1";
   if (ageMinutes <= 30) return "lightning-age-2";
   return "lightning-age-3";
+}
+
+function getLightningLatestMs(lightning) {
+  if (Number.isFinite(lightning?.latestMs)) return lightning.latestMs;
+  return (Array.isArray(lightning?.points) ? lightning.points : [])
+    .map((p) => Date.parse(p.timestamp || ""))
+    .filter((ms) => Number.isFinite(ms))
+    .sort((a, b) => b - a)[0];
+}
+
+function isGroundLightning(point) {
+  return String(point?.type || point?.name || "").includes("對地");
+}
+
+function findLightningAlertPoints(lightning, options = {}) {
+  const points = Array.isArray(lightning?.points) ? lightning.points : [];
+  const center = options.center || NCUE_COORDS;
+  const radiusKm = Number(options.radiusKm ?? LIGHTNING_ALERT_RADIUS_KM);
+  const recentMinutes = Number(options.recentMinutes ?? LIGHTNING_ALERT_RECENT_MINUTES);
+  const latestMs = getLightningLatestMs(lightning);
+  if (!points.length || !Number.isFinite(center.lat) || !Number.isFinite(center.lon)) return [];
+  return points
+    .map((point) => {
+      const pointMs = Date.parse(point.timestamp || "");
+      const ageMinutes = Number.isFinite(latestMs) && Number.isFinite(pointMs) ? Math.max(0, (latestMs - pointMs) / 60000) : null;
+      return {
+        ...point,
+        ageMinutes,
+        distanceKm: distanceKm(center.lat, center.lon, point.lat, point.lon),
+      };
+    })
+    .filter((point) => {
+      if (options.groundOnly && !isGroundLightning(point)) return false;
+      if (!Number.isFinite(point.distanceKm) || point.distanceKm > radiusKm) return false;
+      if (Number.isFinite(recentMinutes) && Number.isFinite(point.ageMinutes) && point.ageMinutes > recentMinutes) return false;
+      return true;
+    })
+    .sort((a, b) => a.distanceKm - b.distanceKm || (a.ageMinutes ?? Infinity) - (b.ageMinutes ?? Infinity));
 }
 
 function resetLightningMapView() {
@@ -7349,14 +7455,17 @@ async function loadAndDisplayChanghuaAlerts(view) {
   alertContent.innerHTML = `<span style="color: #666;">載入預警資料中...</span>`;
 
   try {
-    const [cwaStations, rainData, aqiData] = await Promise.all([
+    const [cwaStations, rainData, aqiData, lightningResult] = await Promise.all([
       fetchMergedRealtimeStations().catch(() => []),
       fetchCwaDataset(RAIN_DATASET).catch(() => null),
-      fetchAqiDataset().catch(() => null)
+      fetchAqiDataset().catch(() => null),
+      fetchLightningData().catch(() => null)
     ]);
 
     const rainStations = rainData ? extractCwaStations(rainData) : [];
     const aqiRecords = aqiData ? extractAqiRecords(aqiData) : [];
+    const lightning = lightningResult?.lightning || realtimeState.latestLightning;
+    if (lightningResult?.lightning) realtimeState.latestLightning = lightningResult.lightning;
 
     await ensureRankingGeo(view);
     const mockView = {
@@ -7385,7 +7494,7 @@ async function loadAndDisplayChanghuaAlerts(view) {
             if (type.includes("低溫")) type = "體感低溫警戒";
           }
           if (mk === "aqi") {
-            if (type.includes("偏高") || type.includes("過高")|| type.includes("嚴重")|| type.includes("危害")) {
+            if (type.includes("不良") || type.includes("偏高") || type.includes("過高")|| type.includes("嚴重")|| type.includes("危害")) {
               type = "空氣品質(AQI)"
             }
           }
@@ -7417,6 +7526,10 @@ async function loadAndDisplayChanghuaAlerts(view) {
     processEntries(cwaStations, ["temp", "apparent", "humidity", "wind", "gust"]);
     processEntries(rainStations, ["rain", "rain3hr", "rain24hr"]);
     processEntries(aqiRecords, ["aqi", "pm25", "pm10", "o3"]);
+
+    buildTownLightningAlerts(lightning, view).forEach((item) => {
+      addAlert("雷擊預警", item.town);
+    });
 
     if (alertsMap.size === 0) {
       alertContent.innerHTML = `<span style="color: #333;">目前無即時預警</span>`;
