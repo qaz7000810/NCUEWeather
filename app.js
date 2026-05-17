@@ -1869,7 +1869,9 @@ function buildLocalLightningAlert(lightning, obs) {
 
 function buildTownLightningAlerts(lightning, view) {
   const features = view?.state?.townGeo?.features || [];
+  const targetCounty = normalizeCountyName(REALTIME_COUNTY);
   return features
+    .filter((feature) => isFeatureInTargetCounty(feature, view, targetCounty))
     .map((feature) => {
       const town = getTownFeatureName(feature);
       if (!town) return null;
@@ -1884,6 +1886,18 @@ function buildTownLightningAlerts(lightning, view) {
     })
     .filter(Boolean)
     .sort((a, b) => b.count - a.count || a.town.localeCompare(b.town, "zh-Hant"));
+}
+
+function isFeatureInTargetCounty(feature, view, targetCounty) {
+  const county = normalizeCountyName(
+    feature?.properties?.COUNTYNAME ||
+      feature?.properties?.CountyName ||
+      feature?.properties?.countyName ||
+      ""
+  );
+  if (county) return county === targetCounty;
+  if (normalizeCountyName(view?.countyFilter || "") === targetCounty) return true;
+  return String(view?.geojsonUrl || "").includes("changhua");
 }
 
 function getTownFeatureName(feature) {
