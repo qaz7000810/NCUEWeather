@@ -2313,12 +2313,6 @@ function formatValue(value, unit = "", digits = 1) {
   return `${fixed}${unit}`;
 }
 
-function formatValueWithLabel(value, unit = "", digits = 1, label = "") {
-  const text = formatValue(value, unit, digits);
-  if (text === "—" || !label) return text;
-  return `${text}（${label}）`;
-}
-
 function formatObsTime(value) {
   if (!value) return "";
   const raw = String(value).trim();
@@ -2385,7 +2379,7 @@ function formatWindDirection(value) {
   return `${dirs[idx]} (${deg}°)`;
 }
 
-function formatWindDirectionWithLabel(value) {
+function getWindDirectionLabel(value) {
   if (!isValidObservation(value)) return "—";
   const deg = Number(value);
   if (!Number.isFinite(deg) || deg < 0 || deg > 360) return "—";
@@ -2408,30 +2402,67 @@ function formatWindDirectionWithLabel(value) {
     "北北西",
   ];
   const idx = Math.round(((deg % 360) / 22.5)) % 16;
-  return `${deg}°（${dirs[idx]}）`;
+  return dirs[idx];
 }
 
 function getTemperatureComfortLabel(value) {
   if (!isValidObservation(value)) return "";
   const v = Number(value);
   if (v >= 34) return "炎熱";
-  if (v >= 28) return "偏熱";
+  if (v >= 28) return "悶熱";
   if (v >= 20) return "舒適";
-  if (v >= 12) return "偏涼";
+  if (v >= 12) return "涼爽";
   return "寒冷";
+}
+
+function temperatureComfortColor(value) {
+  if (!isValidObservation(value)) return "";
+  const v = Number(value);
+  if (v >= 34) return "#ff0000";
+  if (v >= 28) return "#ffff00";
+  if (v >= 20) return "#00e400";
+  if (v >= 12) return "#14b5df";
+  return "#0877c9";
 }
 
 function getHumidityComfortLabel(value) {
   if (!isValidObservation(value)) return "";
   const v = Number(value);
-  if (v >= 70) return "高溼";
-  if (v >= 40) return "舒適";
+  if (v >= 95) return "高溼";
+  if (v >= 80) return "偏溼";
+  if (v >= 60) return "舒適";
+  if (v >= 40) return "偏乾";
   return "乾燥";
 }
 
-function formatWindSpeedWithLabel(value, levelLabel) {
-  if (!isValidObservation(value) || !levelLabel || levelLabel === "--") return "—";
-  return `${formatValue(value, " m/s", 1)}（${levelLabel}）`;
+function humidityComfortColor(value) {
+  if (!isValidObservation(value)) return "";
+  const v = Number(value);
+  if (v >= 95) return "#ff0000";
+  if (v >= 80) return "#ffff00";
+  if (v >= 60) return "#00e400";
+  if (v >= 40) return "#14b5df";
+  return "#0877c9";
+}
+
+function realtimeRain24hrColor(value) {
+  if (!isValidObservation(value)) return "";
+  const v = Number(value);
+  if (v >= 80) return "#8f3f97";
+  if (v >= 50) return "#ff0000";
+  if (v >= 30) return "#ff7e00";
+  if (v >= 1) return "#ffff00";
+  return "#00e400";
+}
+
+function realtimeWindColor(value) {
+  if (!isValidObservation(value)) return "";
+  const v = Number(value);
+  if (v >= 20.8) return "#8f3f97";
+  if (v >= 13.9) return "#ff0000";
+  if (v >= 8.0) return "#ff7e00";
+  if (v >= 3.4) return "#ffff00";
+  return "#00e400";
 }
 
 function windToBeaufort(mps) {
@@ -2537,8 +2568,10 @@ function renderNCUEObservation(station) {
   const rain =
     normalizeObservationNumber(readWeatherElement(station, "NowPrecipitation"), { min: 0 }) ??
     normalizeObservationNumber(readWeatherElement(station, "Precipitation"), { min: 0 }) ??
-    normalizeObservationNumber(readWeatherElement(station, "HourlyPrecipitation"), { min: 0 }) ??
-    normalizeObservationNumber(readWeatherElement(station, "DailyRainfall"), { min: 0 });
+    normalizeObservationNumber(readWeatherElement(station, "HourlyPrecipitation"), { min: 0 });
+  const dailyRain =
+    normalizeObservationNumber(readWeatherElement(station, "DailyRainfall"), { min: 0 }) ??
+    normalizeObservationNumber(readWeatherElement(station, "Precipitation"), { min: 0 });
   const weather = readWeatherElement(station, "Weather");
   const windLevel = windToBeaufort(windSpeed);
   const gustLevel = windToBeaufort(gustRaw);
@@ -2558,21 +2591,21 @@ function renderNCUEObservation(station) {
   const rows = [
     { label: "測站", value: name },
     { label: "觀測時間", value: obsTimeFormatted || "—" },
-    { label: "氣溫", value: formatValueWithLabel(temp, "°C", 1, getTemperatureComfortLabel(temp)), alert: isDisasterThreshold("temp", temp) },
-    { label: "體感溫度", value: formatValueWithLabel(apparent, "°C", 1, getTemperatureComfortLabel(apparent)), alert: isDisasterThreshold("apparent", apparent) },
-    { label: "相對濕度", value: formatValueWithLabel(humidity, "%", 0, getHumidityComfortLabel(humidity)), alert: isDisasterThreshold("humidity", humidity) },
-    { label: "風向", value: formatWindDirectionWithLabel(windDir) },
+    { label: "氣溫", value: formatValue(temp, "°C", 1), tone: { color: temperatureComfortColor(temp), label: getTemperatureComfortLabel(temp) } },
+    { label: "體感溫度", value: formatValue(apparent, "°C", 1), tone: { color: temperatureComfortColor(apparent), label: getTemperatureComfortLabel(apparent) } },
+    { label: "相對濕度", value: formatValue(humidity, "%", 0), tone: { color: humidityComfortColor(humidity), label: getHumidityComfortLabel(humidity) } },
+    { label: "風向", value: isValidObservation(windDir) ? `${Number(windDir).toFixed(0)}°` : "—", tone: { color: "#334155", label: getWindDirectionLabel(windDir) } },
     {
       label: "風速",
-      value: formatWindSpeedWithLabel(windSpeed, windLevel),
-      alert: isDisasterThreshold("wind", windSpeed),
+      value: formatValue(windSpeed, " m/s", 1),
+      tone: { color: realtimeWindColor(windSpeed), label: windLevel !== "--" ? windLevel : "" },
     },
     {
       label: "陣風",
-      value: formatWindSpeedWithLabel(gustRaw, gustLevel),
-      alert: isDisasterThreshold("gust", gustRaw),
+      value: formatValue(gustRaw, " m/s", 1),
+      tone: { color: realtimeWindColor(gustRaw), label: gustLevel !== "--" ? gustLevel : "" },
     },
-    { label: "降雨量", value: formatValue(rain, " mm", 1), alert: isDisasterThreshold("rain", rain) },
+    { label: "日累積雨量", value: formatValue(dailyRain, " mm", 1), tone: { color: realtimeRain24hrColor(dailyRain) } },
     { label: "天氣現象", value: weather ? String(weather) : "—" },
   ];
   dom.ncueObservation.innerHTML = rows
