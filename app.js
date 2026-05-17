@@ -564,6 +564,13 @@ const rankingMetrics = {
     direction: null,
     colorScale: "rain",
   },
+  lightning: {
+    label: "雷擊預警",
+    unit: "筆",
+    value: () => null,
+    direction: null,
+    colorScale: "lightning",
+  },
   thi: {
     label: "溫濕度指數 (THI)",
     unit: "",
@@ -651,7 +658,7 @@ const rankingMetrics = {
 const rankingMetricKeys = ["temp", "apparent", "humidity", "wind", "gust", "rain", "rain3hr", "rain24hr", "thi", "aqi", "pm25", "pm10", "o3", "pm1Airbox", "pm25Airbox", "pm10Airbox"];
 const taiwanMetricKeys = [...rankingMetricKeys];
 
-const disasterMetricKeys = ["temp", "apparent", "humidity", "wind", "gust", "rain", "rain3hr", "rain24hr", "aqi", "pm25", "pm10", "o3", "pm1Airbox", "pm25Airbox", "pm10Airbox"];
+const disasterMetricKeys = ["temp", "apparent", "humidity", "wind", "gust", "rain", "rain3hr", "rain24hr", "lightning", "aqi", "pm25", "pm10", "o3", "pm1Airbox", "pm25Airbox", "pm10Airbox"];
 const healthMetricKeys = ["coldInjury", "tempDiff", "heatInjury"];
 
 const disasterView = {
@@ -1888,16 +1895,61 @@ function buildTownLightningAlerts(lightning, view) {
     .sort((a, b) => b.count - a.count || a.town.localeCompare(b.town, "zh-Hant"));
 }
 
+function buildLightningDisasterEntries(lightning, view) {
+  const features = view?.state?.townGeo?.features || [];
+  return features
+    .filter((feature) => shouldIncludeFeatureForView(feature, view))
+    .map((feature, index) => {
+      const town = getTownFeatureName(feature);
+      if (!town) return null;
+      const county = getFeatureCountyName(feature) || normalizeCountyName(view?.countyFilter || "") || REALTIME_COUNTY;
+      const center = getIndustryFeatureCenter(feature);
+      const points = findLightningAlertPoints(lightning, {
+        center,
+        radiusKm: LIGHTNING_ALERT_RADIUS_KM,
+        recentMinutes: LIGHTNING_ALERT_RECENT_MINUTES,
+        groundOnly: true,
+      });
+      if (!points.length) return null;
+      const nearest = points[0];
+      const ageText = Number.isFinite(nearest.ageMinutes) ? `約 ${Math.round(nearest.ageMinutes)} 分鐘前` : "";
+      return {
+        id: `lightning-${town}-${index}`,
+        name: `${town}中心點 ${LIGHTNING_ALERT_RADIUS_KM} 公里內`,
+        county,
+        town,
+        lat: center.lat,
+        lon: center.lon,
+        value: points.length,
+        time: ageText ? `最近雷擊：${ageText}` : "",
+        nearestDistanceKm: nearest.distanceKm,
+        nearestAgeMinutes: nearest.ageMinutes,
+      };
+    })
+    .filter(Boolean)
+    .sort((a, b) => b.value - a.value || a.town.localeCompare(b.town, "zh-Hant"));
+}
+
+function shouldIncludeFeatureForView(feature, view) {
+  const countyFilter = normalizeCountyName(view?.countyFilter || "");
+  if (!countyFilter) return true;
+  return isFeatureInTargetCounty(feature, view, countyFilter);
+}
+
 function isFeatureInTargetCounty(feature, view, targetCounty) {
-  const county = normalizeCountyName(
+  const county = getFeatureCountyName(feature);
+  if (county) return county === targetCounty;
+  if (normalizeCountyName(view?.countyFilter || "") === targetCounty) return true;
+  return String(view?.geojsonUrl || "").includes("changhua");
+}
+
+function getFeatureCountyName(feature) {
+  return normalizeCountyName(
     feature?.properties?.COUNTYNAME ||
       feature?.properties?.CountyName ||
       feature?.properties?.countyName ||
       ""
   );
-  if (county) return county === targetCounty;
-  if (normalizeCountyName(view?.countyFilter || "") === targetCounty) return true;
-  return String(view?.geojsonUrl || "").includes("changhua");
 }
 
 function getTownFeatureName(feature) {
@@ -5141,6 +5193,8 @@ function toggleHealthTimelinePlayback() {
 function isDisasterThreshold(metricKey, value) {
   if (!isValidObservation(value)) return false;
   switch (metricKey) {
+    case "lightning":
+      return value > 0;
     case "temp":
       return value < DISASTER_TEMP_LOW_THRESHOLD || value >= DISASTER_TEMP_HIGH_THRESHOLD;
     case "apparent":
@@ -5193,6 +5247,16 @@ async function loadDisasterData() {
   setRankingStatus(disasterView, "讀取即時資料...");
   try {
     await ensureRankingGeo(disasterView);
+    if (isLightningMetric(metricKey)) {
+      const { lightning } = await fetchLightningData();
+      realtimeState.latestLightning = lightning;
+      const entries = buildLightningDisasterEntries(lightning, disasterView);
+      disasterView.state.entries = entries;
+      await renderRanking(entries, metricKey, disasterView);
+      setRankingDataTimeFromLightning(lightning, disasterView);
+      setRankingStatus(disasterView, entries.length ? `已更新 ${entries.length} 個鄉鎮雷擊預警` : "目前無雷擊預警");
+      return;
+    }
     if (isAirboxMetric(metricKey)) {
       const data = await fetchAirboxPm25Dataset();
       const records = extractAirboxRecords(data);
@@ -5239,6 +5303,10 @@ function isAqiMetric(metricKey) {
 
 function isAirboxMetric(metricKey) {
   return metricKey === "pm25Airbox" || metricKey === "pm10Airbox" || metricKey === "pm1Airbox";
+}
+
+function isLightningMetric(metricKey) {
+  return metricKey === "lightning";
 }
 
 function initRankingMap(view) {
@@ -5908,6 +5976,10 @@ function focusViewOnCounty(view) {
 
 function formatRankingValue(metricKey, value, unit) {
   if (!isValidObservation(value)) return "—";
+  if (metricKey === "lightning") {
+    const suffix = unit ? unit : "";
+    return `${Number(value).toFixed(0)}${suffix}`;
+  }
   const digits =
     metricKey === "humidity" || metricKey === "aqi" || metricKey === "pm25" || metricKey === "pm25Airbox" || metricKey === "pm10Airbox" || metricKey === "pm1Airbox" || metricKey === "pm10" || metricKey === "o3"
       ? 0
@@ -5949,6 +6021,8 @@ function formatHealthWarningText(entry) {
 function formatDisasterLevel(metricKey, value) {
   if (!isValidObservation(value)) return "—";
   switch (metricKey) {
+    case "lightning":
+      return "雷擊預警";
     case "temp":
       return value < DISASTER_TEMP_LOW_THRESHOLD ? "低溫警戒" : value >= DISASTER_TEMP_HIGH_THRESHOLD ? "高溫警戒" : "—";
     case "apparent":
@@ -6006,6 +6080,8 @@ function formatDisasterLevel(metricKey, value) {
 function getMetricColor(metricKey, metric, value) {
   if (!isValidObservation(value)) return "#cbd5f5";
   switch (metric.colorScale) {
+    case "lightning":
+      return lightningColor(value);
     case "temp":
       return gradientColor(value, 6, 36, ["#1b6fd1", "#26b16f", "#e6e447", "#f4a13d", "#e04a3b", "#8a2bd8"]);
     case "wind":
@@ -6272,6 +6348,11 @@ function setRankingDataTimeFromAqi(records, view) {
   view.dom.dataTime.textContent = latest ? latest : "";
 }
 
+function setRankingDataTimeFromLightning(lightning, view) {
+  if (!view?.dom?.dataTime) return;
+  view.dom.dataTime.textContent = lightning?.rangeText || lightning?.latestTime || "";
+}
+
 function setRankingDataTimeFromAirbox(records, view) {
   if (!view?.dom?.dataTime) return;
   const latest = findLatestAirboxTime(records);
@@ -6351,6 +6432,13 @@ function renderRankingColorbar(metricKey, colorbarEl) {
   renderColorbarConfig(buildColorbarConfig(metricKey, metric), colorbarEl);
 }
 
+function lightningColor(value) {
+  if (value >= 5) return "#b91c1c";
+  if (value >= 3) return "#ef4444";
+  if (value >= 2) return "#f97316";
+  return "#facc15";
+}
+
 function renderColorbarConfig(config, colorbarEl) {
   if (!colorbarEl) return;
   if (!config) {
@@ -6428,6 +6516,20 @@ function renderColorbarConfig(config, colorbarEl) {
 }
 
 function buildColorbarConfig(metricKey, metric) {
+  if (metric.colorScale === "lightning") {
+    return {
+      title: `${metric.label} (${metric.unit})`,
+      stops: ["#facc15", "#f97316", "#ef4444", "#b91c1c"],
+      ticks: ["1", "2", "3", "5+"],
+      tickPositions: [0.125, 0.375, 0.625, 0.875],
+      legend: [
+        { label: "1", color: "#facc15" },
+        { label: "2", color: "#f97316" },
+        { label: "3-4", color: "#ef4444" },
+        { label: "5+", color: "#b91c1c" },
+      ],
+    };
+  }
   if (metric.colorScale === "wind") {
     const blocks = 18;
     const windTicks = ["靜風", "1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "13", "14", "15", "16", "17"];
