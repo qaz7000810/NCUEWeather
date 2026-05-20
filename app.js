@@ -52,6 +52,7 @@ const dom = {
   rankingValueHeader: document.getElementById("rankingValueHeader"),
   rankingTable: document.getElementById("rankingTable"),
   rankingDataTime: document.getElementById("rankingDataTime"),
+  rankingDataSource: document.getElementById("rankingDataSource"),
   rankingPager: document.getElementById("rankingPager"),
   rankingMap: document.getElementById("rankingMap"),
   reloadRankingBtn: document.getElementById("reloadRankingBtn"),
@@ -63,6 +64,7 @@ const dom = {
   taiwanRankingValueHeader: document.getElementById("taiwanRankingValueHeader"),
   taiwanRankingTable: document.getElementById("taiwanRankingTable"),
   taiwanRankingDataTime: document.getElementById("taiwanRankingDataTime"),
+  taiwanRankingDataSource: document.getElementById("taiwanRankingDataSource"),
   taiwanRankingPager: document.getElementById("taiwanRankingPager"),
   taiwanRankingMap: document.getElementById("taiwanRankingMap"),
   taiwanReloadRankingBtn: document.getElementById("taiwanReloadRankingBtn"),
@@ -73,6 +75,7 @@ const dom = {
   disasterValueHeader: document.getElementById("disasterValueHeader"),
   disasterTable: document.getElementById("disasterTable"),
   disasterDataTime: document.getElementById("disasterDataTime"),
+  disasterDataSource: document.getElementById("disasterDataSource"),
   disasterPager: document.getElementById("disasterPager"),
   disasterMap: document.getElementById("disasterMap"),
   disasterReloadBtn: document.getElementById("disasterReloadBtn"),
@@ -85,6 +88,7 @@ const dom = {
   healthValueHeader: document.getElementById("healthValueHeader"),
   healthTable: document.getElementById("healthTable"),
   healthDataTime: document.getElementById("healthDataTime"),
+  healthDataSource: document.getElementById("healthDataSource"),
   healthPager: document.getElementById("healthPager"),
   healthMap: document.getElementById("healthMap"),
   healthReloadBtn: document.getElementById("healthReloadBtn"),
@@ -671,6 +675,7 @@ const disasterView = {
     valueHeader: dom.disasterValueHeader,
     table: dom.disasterTable,
     dataTime: dom.disasterDataTime,
+    dataSource: dom.disasterDataSource,
     pager: dom.disasterPager,
     map: dom.disasterMap,
     reloadBtn: dom.disasterReloadBtn,
@@ -698,6 +703,7 @@ const healthView = {
     valueHeader: dom.healthValueHeader,
     table: dom.healthTable,
     dataTime: dom.healthDataTime,
+    dataSource: dom.healthDataSource,
     pager: dom.healthPager,
     map: dom.healthMap,
     reloadBtn: dom.healthReloadBtn,
@@ -728,6 +734,7 @@ const rankingViews = {
       valueHeader: dom.rankingValueHeader,
       table: dom.rankingTable,
       dataTime: dom.rankingDataTime,
+      dataSource: dom.rankingDataSource,
       pager: dom.rankingPager,
       map: dom.rankingMap,
       reloadBtn: dom.reloadRankingBtn,
@@ -753,6 +760,7 @@ const rankingViews = {
       valueHeader: dom.taiwanRankingValueHeader,
       table: dom.taiwanRankingTable,
       dataTime: dom.taiwanRankingDataTime,
+      dataSource: dom.taiwanRankingDataSource,
       pager: dom.taiwanRankingPager,
       map: dom.taiwanRankingMap,
       reloadBtn: dom.taiwanReloadRankingBtn,
@@ -5287,6 +5295,7 @@ async function loadDisasterData() {
       disasterView.state.entries = entries;
       await renderRanking(entries, metricKey, disasterView);
       setRankingDataTimeFromLightning(lightning, disasterView);
+      setRankingDataSource(disasterView, metricKey);
       setRankingStatus(disasterView, entries.length ? `已更新 ${entries.length} 個鄉鎮雷擊預警` : "目前無雷擊預警");
       return;
     }
@@ -5297,6 +5306,7 @@ async function loadDisasterData() {
       disasterView.state.entries = entries;
       await renderRanking(entries, metricKey, disasterView);
       setRankingDataTimeFromAirbox(records, disasterView);
+      setRankingDataSource(disasterView, metricKey);
       setRankingStatus(disasterView, entries.length ? `已更新 ${entries.length} 筆警戒測站` : "目前無符合門檻測站");
       return;
     }
@@ -5307,6 +5317,7 @@ async function loadDisasterData() {
       disasterView.state.entries = entries;
       await renderRanking(entries, metricKey, disasterView);
       setRankingDataTimeFromAqi(records, disasterView);
+      setRankingDataSource(disasterView, metricKey);
       setRankingStatus(disasterView, entries.length ? `已更新 ${entries.length} 筆警戒測站` : "目前無符合門檻測站");
       return;
     }
@@ -5317,6 +5328,7 @@ async function loadDisasterData() {
     disasterView.state.entries = entries;
     await renderRanking(entries, metricKey, disasterView);
     setRankingDataTime(stations, disasterView);
+    setRankingDataSource(disasterView, metricKey);
     setRankingStatus(disasterView, entries.length ? `已更新 ${entries.length} 筆警戒測站` : "目前無符合門檻測站");
   } catch (err) {
     console.error(err);
@@ -5389,6 +5401,7 @@ async function loadRankingData(view) {
       view.state.entries = entries;
       await renderRanking(entries, metricKey, view);
       setRankingDataTimeFromAirbox(records, view);
+      setRankingDataSource(view, metricKey);
       setRankingStatus(view, entries.length ? `已更新 ${entries.length} 筆測站` : "找不到有效測站資料");
       focusViewOnCounty(view);
       return;
@@ -5400,6 +5413,7 @@ async function loadRankingData(view) {
       view.state.entries = entries;
       await renderRanking(entries, metricKey, view);
       setRankingDataTimeFromAqi(records, view);
+      setRankingDataSource(view, metricKey);
       setRankingStatus(view, entries.length ? `已更新 ${entries.length} 筆測站` : "找不到有效測站資料");
       focusViewOnCounty(view);
       return;
@@ -5418,6 +5432,7 @@ async function loadRankingData(view) {
     view.state.entries = entries;
     await renderRanking(entries, metricKey, view);
     setRankingDataTime(timeStations, view);
+    setRankingDataSource(view, metricKey);
     setRankingStatus(view, entries.length ? `已更新 ${entries.length} 筆測站` : "找不到有效測站資料");
     focusViewOnCounty(view);
   } catch (err) {
@@ -6390,6 +6405,36 @@ function setRankingDataTimeFromAirbox(records, view) {
   if (!view?.dom?.dataTime) return;
   const latest = findLatestAirboxTime(records);
   view.dom.dataTime.textContent = latest ? latest : "";
+}
+
+function setRankingDataSource(view, metricKey) {
+  const el = view?.dom?.dataSource;
+  if (!el) return;
+  el.textContent = getRankingDataSourceText(metricKey);
+}
+
+function getRankingDataSourceText(metricKey) {
+  if (isLightningMetric(metricKey)) {
+    return `資料來源：${LIGHTNING_DATASET} 落雷資料。`;
+  }
+  if (metricKey?.startsWith("rain")) {
+    return `資料來源：${RAIN_DATASET} 雨量觀測。`;
+  }
+  if (isAqiMetric(metricKey)) {
+    return "資料來源：環境部 AQI 即時資料。";
+  }
+  if (isAirboxMetric(metricKey)) {
+    return "資料來源：空氣盒子即時資料。";
+  }
+  return `資料來源：${RANKING_DATASET} 即時氣象；缺值輔以 ${NON_RAIN_FALLBACK_DATASET}。`;
+}
+
+function setHealthDataSource(metricKey) {
+  const el = healthView?.dom?.dataSource;
+  if (!el) return;
+  const datasetId = getHealthDatasetId(metricKey);
+  const metric = rankingMetrics[metricKey];
+  el.textContent = `資料來源：${datasetId} ${metric?.label || "健康氣象"}。`;
 }
 
 function findLatestObsTimeFromStations(stations) {
@@ -7391,6 +7436,7 @@ async function loadHealthData() {
         healthView.dom.timeline.value = "0";
       }
       renderHealthTimelineFrame();
+      setHealthDataSource(metricKey);
       updateHealthTimelinePlaybackButton();
     } else {
       const entries = buildHealthEntries(locations, metricKey, windowHours);
@@ -7400,6 +7446,7 @@ async function loadHealthData() {
       await renderRanking(entries, metricKey, healthView);
       const latest = formatObsTime(extractHealthIssueTime(data)) || extractHealthIssueTime(data) || "";
       healthView.dom.dataTime.textContent = latest;
+      setHealthDataSource(metricKey);
       if (healthView.dom.timelineLabel) healthView.dom.timelineLabel.textContent = "--";
       updateHealthTimelinePlaybackButton();
       setRankingStatus(healthView, entries.length ? `已更新 ${entries.length} 筆警示鄉鎮（${windowHours}小時）` : `目前無警示鄉鎮（${windowHours}小時）`);

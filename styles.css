@@ -639,6 +639,15 @@ code {
   color: #111111;
 }
 
+.table-source {
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--border);
+  background: rgba(248, 250, 252, 0.9);
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.4;
+}
+
 table {
   width: 100%;
   border-collapse: collapse;
