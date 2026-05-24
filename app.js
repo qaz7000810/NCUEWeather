@@ -57,6 +57,15 @@ const dom = {
   rankingMap: document.getElementById("rankingMap"),
   reloadRankingBtn: document.getElementById("reloadRankingBtn"),
   rankingColorbar: document.getElementById("rankingColorbar"),
+  changhuaAlertReloadBtn: document.getElementById("changhuaAlertReloadBtn"),
+  changhuaAlertTabStatus: document.getElementById("changhuaAlertTabStatus"),
+  changhuaAlertTypeList: document.getElementById("changhuaAlertTypeList"),
+  changhuaAlertTownList: document.getElementById("changhuaAlertTownList"),
+  changhuaAlertMap: document.getElementById("changhuaAlertMap"),
+  changhuaAlertTableTitle: document.getElementById("changhuaAlertTableTitle"),
+  changhuaAlertTableCount: document.getElementById("changhuaAlertTableCount"),
+  changhuaAlertValueHeader: document.getElementById("changhuaAlertValueHeader"),
+  changhuaAlertTableBody: document.getElementById("changhuaAlertTableBody"),
   taiwanRankingMetric: document.getElementById("taiwanRankingMetric"),
   taiwanRankingStatus: document.getElementById("taiwanRankingStatus"),
   taiwanRankingTableBody: document.getElementById("taiwanRankingTableBody"),
@@ -180,6 +189,18 @@ const rankingState = {
   sortDir: "desc",
   page: 1,
   countyCodeMap: null,
+};
+
+const changhuaAlertState = {
+  map: null,
+  townLayer: null,
+  stationLayer: null,
+  townGeo: null,
+  countyCodeMap: null,
+  alerts: [],
+  selectedType: "",
+  selectedTown: "",
+  sortDir: "desc",
 };
 
 const taiwanRankingState = {
@@ -372,9 +393,11 @@ const CO_LEVELS = [0, 4.5, 9.5, 12.5, 15.5, 30.5];
 const CO_COLORS = [...AQI_COLORS];
 const AIR_QUALITY_LEVEL_LABELS = ["良好", "普通", "注意", "警戒", "嚴重", "危害"];
 const O3_LEVEL_LABELS = ["良好", "注意", "警戒", "嚴重", "危害"];
-const DISASTER_TEMP_LOW_THRESHOLD = 10;
+const DISASTER_TEMP_LOW_THRESHOLD = 12;
 const DISASTER_TEMP_HIGH_THRESHOLD = 34;
-const DISASTER_HUMIDITY_LOW_THRESHOLD = 50;
+const DISASTER_APPARENT_TEMP_LOW_THRESHOLD = 10;
+const DISASTER_APPARENT_TEMP_HIGH_THRESHOLD = 36;
+const DISASTER_HUMIDITY_LOW_THRESHOLD = 45;
 const DISASTER_HUMIDITY_FOG_THRESHOLD = 97;
 const DISASTER_RAIN_THRESHOLD = 40;
 const DISASTER_RAIN_3HR_THRESHOLD = 100;
@@ -778,6 +801,28 @@ const rankingViews = {
   },
 };
 
+const changhuaAlertView = {
+  key: "changhua-alerts",
+  dom: {
+    map: dom.changhuaAlertMap,
+    status: dom.changhuaAlertTabStatus,
+    typeList: dom.changhuaAlertTypeList,
+    townList: dom.changhuaAlertTownList,
+    tableTitle: dom.changhuaAlertTableTitle,
+    tableCount: dom.changhuaAlertTableCount,
+    valueHeader: dom.changhuaAlertValueHeader,
+    tableBody: dom.changhuaAlertTableBody,
+    reloadBtn: dom.changhuaAlertReloadBtn,
+  },
+  state: changhuaAlertState,
+  geojsonUrl: "./data/changhua/changhua_townships.geojson",
+  areaProp: "名稱",
+  areaType: "town",
+  countyFilter: REALTIME_COUNTY,
+  mapCenter: [23.98, 120.46],
+  mapZoom: 10,
+};
+
 document.addEventListener("DOMContentLoaded", init);
 
 async function init() {
@@ -792,6 +837,7 @@ async function init() {
   setStatus("請先選測站或縣市與時間區間，再點重新載入。");
   initRealtimeView();
   initRankingViews();
+  initChanghuaAlertView();
   initDisasterView();
   initHealthView();
   initTownForecastView();
@@ -812,6 +858,12 @@ function bindTabs() {
       if (target === "rankings") {
         requestAnimationFrame(() => {
           ensureRankingMapSized(rankingViews.changhua);
+        });
+      }
+      if (target === "changhua-alerts") {
+        requestAnimationFrame(() => {
+          ensureRankingMapSized(changhuaAlertView);
+          renderChanghuaAlertMap();
         });
       }
       if (target === "taiwan-rankings") {
@@ -1827,10 +1879,10 @@ function buildLocalAlerts() {
 
   if (obs) {
     if (Number.isFinite(obs.temp) && obs.temp >= DISASTER_TEMP_HIGH_THRESHOLD) add(`溫度 ≥ ${DISASTER_TEMP_HIGH_THRESHOLD}（目前溫度偏高）`);
-    if (Number.isFinite(obs.temp) && obs.temp < DISASTER_TEMP_LOW_THRESHOLD) add(`溫度 < ${DISASTER_TEMP_LOW_THRESHOLD}（目前溫度偏低）`);
-    if (Number.isFinite(obs.apparent) && obs.apparent >= DISASTER_TEMP_HIGH_THRESHOLD) add(`體感溫度 ≥ ${DISASTER_TEMP_HIGH_THRESHOLD}（目前體感溫度偏高）`);
-    if (Number.isFinite(obs.apparent) && obs.apparent < DISASTER_TEMP_LOW_THRESHOLD) add(`體感溫度 < ${DISASTER_TEMP_LOW_THRESHOLD}（目前體感溫度偏低）`);
-    if (Number.isFinite(obs.humidity) && obs.humidity < DISASTER_HUMIDITY_LOW_THRESHOLD) add(`濕度 < ${DISASTER_HUMIDITY_LOW_THRESHOLD}%（目前濕度偏低）`);
+    if (Number.isFinite(obs.temp) && obs.temp <= DISASTER_TEMP_LOW_THRESHOLD) add(`溫度 ≤ ${DISASTER_TEMP_LOW_THRESHOLD}（目前溫度偏低）`);
+    if (Number.isFinite(obs.apparent) && obs.apparent >= DISASTER_APPARENT_TEMP_HIGH_THRESHOLD) add(`體感溫度 ≥ ${DISASTER_APPARENT_TEMP_HIGH_THRESHOLD}（目前體感溫度偏高）`);
+    if (Number.isFinite(obs.apparent) && obs.apparent <= DISASTER_APPARENT_TEMP_LOW_THRESHOLD) add(`體感溫度 ≤ ${DISASTER_APPARENT_TEMP_LOW_THRESHOLD}（目前體感溫度偏低）`);
+    if (Number.isFinite(obs.humidity) && obs.humidity <= DISASTER_HUMIDITY_LOW_THRESHOLD) add(`濕度 ≤ ${DISASTER_HUMIDITY_LOW_THRESHOLD}%（目前濕度偏低）`);
     if (Number.isFinite(obs.humidity) && obs.humidity > DISASTER_HUMIDITY_FOG_THRESHOLD) add(`濕度 > ${DISASTER_HUMIDITY_FOG_THRESHOLD}%（可能起霧或下雨）`);
     const windLevel = windToBeaufortLevel(obs.windSpeed);
     const gustLevel = windToBeaufortLevel(obs.gust);
@@ -1961,14 +2013,14 @@ function getFeatureCountyName(feature) {
 }
 
 function getTownFeatureName(feature) {
-  return String(
+  return normalizeIndustryTownName(String(
     feature?.properties?.TOWNNAME ||
       feature?.properties?.TownName ||
       feature?.properties?.townName ||
       feature?.properties?.[TOWN_NAME_FIELD] ||
       feature?.properties?.name ||
       ""
-  ).trim();
+  ).trim());
 }
 
 function renderAlerts(list) {
@@ -2742,6 +2794,23 @@ function initRankingView(view) {
 
 function initRankingViews() {
   Object.values(rankingViews).forEach((view) => initRankingView(view));
+}
+
+function initChanghuaAlertView() {
+  if (!changhuaAlertView.dom.map) return;
+  initRankingMap(changhuaAlertView);
+  changhuaAlertView.dom.reloadBtn?.addEventListener("click", loadChanghuaAlertTab);
+  changhuaAlertView.dom.valueHeader?.addEventListener("click", () => {
+    changhuaAlertView.state.sortDir = changhuaAlertView.state.sortDir === "desc" ? "asc" : "desc";
+    renderChanghuaAlertTable();
+  });
+  changhuaAlertView.dom.valueHeader?.addEventListener("keydown", (event) => {
+    if (event.key !== "Enter" && event.key !== " ") return;
+    event.preventDefault();
+    changhuaAlertView.state.sortDir = changhuaAlertView.state.sortDir === "desc" ? "asc" : "desc";
+    renderChanghuaAlertTable();
+  });
+  loadChanghuaAlertTab();
 }
 
 function bindRankingViewEvents(view) {
@@ -5237,11 +5306,11 @@ function isDisasterThreshold(metricKey, value) {
     case "lightning":
       return value > 0;
     case "temp":
-      return value < DISASTER_TEMP_LOW_THRESHOLD || value >= DISASTER_TEMP_HIGH_THRESHOLD;
+      return value <= DISASTER_TEMP_LOW_THRESHOLD || value >= DISASTER_TEMP_HIGH_THRESHOLD;
     case "apparent":
-      return value < DISASTER_TEMP_LOW_THRESHOLD || value >= DISASTER_TEMP_HIGH_THRESHOLD;
+      return value <= DISASTER_APPARENT_TEMP_LOW_THRESHOLD || value >= DISASTER_APPARENT_TEMP_HIGH_THRESHOLD;
     case "humidity":
-      return value < DISASTER_HUMIDITY_LOW_THRESHOLD || value > DISASTER_HUMIDITY_FOG_THRESHOLD;
+      return value <= DISASTER_HUMIDITY_LOW_THRESHOLD || value > DISASTER_HUMIDITY_FOG_THRESHOLD;
     case "wind":
       return windToBeaufortLevel(value) >= 6;
     case "gust":
@@ -5280,6 +5349,25 @@ function buildDisasterEntries(stations, metricKey, view) {
     baseEntries = buildRankingEntries(stations, metricKey, view);
   }
   return baseEntries.filter((entry) => isDisasterThreshold(metricKey, entry.value));
+}
+
+function formatAlertEntryValue(metricKey, value) {
+  const metric = rankingMetrics[metricKey] || {};
+  return formatRankingValue(metricKey, value, metric.unit || "");
+}
+
+function normalizeAlertType(metricKey, rawType) {
+  let type = rawType || "預警";
+  if (metricKey === "apparent") {
+    if (type.includes("高溫")) type = "體感高溫警戒";
+    if (type.includes("低溫")) type = "體感低溫警戒";
+  }
+  if (metricKey === "aqi" && /(不良|偏高|過高|嚴重|危害)/.test(type)) return "空氣品質(AQI)";
+  if (metricKey === "pm1Airbox" && type.includes("細懸浮微粒")) return "PM1";
+  if ((metricKey === "pm25" || metricKey === "pm25Airbox") && /(偏高|過高|嚴重|危害)/.test(type)) return "PM2.5";
+  if ((metricKey === "pm10" || metricKey === "pm10Airbox") && /(偏高|過高|嚴重|危害)/.test(type)) return "PM10";
+  if (metricKey === "o3" && /(偏高|過高|嚴重|危害)/.test(type)) return "O3";
+  return type;
 }
 
 async function loadDisasterData() {
@@ -6072,11 +6160,11 @@ function formatDisasterLevel(metricKey, value) {
     case "lightning":
       return "雷擊預警";
     case "temp":
-      return value < DISASTER_TEMP_LOW_THRESHOLD ? "低溫警戒" : value >= DISASTER_TEMP_HIGH_THRESHOLD ? "高溫警戒" : "—";
+      return value <= DISASTER_TEMP_LOW_THRESHOLD ? "低溫警戒" : value >= DISASTER_TEMP_HIGH_THRESHOLD ? "高溫警戒" : "—";
     case "apparent":
-      return value < DISASTER_TEMP_LOW_THRESHOLD ? "低溫警戒" : value >= DISASTER_TEMP_HIGH_THRESHOLD ? "高溫警戒" : "—";
+      return value <= DISASTER_APPARENT_TEMP_LOW_THRESHOLD ? "低溫警戒" : value >= DISASTER_APPARENT_TEMP_HIGH_THRESHOLD ? "高溫警戒" : "—";
     case "humidity":
-      return value < DISASTER_HUMIDITY_LOW_THRESHOLD ? "乾燥警戒" : value > DISASTER_HUMIDITY_FOG_THRESHOLD ? "雨霧警戒" : "—";
+      return value <= DISASTER_HUMIDITY_LOW_THRESHOLD ? "乾燥警戒" : value > DISASTER_HUMIDITY_FOG_THRESHOLD ? "雨霧警戒" : "—";
     case "wind":
       return windToBeaufortLevel(value) >= 6 ? "強風警戒" : "—";
     case "gust":
@@ -6902,6 +6990,8 @@ function buildRainTownAlerts(entries) {
         value: rain,
         station: entry.name || "",
         time: entry.time || "",
+        lat: entry.lat,
+        lon: entry.lon,
       });
     }
   });
@@ -7696,6 +7786,333 @@ function formatAlertDesc(desc, raw) {
 
 let isChanghuaAlertLoading = false;
 
+async function buildChanghuaAlertDataset(view) {
+  const [cwaStations, rainData, aqiData, lightningResult] = await Promise.all([
+    fetchMergedRealtimeStations().catch(() => []),
+    fetchCwaDataset(RAIN_DATASET).catch(() => null),
+    fetchAqiDataset().catch(() => null),
+    fetchLightningData().catch(() => null),
+  ]);
+
+  const rainStations = rainData ? extractCwaStations(rainData) : [];
+  const aqiRecords = aqiData ? extractAqiRecords(aqiData) : [];
+  const lightning = lightningResult?.lightning || realtimeState.latestLightning;
+  if (lightningResult?.lightning) realtimeState.latestLightning = lightningResult.lightning;
+
+  await ensureRankingGeo(view);
+  const mockView = {
+    countyFilter: REALTIME_COUNTY,
+    state: {
+      townGeo: view.state.townGeo,
+      countyCodeMap: view.state.countyCodeMap || disasterView.state.countyCodeMap,
+    },
+  };
+
+  const items = [];
+  const addItem = (type, town, options = {}) => {
+    const safeTown = String(town || "").trim();
+    if (!type || !safeTown) return;
+    items.push({
+      type,
+      town: safeTown,
+      name: options.name || options.station || "",
+      valueText: options.valueText || "",
+      time: options.time || "",
+      metricKey: options.metricKey || "",
+      value: options.value,
+      lat: options.lat,
+      lon: options.lon,
+    });
+  };
+
+  buildRainTownAlerts(buildRankingEntries(rainStations, "rain", mockView)).forEach((item) => {
+    addItem("降雨提醒 (過去一小時)", item.town, {
+      name: item.station || "",
+      valueText: formatAlertEntryValue("rain", item.value),
+      time: item.time || "",
+      metricKey: "rain",
+      value: item.value,
+      lat: item.lat,
+      lon: item.lon,
+    });
+  });
+
+  const processEntries = (stations, metrics) => {
+    metrics.forEach((metricKey) => {
+      buildDisasterEntries(stations, metricKey, mockView).forEach((entry) => {
+        const rawType = formatDisasterLevel(metricKey, entry.value);
+        if (rawType === "—") return;
+        const type = normalizeAlertType(metricKey, rawType);
+        addItem(type, entry.town || entry.name, {
+          name: entry.name || "",
+          valueText: formatAlertEntryValue(metricKey, entry.value),
+          time: entry.time || "",
+          metricKey,
+          value: entry.value,
+          lat: entry.lat,
+          lon: entry.lon,
+        });
+      });
+    });
+  };
+
+  processEntries(cwaStations, ["temp", "apparent", "humidity", "wind", "gust"]);
+  processEntries(rainStations, ["rain", "rain3hr", "rain24hr"]);
+  processEntries(aqiRecords, ["aqi", "pm25", "pm10", "o3"]);
+
+  buildTownLightningAlerts(lightning, view).forEach((item) => {
+    addItem("雷擊預警", item.town, {
+      name: `${item.town}中心點 ${LIGHTNING_ALERT_RADIUS_KM} 公里內`,
+      valueText: `${item.count}筆`,
+      metricKey: "lightning",
+      value: item.count,
+    });
+  });
+
+  return items;
+}
+
+function groupAlertItems(items) {
+  const grouped = new Map();
+  (items || []).forEach((item) => {
+    if (!grouped.has(item.type)) grouped.set(item.type, new Set());
+    grouped.get(item.type).add(item.town);
+  });
+  return grouped;
+}
+
+async function loadChanghuaAlertTab() {
+  const view = changhuaAlertView;
+  if (!view.dom.status) return;
+  setRankingStatus(view, "讀取彰化縣即時預警...");
+  try {
+    const items = await buildChanghuaAlertDataset(view);
+    view.state.alerts = items;
+    const grouped = groupAlertItems(items);
+    const firstType = grouped.keys().next().value || "";
+    if (!grouped.has(view.state.selectedType)) {
+      view.state.selectedType = firstType;
+      view.state.selectedTown = "";
+    }
+    renderChanghuaAlertTab();
+    setRankingStatus(view, items.length ? `已更新 ${items.length} 筆預警觀測資料` : "目前無即時預警");
+  } catch (err) {
+    console.error("彰化即時預警載入失敗:", err);
+    setRankingStatus(view, err.message || "彰化即時預警載入失敗");
+  }
+}
+
+function getSelectedChanghuaAlertItems() {
+  const { alerts, selectedType, selectedTown } = changhuaAlertState;
+  return (alerts || []).filter((item) => {
+    if (selectedType && item.type !== selectedType) return false;
+    if (selectedTown && item.town !== selectedTown) return false;
+    return true;
+  });
+}
+
+function getChanghuaAlertValueHeaderLabel(items) {
+  const metricKey = items.find((item) => item.metricKey)?.metricKey || "";
+  switch (metricKey) {
+    case "temp":
+    case "apparent":
+      return "溫度";
+    case "humidity":
+      return "濕度";
+    case "wind":
+      return "風速";
+    case "gust":
+      return "陣風";
+    case "rain":
+    case "rain3hr":
+    case "rain24hr":
+      return "雨量";
+    case "lightning":
+      return "雷擊數";
+    case "aqi":
+      return "AQI";
+    case "pm25":
+    case "pm25Airbox":
+      return "PM2.5";
+    case "pm10":
+    case "pm10Airbox":
+      return "PM10";
+    case "o3":
+      return "O3";
+    default:
+      return "指標";
+  }
+}
+
+function sortChanghuaAlertItems(items, sortDir) {
+  const direction = sortDir === "asc" ? 1 : -1;
+  return [...items].sort((a, b) => {
+    const av = Number(a.value);
+    const bv = Number(b.value);
+    const aValid = Number.isFinite(av);
+    const bValid = Number.isFinite(bv);
+    if (aValid && bValid && av !== bv) return (av - bv) * direction;
+    if (aValid !== bValid) return aValid ? -1 : 1;
+    return String(a.town || "").localeCompare(String(b.town || ""), "zh-Hant");
+  });
+}
+
+function renderChanghuaAlertTab() {
+  renderChanghuaAlertFilters();
+  renderChanghuaAlertMap();
+  renderChanghuaAlertTable();
+}
+
+function renderChanghuaAlertFilters() {
+  const view = changhuaAlertView;
+  const grouped = groupAlertItems(view.state.alerts);
+  if (view.dom.typeList) {
+    if (!grouped.size) {
+      view.dom.typeList.innerHTML = `<span class="hint">目前無即時預警</span>`;
+    } else {
+      view.dom.typeList.innerHTML = Array.from(grouped.entries())
+        .map(([type, towns]) => {
+          const active = type === view.state.selectedType ? " active" : "";
+          return `<button class="alert-filter-btn${active}" type="button" data-alert-type="${sanitizeText(type)}">${sanitizeText(type)}：${towns.size}</button>`;
+        })
+        .join("");
+      view.dom.typeList.querySelectorAll("[data-alert-type]").forEach((btn) => {
+        btn.addEventListener("click", () => {
+          view.state.selectedType = btn.dataset.alertType || "";
+          view.state.selectedTown = "";
+          renderChanghuaAlertTab();
+        });
+      });
+    }
+  }
+
+  const towns = view.state.selectedType && grouped.has(view.state.selectedType)
+    ? Array.from(grouped.get(view.state.selectedType)).sort((a, b) => a.localeCompare(b, "zh-Hant"))
+    : [];
+  if (view.dom.townList) {
+    view.dom.townList.innerHTML = towns.length
+      ? [`<button class="alert-town-btn${view.state.selectedTown ? "" : " active"}" type="button" data-alert-town="">全部鄉鎮</button>`]
+          .concat(towns.map((town) => `<button class="alert-town-btn${town === view.state.selectedTown ? " active" : ""}" type="button" data-alert-town="${sanitizeText(town)}">${sanitizeText(town)}</button>`))
+          .join("")
+      : "";
+    view.dom.townList.querySelectorAll("[data-alert-town]").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        view.state.selectedTown = btn.dataset.alertTown || "";
+        renderChanghuaAlertTab();
+      });
+    });
+  }
+}
+
+function renderChanghuaAlertMap() {
+  const view = changhuaAlertView;
+  const map = view.state.map;
+  if (!map || !view.state.townGeo) return;
+  if (view.state.townLayer) {
+    map.removeLayer(view.state.townLayer);
+    view.state.townLayer = null;
+  }
+  if (view.state.stationLayer) {
+    map.removeLayer(view.state.stationLayer);
+    view.state.stationLayer = null;
+  }
+
+  const items = getSelectedChanghuaAlertItems();
+  const townSet = new Set(items.map((item) => item.town));
+  const bounds = L.latLngBounds();
+  view.state.townLayer = L.geoJSON(view.state.townGeo, {
+    style: (feature) => {
+      const town = getTownFeatureName(feature);
+      const isAlertTown = townSet.has(town);
+      const isSelectedTown = view.state.selectedTown && town === view.state.selectedTown;
+      return {
+        color: isAlertTown ? "#b91c1c" : "#64748b",
+        weight: isAlertTown ? 2 : 1,
+        fillColor: isAlertTown ? "#ef4444" : "transparent",
+        fillOpacity: isSelectedTown ? 0.48 : isAlertTown ? 0.28 : 0,
+      };
+    },
+    onEachFeature: (feature, layer) => {
+      const town = getTownFeatureName(feature);
+      const isAlertTown = townSet.has(town);
+      layer.options.className = "alert-town-feature";
+      layer.bindTooltip(`<strong>${sanitizeText(town)}</strong><br>${isAlertTown ? sanitizeText(view.state.selectedType || "即時預警") : "無此警戒"}`, { sticky: true, className: "town-tooltip" });
+      layer.on("click", () => {
+        if (!isAlertTown) return;
+        view.state.selectedTown = town;
+        renderChanghuaAlertTab();
+      });
+      const b = layer.getBounds?.();
+      if (isAlertTown && b?.isValid()) bounds.extend(b);
+    },
+  }).addTo(map);
+
+  view.state.stationLayer = L.layerGroup().addTo(map);
+  items.forEach((item) => {
+    const lat = Number(item.lat);
+    const lon = Number(item.lon);
+    if (!Number.isFinite(lat) || !Number.isFinite(lon)) return;
+    const metric = rankingMetrics[item.metricKey] || rankingMetrics.temp;
+    const fill = getMetricColor(item.metricKey || "temp", metric, item.value);
+    const marker = L.circleMarker([lat, lon], {
+      radius: 6,
+      color: "#111",
+      weight: 1,
+      fillColor: fill,
+      fillOpacity: 0.92,
+    });
+    marker.bindPopup(
+      `<strong>${sanitizeText(item.name || "測站")}</strong><br>` +
+        `${sanitizeText(item.town || "—")}<br>` +
+        `${sanitizeText(item.type || "即時預警")}<br>` +
+        `${sanitizeText(item.valueText || "—")}<br>` +
+        `${sanitizeText(item.time || "")}`
+    );
+    marker.on("click", () => {
+      if (!item.town) return;
+      view.state.selectedTown = item.town;
+      renderChanghuaAlertTab();
+    });
+    marker.addTo(view.state.stationLayer);
+    bounds.extend([lat, lon]);
+  });
+
+  if (bounds.isValid()) {
+    map.fitBounds(bounds, { padding: [24, 24], maxZoom: 12 });
+  } else {
+    map.setView(view.mapCenter, view.mapZoom);
+  }
+}
+
+function renderChanghuaAlertTable() {
+  const view = changhuaAlertView;
+  const items = getSelectedChanghuaAlertItems();
+  const sortedItems = sortChanghuaAlertItems(items, view.state.sortDir);
+  if (view.dom.tableTitle) {
+    const townPart = view.state.selectedTown ? `｜${view.state.selectedTown}` : "";
+    view.dom.tableTitle.textContent = `${view.state.selectedType || "彰化縣即時預警"}${townPart}`;
+  }
+  if (view.dom.tableCount) view.dom.tableCount.textContent = items.length ? `${items.length} 筆` : "";
+  if (view.dom.valueHeader) {
+    const label = getChanghuaAlertValueHeaderLabel(items);
+    const arrow = view.state.sortDir === "asc" ? "▲" : "▼";
+    view.dom.valueHeader.textContent = `${label} ${arrow}`;
+    view.dom.valueHeader.title = view.state.sortDir === "desc" ? "目前由高到低排序，點擊改為由低到高" : "目前由低到高排序，點擊改為由高到低";
+    view.dom.valueHeader.setAttribute("aria-sort", view.state.sortDir === "desc" ? "descending" : "ascending");
+  }
+  if (!view.dom.tableBody) return;
+  view.dom.tableBody.innerHTML = items.length
+    ? sortedItems
+        .map((item) => `<tr>
+          <td>${sanitizeText(item.town)}</td>
+          <td>${sanitizeText(item.name || item.type)}</td>
+          <td>${sanitizeText(item.valueText || "—")}</td>
+          <td>${sanitizeText(item.time || "—")}</td>
+        </tr>`)
+        .join("")
+    : `<tr><td colspan="4">目前沒有符合條件的預警資料</td></tr>`;
+}
+
 async function loadAndDisplayChanghuaAlerts(view) {
   const alertContent = document.getElementById("changhuaAlertContent");
   if (!alertContent) return;
@@ -7706,81 +8123,7 @@ async function loadAndDisplayChanghuaAlerts(view) {
   alertContent.innerHTML = `<span style="color: #666;">載入預警資料中...</span>`;
 
   try {
-    const [cwaStations, rainData, aqiData, lightningResult] = await Promise.all([
-      fetchMergedRealtimeStations().catch(() => []),
-      fetchCwaDataset(RAIN_DATASET).catch(() => null),
-      fetchAqiDataset().catch(() => null),
-      fetchLightningData().catch(() => null)
-    ]);
-
-    const rainStations = rainData ? extractCwaStations(rainData) : [];
-    const aqiRecords = aqiData ? extractAqiRecords(aqiData) : [];
-    const lightning = lightningResult?.lightning || realtimeState.latestLightning;
-    if (lightningResult?.lightning) realtimeState.latestLightning = lightningResult.lightning;
-
-    await ensureRankingGeo(view);
-    const mockView = {
-      countyFilter: "彰化縣",
-      state: { countyCodeMap: view.state.countyCodeMap || disasterView.state.countyCodeMap }
-    };
-
-    const alertsMap = new Map();
-    const addAlert = (type, town) => {
-      if (!alertsMap.has(type)) alertsMap.set(type, new Set());
-      if (town) alertsMap.get(type).add(town);
-    };
-
-    const rainTownAlerts = buildRainTownAlerts(buildRankingEntries(rainStations, "rain", mockView));
-    rainTownAlerts.forEach((item) => {
-      addAlert("降雨提醒 (過去一小時)", item.town);
-    });
-
-    const processEntries = (stations, metrics) => {
-      metrics.forEach(mk => {
-        const entries = buildDisasterEntries(stations, mk, mockView);
-        entries.forEach(e => {
-          let type = formatDisasterLevel(mk, e.value);
-          if (mk === "apparent") {
-            if (type.includes("高溫")) type = "體感高溫警戒";
-            if (type.includes("低溫")) type = "體感低溫警戒";
-          }
-          if (mk === "aqi") {
-            if (type.includes("不良") || type.includes("偏高") || type.includes("過高")|| type.includes("嚴重")|| type.includes("危害")) {
-              type = "空氣品質(AQI)"
-            }
-          }
-          if (mk === "pm1Airbox") {
-            if (type.includes("細懸浮微粒")) {
-              type = "PM1"
-            }
-          }
-          if (mk === "pm25" || mk === "pm25Airbox") {
-            if (type.includes("偏高") || type.includes("過高")|| type.includes("嚴重")|| type.includes("危害")) {
-              type = "PM2.5"
-            }
-          }
-          if (mk === "pm10" || mk === "pm10Airbox") {
-            if (type.includes("偏高") || type.includes("過高")|| type.includes("嚴重")|| type.includes("危害")) {
-              type = "PM10"
-            }
-          }
-          if (mk === "o3") {
-            if (type.includes("偏高") || type.includes("過高")|| type.includes("嚴重")|| type.includes("危害")) {
-              type = "O3"
-            }
-          }
-          if (type !== "—") addAlert(type, e.town || e.name);
-        });
-      });
-    };
-
-    processEntries(cwaStations, ["temp", "apparent", "humidity", "wind", "gust"]);
-    processEntries(rainStations, ["rain", "rain3hr", "rain24hr"]);
-    processEntries(aqiRecords, ["aqi", "pm25", "pm10", "o3"]);
-
-    buildTownLightningAlerts(lightning, view).forEach((item) => {
-      addAlert("雷擊預警", item.town);
-    });
+    const alertsMap = groupAlertItems(await buildChanghuaAlertDataset(view));
 
     if (alertsMap.size === 0) {
       alertContent.innerHTML = `<span style="color: #333;">目前無即時預警</span>`;

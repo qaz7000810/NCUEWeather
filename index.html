@@ -36,6 +36,7 @@
   <nav class="tabs">
     <button class="tab-btn active" data-tab-target="realtime">即時天氣</button>
     <button class="tab-btn" data-tab-target="rankings">彰化氣象</button>
+    <button class="tab-btn" data-tab-target="changhua-alerts">即時預警</button>
     <button class="tab-btn" data-tab-target="taiwan-rankings">台灣氣象</button>
     <button class="tab-btn" data-tab-target="disaster">防災氣象</button>
     <button class="tab-btn" data-tab-target="health">健康氣象</button>
@@ -270,13 +271,6 @@
   </main>
 
   <main class="tab-panel" data-tab="rankings">
-    <section class="panel" id="changhuaAlertSection" style="margin-bottom: 1rem;">
-      <div class="alert-area" id="changhuaAlertArea" style="padding: 1rem; background: var(--bg-card, #fff); border-radius: var(--radius-md, 8px); box-shadow: var(--shadow-sm, 0 1px 3px rgba(0,0,0,0.1)); border-left: 4px solid #f44336;">
-        <h3 style="margin-top: 0; margin-bottom: 0.5rem; font-size: 1.1rem; color: #d32f2f;">即時預警</h3>
-        <div id="changhuaAlertContent">目前無即時預警</div>
-      </div>
-    </section>    
-    
     <section class="panel">
       <div class="controls">
         <div class="control">
@@ -321,6 +315,48 @@
             <tbody id="rankingTableBody"></tbody>
           </table>
           <div class="table-footer" id="rankingPager"></div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <main class="tab-panel" data-tab="changhua-alerts">
+    <section class="panel">
+      <div class="controls">
+        <div class="control buttons">
+          <button id="changhuaAlertReloadBtn" class="primary">更新預警</button>
+        </div>
+        <div class="control">
+          <label>狀態</label>
+          <div class="status" id="changhuaAlertTabStatus">尚未載入</div>
+        </div>
+      </div>
+      <div id="changhuaAlertTypeList" class="alert-filter-list"></div>
+      <div id="changhuaAlertTownList" class="alert-town-list"></div>
+    </section>
+
+    <section class="panel ranking-layout">
+      <div class="ranking-map">
+        <div id="changhuaAlertMap" class="map-shell"></div>
+        <div class="hint">點選警戒類型後，地圖只顯示該警戒涉及的彰化縣鄉鎮；點擊鄉鎮可篩選右側觀測資料。</div>
+      </div>
+      <div class="ranking-table">
+        <div class="table-card">
+          <div class="table-header">
+            <span id="changhuaAlertTableTitle">彰化縣即時預警觀測資料</span>
+            <span id="changhuaAlertTableCount" class="table-header-time"></span>
+          </div>
+          <table id="changhuaAlertTable">
+            <thead>
+              <tr>
+                <th>鄉鎮</th>
+                <th>測站/來源</th>
+                <th id="changhuaAlertValueHeader" class="sortable-header" role="button" tabindex="0">數值</th>
+                <th>時間</th>
+              </tr>
+            </thead>
+            <tbody id="changhuaAlertTableBody"></tbody>
+          </table>
         </div>
       </div>
     </section>
