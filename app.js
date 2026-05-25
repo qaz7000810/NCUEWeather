@@ -2861,9 +2861,9 @@ function bindRankingViewEvents(view) {
     loadRankingData(view);
   });
   view.dom.valueHeader?.addEventListener("click", () => {
-    view.state.sortDir = view.state.sortDir === "desc" ? "asc" : "desc";
-    view.state.page = 1;
-    renderRankingTable(view.state.entries, view.dom.metric.value, view);
+    const metricKey = view.dom.metric.value;
+    if (isDailyTempDiffMetric(metricKey)) return;
+    toggleRankingSort(view, metricKey);
   });
 }
 
@@ -2890,6 +2890,17 @@ function buildDisasterMetricOptions(selectEl) {
     .filter(Boolean);
   selectEl.innerHTML = options.join("");
   selectEl.value = "temp";
+}
+
+function isDailyTempDiffMetric(metricKey) {
+  return metricKey === "tempHighLow" || metricKey === "dailyTempDiff";
+}
+
+function toggleRankingSort(view, metricKey) {
+  if (!view) return;
+  view.state.sortDir = view.state.sortDir === "desc" ? "asc" : "desc";
+  view.state.page = 1;
+  renderRankingTable(view.state.entries, metricKey, view);
 }
 
 function resolveChanghuaCandidateUrls(rawPath) {
@@ -3026,9 +3037,9 @@ function bindDisasterViewEvents() {
     loadDisasterData();
   });
   disasterView.dom.valueHeader?.addEventListener("click", () => {
-    disasterView.state.sortDir = disasterView.state.sortDir === "desc" ? "asc" : "desc";
-    disasterView.state.page = 1;
-    renderRankingTable(disasterView.state.entries, disasterView.dom.metric.value, disasterView);
+    const metricKey = disasterView.dom.metric.value;
+    if (isDailyTempDiffMetric(metricKey)) return;
+    toggleRankingSort(disasterView, metricKey);
   });
 }
 
@@ -5972,8 +5983,26 @@ function renderRankingTable(entries, metricKey, view) {
     view.dom.table.classList.toggle("ranking-table--temp-diff", metricKey === "dailyTempDiff" || metricKey === "tempHighLow");
     const headerCells = view.dom.table.querySelectorAll("thead th");
     const tempHeaderIndex = view.showTownColumn ? 5 : 4;
-    if (headerCells[tempHeaderIndex]) {
-      headerCells[tempHeaderIndex].textContent = metricKey === "dailyTempDiff" || metricKey === "tempHighLow" ? "溫差" : "溫度";
+    const tempHeader = headerCells[tempHeaderIndex];
+    if (tempHeader) {
+      const isTempDiffMetric = isDailyTempDiffMetric(metricKey);
+      tempHeader.textContent = isTempDiffMetric ? "溫差" : "溫度";
+      tempHeader.classList.toggle("sortable-header", isTempDiffMetric);
+      tempHeader.tabIndex = isTempDiffMetric ? 0 : -1;
+      tempHeader.setAttribute("role", isTempDiffMetric ? "button" : "columnheader");
+      tempHeader.title = isTempDiffMetric
+        ? view.state.sortDir === "desc"
+          ? "目前由溫差大到小排序，點擊改為由小到大"
+          : "目前由溫差小到大排序，點擊改為由大到小"
+        : "";
+      tempHeader.onclick = isTempDiffMetric ? () => toggleRankingSort(view, metricKey) : null;
+      tempHeader.onkeydown = isTempDiffMetric
+        ? (event) => {
+            if (event.key !== "Enter" && event.key !== " ") return;
+            event.preventDefault();
+            toggleRankingSort(view, metricKey);
+          }
+        : null;
     }
   }
   if (view.dom.valueHeader) {
