@@ -525,6 +525,16 @@ const rankingMetrics = {
     direction: null,
     colorScale: "temp",
   },
+  tempHighLow: {
+    label: "日最高最低溫",
+    unit: "C",
+    value: (station) => {
+      const { low, high } = readDailyTemperatureExtremes(station);
+      return Number.isFinite(low) && Number.isFinite(high) ? high : null;
+    },
+    direction: null,
+    colorScale: "temp",
+  },
   apparent: {
     label: "體感溫度",
     unit: "°C",
@@ -597,6 +607,16 @@ const rankingMetrics = {
     value: () => null,
     direction: null,
     colorScale: "lightning",
+  },
+  dailyTempDiff: {
+    label: "日最高最低溫",
+    unit: "C",
+    value: (station) => {
+      const { low, high } = readDailyTemperatureExtremes(station);
+      return Number.isFinite(low) && Number.isFinite(high) ? high - low : null;
+    },
+    direction: null,
+    colorScale: "tempDiff",
   },
   thi: {
     label: "溫濕度指數 (THI)",
@@ -682,10 +702,10 @@ const rankingMetrics = {
   },
 };
 
-const rankingMetricKeys = ["temp", "apparent", "humidity", "wind", "gust", "rain", "rain3hr", "rain24hr", "thi", "aqi", "pm25", "pm10", "o3", "pm1Airbox", "pm25Airbox", "pm10Airbox"];
+const rankingMetricKeys = ["temp", "apparent", "tempHighLow", "humidity", "wind", "gust", "rain", "rain3hr", "rain24hr", "thi", "aqi", "pm25", "pm10", "o3", "pm1Airbox", "pm25Airbox", "pm10Airbox"];
 const taiwanMetricKeys = [...rankingMetricKeys];
 
-const disasterMetricKeys = ["temp", "apparent", "humidity", "wind", "gust", "rain", "rain3hr", "rain24hr", "lightning", "aqi", "pm25", "pm10", "o3", "pm1Airbox", "pm25Airbox", "pm10Airbox"];
+const disasterMetricKeys = ["temp", "apparent", "dailyTempDiff", "humidity", "wind", "gust", "rain", "rain3hr", "rain24hr", "lightning", "aqi", "pm25", "pm10", "o3", "pm1Airbox", "pm25Airbox", "pm10Airbox"];
 const healthMetricKeys = ["coldInjury", "tempDiff", "heatInjury"];
 
 const disasterView = {
@@ -2333,6 +2353,20 @@ function readWeatherNested(station, path) {
     return cursor.ElementValue ?? cursor.Value ?? cursor.value ?? cursor.elementValue ?? null;
   }
   return cursor;
+}
+
+function readDailyTemperatureExtremes(station) {
+  const low =
+    normalizeObservationNumber(readWeatherNested(station, "DailyExtreme.DailyLow.TemperatureInfo.AirTemperature"), { min: -80, max: 80 }) ??
+    normalizeObservationNumber(readWeatherNested(station, "DailyLow.TemperatureInfo.AirTemperature"), { min: -80, max: 80 }) ??
+    normalizeObservationNumber(readWeatherElement(station, "DailyLowTemperature"), { min: -80, max: 80 }) ??
+    normalizeObservationNumber(readWeatherElement(station, "MinTemperature"), { min: -80, max: 80 });
+  const high =
+    normalizeObservationNumber(readWeatherNested(station, "DailyExtreme.DailyHigh.TemperatureInfo.AirTemperature"), { min: -80, max: 80 }) ??
+    normalizeObservationNumber(readWeatherNested(station, "DailyHigh.TemperatureInfo.AirTemperature"), { min: -80, max: 80 }) ??
+    normalizeObservationNumber(readWeatherElement(station, "DailyHighTemperature"), { min: -80, max: 80 }) ??
+    normalizeObservationNumber(readWeatherElement(station, "MaxTemperature"), { min: -80, max: 80 });
+  return { low, high };
 }
 
 function readRainElement(station, key) {
@@ -5307,6 +5341,8 @@ function isDisasterThreshold(metricKey, value) {
       return value > 0;
     case "temp":
       return value <= DISASTER_TEMP_LOW_THRESHOLD || value >= DISASTER_TEMP_HIGH_THRESHOLD;
+    case "dailyTempDiff":
+      return value > 10;
     case "apparent":
       return value <= DISASTER_APPARENT_TEMP_LOW_THRESHOLD || value >= DISASTER_APPARENT_TEMP_HIGH_THRESHOLD;
     case "humidity":
@@ -5551,6 +5587,11 @@ function buildRankingEntries(stations, metricKey, view) {
       station?.obsTime?.dateTime ||
       "";
     const stationName = getStationName(station);
+    const dailyTemps = readDailyTemperatureExtremes(station);
+    const dailyTempDiff =
+      Number.isFinite(dailyTemps.low) && Number.isFinite(dailyTemps.high)
+        ? dailyTemps.high - dailyTemps.low
+        : null;
     entries.push({
       id: station?.StationId || station?.stationId || station?.StationID || station?.StationNo || "",
       name: stationName,
@@ -5559,8 +5600,11 @@ function buildRankingEntries(stations, metricKey, view) {
       lat: coords.lat,
       lon: coords.lon,
       value,
+      sortValue: metricKey === "tempHighLow" ? dailyTempDiff : value,
       direction: metric.direction ? metric.direction(station) : null,
       temperature: normalizeObservationNumber(readWeatherElement(station, "AirTemperature"), { min: -80, max: 80 }),
+      dailyLowTemp: dailyTemps.low,
+      dailyHighTemp: dailyTemps.high,
       humidity: (() => {
         let h = normalizeObservationNumber(readWeatherElement(station, "RelativeHumidity"), { min: 0, max: 100 });
         if (h != null && h >= 0 && h <= 1) h *= 100;
@@ -5897,7 +5941,7 @@ function renderRankingMap(entries, metricKey, view) {
     marker.bindPopup(
       `<strong>${sanitizeText(entry.name || "測站")}</strong><br>` +
         `${sanitizeText(entry.town || "—")}<br>` +
-        `${sanitizeText(formatRankingValue(metricKey, entry.value, metric.unit))}<br>` +
+        `${sanitizeText(formatRankingEntryValue(metricKey, entry, metric))}<br>` +
         `${sanitizeText(entry.time || "")}`
     );
     marker.on("click", () => {
@@ -5925,9 +5969,7 @@ function renderRankingTable(entries, metricKey, view) {
     view.dom.table.classList.toggle("ranking-table--no-town", isAqiMetric(metricKey));
   }
   if (view.dom.valueHeader) {
-    const label = metricKey === "thi" ? "溫濕度指數(THI)" : metric.label;
-    const unitText = metric.unit ? `(${metric.unit})` : "";
-    view.dom.valueHeader.textContent = `${label}${unitText}`.trim();
+    view.dom.valueHeader.textContent = formatRankingHeader(metricKey, metric);
   }
   const sorted = sortEntries(entries, view.state.sortDir);
   const pageSize = 50;
@@ -5939,7 +5981,7 @@ function renderRankingTable(entries, metricKey, view) {
     const rank = view.state.sortDir === "desc" ? start + idx + 1 : sorted.length - (start + idx);
     const valueText = isHealthMetric(metricKey)
       ? formatHealthValue(entry, metric)
-      : formatRankingValue(metricKey, entry.value, metric.unit);
+      : formatRankingEntryValue(metricKey, entry, metric);
     const windText =
       metric.colorScale === "wind" && Number.isFinite(entry.direction)
         ? formatWindDirection(entry.direction)
@@ -6031,15 +6073,25 @@ function buildAreaTooltip(rawName, best, metricKey, metric, view) {
     const valueText = formatHealthValue(best, metric);
     return `<strong>${label}</strong>${sanitizeText(valueText)} ${sanitizeText(formatHealthWarningText(best))}`;
   }
-  const valueText = formatRankingValue(metricKey, best.value, metric.unit);
+  const valueText = formatRankingEntryValue(metricKey, best, metric);
   return `<strong>${label}</strong>${sanitizeText(best.name || "測站")} ${sanitizeText(valueText)}`;
+}
+
+function formatRankingHeader(metricKey, metric) {
+  if (metricKey === "tempHighLow") return "最低溫 - 最高溫 (C)";
+  if (metricKey === "dailyTempDiff") return "日最高最低溫 (C)";
+  const label = metricKey === "thi" ? "溫濕度指數(THI)" : metric.label;
+  const unitText = metric.unit ? `(${metric.unit})` : "";
+  return `${label}${unitText}`.trim();
 }
 
 function sortEntries(entries, dir) {
   const list = Array.from(entries || []);
   list.sort((a, b) => {
-    if (dir === "asc") return a.value - b.value;
-    return b.value - a.value;
+    const av = Number.isFinite(a?.sortValue) ? a.sortValue : a.value;
+    const bv = Number.isFinite(b?.sortValue) ? b.sortValue : b.value;
+    if (dir === "asc") return av - bv;
+    return bv - av;
   });
   return list;
 }
@@ -6110,6 +6162,24 @@ function focusViewOnCounty(view) {
   }
 }
 
+function formatTemperatureC(value) {
+  if (!Number.isFinite(value)) return "—";
+  const rounded = Math.round(value * 10) / 10;
+  const text = Number.isInteger(rounded) ? String(rounded.toFixed(0)) : String(rounded.toFixed(1));
+  return `${text}C`;
+}
+
+function formatRankingEntryValue(metricKey, entry, metric) {
+  if ((metricKey === "tempHighLow" || metricKey === "dailyTempDiff") && entry) {
+    const low = Number(entry.dailyLowTemp);
+    const high = Number(entry.dailyHighTemp);
+    if (Number.isFinite(low) && Number.isFinite(high)) {
+      return `${formatTemperatureC(low)} - ${formatTemperatureC(high)}`;
+    }
+  }
+  return formatRankingValue(metricKey, entry?.value, metric?.unit || "");
+}
+
 function formatRankingValue(metricKey, value, unit) {
   if (!isValidObservation(value)) return "—";
   if (metricKey === "lightning") {
@@ -6161,6 +6231,8 @@ function formatDisasterLevel(metricKey, value) {
       return "雷擊預警";
     case "temp":
       return value <= DISASTER_TEMP_LOW_THRESHOLD ? "低溫警戒" : value >= DISASTER_TEMP_HIGH_THRESHOLD ? "高溫警戒" : "—";
+    case "dailyTempDiff":
+      return value > 10 ? "溫差警戒" : "—";
     case "apparent":
       return value <= DISASTER_APPARENT_TEMP_LOW_THRESHOLD ? "低溫警戒" : value >= DISASTER_APPARENT_TEMP_HIGH_THRESHOLD ? "高溫警戒" : "—";
     case "humidity":
@@ -6220,6 +6292,8 @@ function getMetricColor(metricKey, metric, value) {
       return lightningColor(value);
     case "temp":
       return gradientColor(value, 6, 36, ["#1b6fd1", "#26b16f", "#e6e447", "#f4a13d", "#e04a3b", "#8a2bd8"]);
+    case "tempDiff":
+      return gradientColor(value, 0, 18, ["#26b16f", "#e6e447", "#f4a13d", "#e04a3b", "#8a2bd8"]);
     case "wind":
       return windColor(value);
     case "humidity":
@@ -6841,6 +6915,18 @@ function buildColorbarConfig(metricKey, metric) {
       stops: tempBar.stops,
       ticks: tempBar.labels,
       tickPositions: tempBar.positions,
+    };
+  }
+  if (metric.colorScale === "tempDiff") {
+    return {
+      title: `${metric.label} (${metric.unit})`,
+      stops: ["#26b16f", "#e6e447", "#f4a13d", "#e04a3b", "#8a2bd8"],
+      ticks: ["0", "5", "10", "15", "18+"],
+      tickPositions: [0, 0.25, 0.5, 0.75, 1],
+      legend: [
+        { label: "<=10", color: "#26b16f" },
+        { label: ">10", color: "#f4a13d" },
+      ],
     };
   }
   if (metric.colorScale === "thi") {
