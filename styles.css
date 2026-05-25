@@ -769,6 +769,16 @@ table tbody tr:nth-child(odd) {
   display: none;
 }
 
+.ranking-table--temp-diff.ranking-table--no-wind.ranking-table--with-town:not(.ranking-table--thi) th:nth-child(6),
+.ranking-table--temp-diff.ranking-table--no-wind.ranking-table--with-town:not(.ranking-table--thi) td:nth-child(6) {
+  display: table-cell;
+}
+
+.ranking-table--temp-diff.ranking-table--no-wind:not(.ranking-table--with-town):not(.ranking-table--thi) th:nth-child(5),
+.ranking-table--temp-diff.ranking-table--no-wind:not(.ranking-table--with-town):not(.ranking-table--thi) td:nth-child(5) {
+  display: table-cell;
+}
+
 .ranking-table--wind:not(.ranking-table--with-town) th:nth-child(5),
 .ranking-table--wind:not(.ranking-table--with-town) th:nth-child(6),
 .ranking-table--wind:not(.ranking-table--with-town) td:nth-child(5),

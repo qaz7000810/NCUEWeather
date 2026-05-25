@@ -404,6 +404,8 @@ const DISASTER_RAIN_3HR_THRESHOLD = 100;
 const DISASTER_RAIN_24HR_THRESHOLD = 200;
 const DISASTER_PM10_THRESHOLD = 255;
 const DISASTER_O3_THRESHOLD = 101;
+const DAILY_TEMP_DIFF_LEVELS = [5, 6, 7, 8, 9, 10, 11, 12];
+const DAILY_TEMP_DIFF_COLORS = ["#22c55e", "#84cc16", "#eab308", "#f59e0b", "#f97316", "#ef4444", "#c026d3", "#7c3aed"];
 const HEALTH_WARNING_COLORS = ["#f5d64a", "#f39c34", "#dd4b39", "#9f1239"];
 const HEALTH_WARNING_LEVELS = {
   coldInjury: [
@@ -526,14 +528,14 @@ const rankingMetrics = {
     colorScale: "temp",
   },
   tempHighLow: {
-    label: "日最高最低溫",
-    unit: "C",
+    label: "日最大溫差",
+    unit: "℃",
     value: (station) => {
       const { low, high } = readDailyTemperatureExtremes(station);
-      return Number.isFinite(low) && Number.isFinite(high) ? high : null;
+      return Number.isFinite(low) && Number.isFinite(high) ? high - low : null;
     },
     direction: null,
-    colorScale: "temp",
+    colorScale: "tempDiff",
   },
   apparent: {
     label: "體感溫度",
@@ -609,8 +611,8 @@ const rankingMetrics = {
     colorScale: "lightning",
   },
   dailyTempDiff: {
-    label: "日最高最低溫",
-    unit: "C",
+    label: "日最大溫差",
+    unit: "℃",
     value: (station) => {
       const { low, high } = readDailyTemperatureExtremes(station);
       return Number.isFinite(low) && Number.isFinite(high) ? high - low : null;
@@ -5967,6 +5969,12 @@ function renderRankingTable(entries, metricKey, view) {
     view.dom.table.classList.toggle("ranking-table--disaster", view.key === "disaster");
     view.dom.table.classList.toggle("ranking-table--health", view.key === "health");
     view.dom.table.classList.toggle("ranking-table--no-town", isAqiMetric(metricKey));
+    view.dom.table.classList.toggle("ranking-table--temp-diff", metricKey === "dailyTempDiff" || metricKey === "tempHighLow");
+    const headerCells = view.dom.table.querySelectorAll("thead th");
+    const tempHeaderIndex = view.showTownColumn ? 5 : 4;
+    if (headerCells[tempHeaderIndex]) {
+      headerCells[tempHeaderIndex].textContent = metricKey === "dailyTempDiff" || metricKey === "tempHighLow" ? "溫差" : "溫度";
+    }
   }
   if (view.dom.valueHeader) {
     view.dom.valueHeader.textContent = formatRankingHeader(metricKey, metric);
@@ -5987,7 +5995,11 @@ function renderRankingTable(entries, metricKey, view) {
         ? formatWindDirection(entry.direction)
         : "—";
     const tempText =
-      metricKey === "thi" && Number.isFinite(entry.temperature) ? `${Number(entry.temperature).toFixed(1)}°C` : "—";
+      (metricKey === "dailyTempDiff" || metricKey === "tempHighLow") && Number.isFinite(entry.value)
+        ? `${Number(entry.value).toFixed(1)}℃`
+        : metricKey === "thi" && Number.isFinite(entry.temperature)
+          ? `${Number(entry.temperature).toFixed(1)}°C`
+          : "—";
     const humidityText =
       metricKey === "thi" && Number.isFinite(entry.humidity) ? `${Number(entry.humidity).toFixed(0)}%` : "—";
     const rowColor = getMetricColor(metricKey, metric, entry.value);
@@ -6078,8 +6090,8 @@ function buildAreaTooltip(rawName, best, metricKey, metric, view) {
 }
 
 function formatRankingHeader(metricKey, metric) {
-  if (metricKey === "tempHighLow") return "最低溫 - 最高溫 (C)";
-  if (metricKey === "dailyTempDiff") return "日最高最低溫 (C)";
+  if (metricKey === "tempHighLow") return "最低溫 - 最高溫 (℃)";
+  if (metricKey === "dailyTempDiff") return "最低溫 - 最高溫 (℃)";
   const label = metricKey === "thi" ? "溫濕度指數(THI)" : metric.label;
   const unitText = metric.unit ? `(${metric.unit})` : "";
   return `${label}${unitText}`.trim();
@@ -6164,9 +6176,7 @@ function focusViewOnCounty(view) {
 
 function formatTemperatureC(value) {
   if (!Number.isFinite(value)) return "—";
-  const rounded = Math.round(value * 10) / 10;
-  const text = Number.isInteger(rounded) ? String(rounded.toFixed(0)) : String(rounded.toFixed(1));
-  return `${text}C`;
+  return `${Number(value).toFixed(1)}℃`;
 }
 
 function formatRankingEntryValue(metricKey, entry, metric) {
@@ -6293,7 +6303,7 @@ function getMetricColor(metricKey, metric, value) {
     case "temp":
       return gradientColor(value, 6, 36, ["#1b6fd1", "#26b16f", "#e6e447", "#f4a13d", "#e04a3b", "#8a2bd8"]);
     case "tempDiff":
-      return gradientColor(value, 0, 18, ["#26b16f", "#e6e447", "#f4a13d", "#e04a3b", "#8a2bd8"]);
+      return dailyTempDiffColor(value);
     case "wind":
       return windColor(value);
     case "humidity":
@@ -6337,6 +6347,13 @@ function healthWarningColor(value) {
   if (!Number.isFinite(value) || value <= 0) return "#d1d5db";
   const idx = Math.max(0, Math.min(HEALTH_WARNING_COLORS.length - 1, Math.round(value) - 1));
   return HEALTH_WARNING_COLORS[idx];
+}
+
+function dailyTempDiffColor(value) {
+  if (!Number.isFinite(value)) return "#d1d5db";
+  const rounded = Math.round(value);
+  const idx = Math.max(0, Math.min(DAILY_TEMP_DIFF_COLORS.length - 1, rounded - DAILY_TEMP_DIFF_LEVELS[0]));
+  return DAILY_TEMP_DIFF_COLORS[idx];
 }
 
 function aqiColor(value) {
@@ -6918,15 +6935,16 @@ function buildColorbarConfig(metricKey, metric) {
     };
   }
   if (metric.colorScale === "tempDiff") {
+    const blocks = DAILY_TEMP_DIFF_LEVELS.length;
     return {
       title: `${metric.label} (${metric.unit})`,
-      stops: ["#26b16f", "#e6e447", "#f4a13d", "#e04a3b", "#8a2bd8"],
-      ticks: ["0", "5", "10", "15", "18+"],
-      tickPositions: [0, 0.25, 0.5, 0.75, 1],
-      legend: [
-        { label: "<=10", color: "#26b16f" },
-        { label: ">10", color: "#f4a13d" },
-      ],
+      stops: DAILY_TEMP_DIFF_COLORS,
+      ticks: DAILY_TEMP_DIFF_LEVELS.map((level) => String(level)),
+      tickPositions: DAILY_TEMP_DIFF_LEVELS.map((_, idx) => (idx + 0.5) / blocks),
+      legend: DAILY_TEMP_DIFF_LEVELS.map((level, idx) => ({
+        label: `${level}°C`,
+        color: DAILY_TEMP_DIFF_COLORS[idx],
+      })),
     };
   }
   if (metric.colorScale === "thi") {
