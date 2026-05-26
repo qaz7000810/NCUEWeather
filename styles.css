@@ -438,6 +438,29 @@ code {
   box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.6);
 }
 
+.realtime-map-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 18px;
+  align-items: start;
+}
+
+.realtime-map-panel {
+  min-width: 0;
+}
+
+.realtime-map-panel .map-shell {
+  min-height: 460px;
+}
+
+.realtime-map-panel .small-map {
+  margin-top: 0;
+}
+
+.realtime-map-card .lightning-note-title {
+  width: 100%;
+}
+
 .lightning-note {
   margin-top: 14px;
   color: var(--muted);
@@ -457,11 +480,14 @@ code {
   margin: 10px 0 0;
   padding-left: 22px;
   list-style: none;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px 18px;
 }
 
 .lightning-note-list li {
   position: relative;
-  margin: 8px 0;
+  margin: 0;
 }
 
 .lightning-note-list li::before {
@@ -556,7 +582,7 @@ code {
 
 .lightning-scale {
   margin-top: 22px;
-  max-width: 315px;
+  width: min(100%, 420px);
 }
 
 .lightning-scale-title {
@@ -1447,6 +1473,14 @@ table tbody tr:nth-child(odd) {
   }
 
   .typhoon-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .realtime-map-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .lightning-note-list {
     grid-template-columns: 1fr;
   }
 
