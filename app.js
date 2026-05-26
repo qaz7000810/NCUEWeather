@@ -709,6 +709,27 @@ const taiwanMetricKeys = [...rankingMetricKeys];
 
 const disasterMetricKeys = ["temp", "apparent", "dailyTempDiff", "humidity", "wind", "gust", "rain", "rain3hr", "rain24hr", "lightning", "aqi", "pm25", "pm10", "o3", "pm1Airbox", "pm25Airbox", "pm10Airbox"];
 const healthMetricKeys = ["coldInjury", "tempDiff", "heatInjury"];
+const compactMetricLabels = {
+  temp: "氣溫",
+  apparent: "體感",
+  tempHighLow: "日溫差",
+  dailyTempDiff: "日溫差",
+  humidity: "濕度",
+  wind: "平均風",
+  gust: "陣風",
+  rain: "雨量(1h)",
+  rain3hr: "雨量(3h)",
+  rain24hr: "雨量(24h)",
+  thi: "溫濕指數",
+  lightning: "雷擊",
+  aqi: "AQI(環)",
+  pm25: "PM2.5(環)",
+  pm10: "PM10(環)",
+  o3: "臭氧(環)",
+  pm1Airbox: "PM1(空)",
+  pm25Airbox: "PM2.5(空)",
+  pm10Airbox: "PM10(空)",
+};
 
 const disasterView = {
   key: "disaster",
@@ -2878,11 +2899,13 @@ function buildRankingMetricOptions(selectEl, metricKeys) {
     .filter(Boolean);
   selectEl.innerHTML = options.join("");
   selectEl.value = keys.includes("temp") ? "temp" : keys[0] || "temp";
+  renderMetricButtonList(selectEl, keys);
 }
 
 function buildDisasterMetricOptions(selectEl) {
   if (!selectEl) return;
-  const options = disasterMetricKeys
+  const keys = disasterMetricKeys;
+  const options = keys
     .map((key) => {
       const metric = rankingMetrics[key];
       return metric ? `<option value="${key}">${metric.label}</option>` : "";
@@ -2890,10 +2913,43 @@ function buildDisasterMetricOptions(selectEl) {
     .filter(Boolean);
   selectEl.innerHTML = options.join("");
   selectEl.value = "temp";
+  renderMetricButtonList(selectEl, keys);
 }
 
 function isDailyTempDiffMetric(metricKey) {
   return metricKey === "tempHighLow" || metricKey === "dailyTempDiff";
+}
+
+function renderMetricButtonList(selectEl, metricKeys) {
+  const control = selectEl.closest(".control");
+  if (!control) return;
+  control.classList.add("metric-control");
+  let list = control.querySelector(".metric-button-list");
+  if (!list) {
+    list = document.createElement("div");
+    list.className = "metric-button-list";
+    selectEl.insertAdjacentElement("afterend", list);
+  }
+  selectEl.classList.add("metric-select-hidden");
+  const activeValue = selectEl.value;
+  list.innerHTML = metricKeys
+    .map((key) => {
+      const metric = rankingMetrics[key];
+      if (!metric) return "";
+      const active = key === activeValue ? " active" : "";
+      const label = compactMetricLabels[key] || metric.label;
+      return `<button class="metric-filter-btn${active}" type="button" data-metric-key="${sanitizeText(key)}">${sanitizeText(label)}</button>`;
+    })
+    .join("");
+  list.querySelectorAll("[data-metric-key]").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      const nextValue = btn.dataset.metricKey || "";
+      if (!nextValue || selectEl.value === nextValue) return;
+      selectEl.value = nextValue;
+      list.querySelectorAll(".metric-filter-btn").forEach((item) => item.classList.toggle("active", item === btn));
+      selectEl.dispatchEvent(new Event("change", { bubbles: true }));
+    });
+  });
 }
 
 function toggleRankingSort(view, metricKey) {
@@ -2994,6 +3050,36 @@ function buildCountySelect(view) {
   } else {
     view.dom.countySelect.value = "*";
   }
+  renderCountyButtonList(view.dom.countySelect);
+}
+
+function renderCountyButtonList(selectEl) {
+  const control = selectEl.closest(".control");
+  if (!control) return;
+  control.classList.add("county-control");
+  let list = control.querySelector(".county-button-list");
+  if (!list) {
+    list = document.createElement("div");
+    list.className = "county-button-list";
+    selectEl.insertAdjacentElement("afterend", list);
+  }
+  selectEl.classList.add("county-select-hidden");
+  const options = Array.from(selectEl.options || []);
+  list.innerHTML = options
+    .map((option) => {
+      const active = option.value === selectEl.value ? " active" : "";
+      return `<button class="county-filter-btn${active}" type="button" data-county-value="${sanitizeText(option.value)}">${sanitizeText(option.textContent || option.value)}</button>`;
+    })
+    .join("");
+  list.querySelectorAll("[data-county-value]").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      const nextValue = btn.dataset.countyValue || "";
+      if (!nextValue || selectEl.value === nextValue) return;
+      selectEl.value = nextValue;
+      list.querySelectorAll(".county-filter-btn").forEach((item) => item.classList.toggle("active", item === btn));
+      selectEl.dispatchEvent(new Event("change", { bubbles: true }));
+    });
+  });
 }
 
 function initDisasterView() {

@@ -77,7 +77,9 @@ h3 {
 }
 
 .alert-filter-list,
-.alert-town-list {
+.alert-town-list,
+.metric-button-list,
+.county-button-list {
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
@@ -89,7 +91,9 @@ h3 {
 }
 
 .alert-filter-btn,
-.alert-town-btn {
+.alert-town-btn,
+.metric-filter-btn,
+.county-filter-btn {
   padding: 6px 12px;
   border-radius: 999px;
   border: 1px solid #ffcdd2;
@@ -100,16 +104,25 @@ h3 {
   font-weight: 700;
 }
 
-.alert-town-btn {
+.alert-town-btn,
+.metric-filter-btn,
+.county-filter-btn {
   border-color: var(--border);
   background: #ffffff;
   color: var(--muted);
 }
 
 .alert-filter-btn.active,
-.alert-town-btn.active {
+.alert-town-btn.active,
+.metric-filter-btn.active,
+.county-filter-btn.active {
   background: #ffcdd2;
   color: #8a1010;
+}
+
+.metric-select-hidden,
+.county-select-hidden {
+  display: none;
 }
 
 .alert-town-feature {
@@ -201,6 +214,14 @@ h3 {
   display: flex;
   flex-direction: column;
   gap: 6px;
+}
+
+.control.metric-control {
+  grid-column: 1 / -1;
+}
+
+.control.county-control {
+  grid-column: 1 / -1;
 }
 
 .control.buttons {
