@@ -404,8 +404,9 @@ const DISASTER_RAIN_3HR_THRESHOLD = 100;
 const DISASTER_RAIN_24HR_THRESHOLD = 200;
 const DISASTER_PM10_THRESHOLD = 255;
 const DISASTER_O3_THRESHOLD = 101;
-const DAILY_TEMP_DIFF_LEVELS = [5, 6, 7, 8, 9, 10, 11, 12];
+const DAILY_TEMP_DIFF_LEVELS = [4, 6, 8, 10, 12, 14, 16, 18];
 const DAILY_TEMP_DIFF_COLORS = ["#22c55e", "#84cc16", "#eab308", "#f59e0b", "#f97316", "#ef4444", "#c026d3", "#7c3aed"];
+const DAILY_TEMP_DIFF_LABELS = ["<=5", "6、7", "8、9", "10、11", "12、13", "14、15", "16、17", ">=18"];
 const HEALTH_WARNING_COLORS = ["#f5d64a", "#f39c34", "#dd4b39", "#9f1239"];
 const HEALTH_WARNING_LEVELS = {
   coldInjury: [
@@ -729,6 +730,10 @@ const compactMetricLabels = {
   pm1Airbox: "PM1(空)",
   pm25Airbox: "PM2.5(空)",
   pm10Airbox: "PM10(空)",
+};
+const COUNTY_GROUPS = {
+  新竹: ["新竹市", "新竹縣"],
+  嘉義: ["嘉義市", "嘉義縣"],
 };
 
 const disasterView = {
@@ -3042,15 +3047,43 @@ function buildHealthMetricOptions(selectEl) {
 
 function buildCountySelect(view) {
   if (!view?.dom?.countySelect) return;
-  const opts = ['<option value="*">全台灣</option>']
-    .concat(CWA_COUNTIES.map((c) => `<option value="${c}">${c}</option>`));
+  const opts = ['<option value="*">全台灣</option>'];
+  const addedGroups = new Set();
+  CWA_COUNTIES.forEach((county) => {
+    const groupName = getCountyGroupName(county);
+    if (groupName) {
+      if (addedGroups.has(groupName)) return;
+      addedGroups.add(groupName);
+      opts.push(`<option value="${groupName}">${groupName}</option>`);
+      return;
+    }
+    opts.push(`<option value="${county}">${county}</option>`);
+  });
   view.dom.countySelect.innerHTML = opts.join("");
   if (view.countyFilter) {
-    view.dom.countySelect.value = view.countyFilter;
+    view.dom.countySelect.value = getCountyGroupName(view.countyFilter) || view.countyFilter;
   } else {
     view.dom.countySelect.value = "*";
   }
   renderCountyButtonList(view.dom.countySelect);
+}
+
+function getCountyGroupName(county) {
+  const normalized = normalizeCountyName(county);
+  return Object.entries(COUNTY_GROUPS).find(([, counties]) => counties.includes(normalized))?.[0] || "";
+}
+
+function getCountyFilterTargets(filterValue) {
+  const normalized = normalizeCountyName(filterValue || "");
+  if (!normalized || normalized === "*") return [];
+  return COUNTY_GROUPS[normalized] || [normalized];
+}
+
+function formatCountyButtonLabel(value, text) {
+  const normalized = normalizeCountyName(value || text || "");
+  if (!normalized || normalized === "*") return "全臺";
+  if (COUNTY_GROUPS[normalized]) return normalized;
+  return normalized.replace(/[縣市]$/, "");
 }
 
 function renderCountyButtonList(selectEl) {
@@ -3068,7 +3101,8 @@ function renderCountyButtonList(selectEl) {
   list.innerHTML = options
     .map((option) => {
       const active = option.value === selectEl.value ? " active" : "";
-      return `<button class="county-filter-btn${active}" type="button" data-county-value="${sanitizeText(option.value)}">${sanitizeText(option.textContent || option.value)}</button>`;
+      const label = formatCountyButtonLabel(option.value, option.textContent);
+      return `<button class="county-filter-btn${active}" type="button" data-county-value="${sanitizeText(option.value)}">${sanitizeText(label)}</button>`;
     })
     .join("");
   list.querySelectorAll("[data-county-value]").forEach((btn) => {
@@ -5667,13 +5701,14 @@ async function loadRankingData(view) {
 function buildRankingEntries(stations, metricKey, view) {
   const metric = rankingMetrics[metricKey] || rankingMetrics.temp;
   const entries = [];
+  const countyTargets = getCountyFilterTargets(view?.countyFilter);
   stations.forEach((station) => {
     const geo = station?.GeoInfo || station?.geoInfo || {};
     const county = normalizeCountyName(geo?.CountyName || geo?.countyName || "");
     const countyCode = geo?.CountyCode || geo?.countyCode || "";
-    if (view?.countyFilter) {
-      const targetCode = view.state.countyCodeMap?.[view.countyFilter] || COUNTY_CODE_MAP[view.countyFilter];
-      if (county !== view.countyFilter && countyCode !== targetCode) return;
+    if (countyTargets.length) {
+      const targetCodes = countyTargets.map((target) => view.state.countyCodeMap?.[target] || COUNTY_CODE_MAP[target]).filter(Boolean);
+      if (!countyTargets.includes(county) && !targetCodes.includes(countyCode)) return;
     }
     const coords = readStationCoords(geo);
     if (!coords) return;
@@ -5719,9 +5754,10 @@ function buildRankingEntries(stations, metricKey, view) {
 
 function buildAqiEntries(records, metricKey, view) {
   const entries = [];
+  const countyTargets = getCountyFilterTargets(view?.countyFilter);
   records.forEach((record) => {
     const county = normalizeCountyName(record?.county || record?.County || "");
-    if (view?.countyFilter && county !== view.countyFilter) return;
+    if (countyTargets.length && !countyTargets.includes(county)) return;
     const lat = toNumber(record?.latitude);
     const lon = toNumber(record?.longitude);
     if (!Number.isFinite(lat) || !Number.isFinite(lon)) return;
@@ -5757,7 +5793,7 @@ function buildAqiEntries(records, metricKey, view) {
 
 function buildAirboxEntries(records, metricKey, view) {
   const entries = [];
-  const countyFilter = normalizeCountyName(view?.countyFilter || "");
+  const countyTargets = getCountyFilterTargets(view?.countyFilter);
   records.forEach((record) => {
     const thing = record?.Thing || record?.thing || {};
     const obs = Array.isArray(record?.Observations) ? record.Observations[0] : null;
@@ -5789,7 +5825,7 @@ function buildAirboxEntries(records, metricKey, view) {
       if (area?.town && !town) town = area.town;
     }
 
-    if (countyFilter && county !== countyFilter) return;
+    if (countyTargets.length && !countyTargets.includes(county)) return;
 
     const obsTime = record?.timestamp || obs?.phenomenonTime || obs?.resultTime || record?.phenomenonTime || "";
     entries.push({
@@ -6266,7 +6302,7 @@ function focusViewOnCounty(view) {
     view.state.map.setView(view.mapCenter, view.mapZoom);
     return;
   }
-  const target = normalizeCountyName(view.countyFilter);
+  const targets = getCountyFilterTargets(view.countyFilter);
   const features = view.state.townGeo.features || [];
   const bounds = L.latLngBounds();
   let matched = false;
@@ -6274,7 +6310,7 @@ function focusViewOnCounty(view) {
     const countyName = normalizeCountyName(
       f?.properties?.COUNTYNAME || f?.properties?.CountyName || f?.properties?.countyName || ""
     );
-    if (countyName !== target) return;
+    if (!targets.includes(countyName)) return;
     const layer = L.geoJSON(f);
     const b = layer.getBounds();
     if (b.isValid()) {
@@ -6466,8 +6502,8 @@ function healthWarningColor(value) {
 
 function dailyTempDiffColor(value) {
   if (!Number.isFinite(value)) return "#d1d5db";
-  const rounded = Math.round(value);
-  const idx = Math.max(0, Math.min(DAILY_TEMP_DIFF_COLORS.length - 1, rounded - DAILY_TEMP_DIFF_LEVELS[0]));
+  const step = 2;
+  const idx = Math.max(0, Math.min(DAILY_TEMP_DIFF_COLORS.length - 1, Math.floor((value - DAILY_TEMP_DIFF_LEVELS[0]) / step)));
   return DAILY_TEMP_DIFF_COLORS[idx];
 }
 
@@ -7054,10 +7090,10 @@ function buildColorbarConfig(metricKey, metric) {
     return {
       title: `${metric.label} (${metric.unit})`,
       stops: DAILY_TEMP_DIFF_COLORS,
-      ticks: DAILY_TEMP_DIFF_LEVELS.map((level) => String(level)),
+      ticks: DAILY_TEMP_DIFF_LABELS,
       tickPositions: DAILY_TEMP_DIFF_LEVELS.map((_, idx) => (idx + 0.5) / blocks),
       legend: DAILY_TEMP_DIFF_LEVELS.map((level, idx) => ({
-        label: `${level}°C`,
+        label: DAILY_TEMP_DIFF_LABELS[idx] || String(level),
         color: DAILY_TEMP_DIFF_COLORS[idx],
       })),
     };
