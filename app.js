@@ -404,9 +404,9 @@ const DISASTER_RAIN_3HR_THRESHOLD = 100;
 const DISASTER_RAIN_24HR_THRESHOLD = 200;
 const DISASTER_PM10_THRESHOLD = 255;
 const DISASTER_O3_THRESHOLD = 101;
-const DAILY_TEMP_DIFF_LEVELS = [4, 6, 8, 10, 12, 14, 16, 18];
+const DAILY_TEMP_DIFF_LEVELS = [0, 5, 7, 9, 11, 13, 15, 17];
 const DAILY_TEMP_DIFF_COLORS = ["#22c55e", "#84cc16", "#eab308", "#f59e0b", "#f97316", "#ef4444", "#c026d3", "#7c3aed"];
-const DAILY_TEMP_DIFF_LABELS = ["<=5", "6、7", "8、9", "10、11", "12、13", "14、15", "16、17", ">=18"];
+const DAILY_TEMP_DIFF_LABELS = ["<=4", "5-6", "7-8", "9-10", "11-12", "13-14", "15-16", ">=17"];
 const HEALTH_WARNING_COLORS = ["#f5d64a", "#f39c34", "#dd4b39", "#9f1239"];
 const HEALTH_WARNING_LEVELS = {
   coldInjury: [
@@ -529,7 +529,7 @@ const rankingMetrics = {
     colorScale: "temp",
   },
   tempHighLow: {
-    label: "日最大溫差",
+    label: "溫差",
     unit: "℃",
     value: (station) => {
       const { low, high } = readDailyTemperatureExtremes(station);
@@ -537,6 +537,20 @@ const rankingMetrics = {
     },
     direction: null,
     colorScale: "tempDiff",
+  },
+  tempDailyLow: {
+    label: "最低溫",
+    unit: "°C",
+    value: (station) => readDailyTemperatureExtremes(station).low,
+    direction: null,
+    colorScale: "temp",
+  },
+  tempDailyHigh: {
+    label: "最高溫",
+    unit: "°C",
+    value: (station) => readDailyTemperatureExtremes(station).high,
+    direction: null,
+    colorScale: "temp",
   },
   apparent: {
     label: "體感溫度",
@@ -705,16 +719,18 @@ const rankingMetrics = {
   },
 };
 
-const rankingMetricKeys = ["temp", "apparent", "tempHighLow", "humidity", "wind", "gust", "rain", "rain3hr", "rain24hr", "thi", "aqi", "pm25", "pm10", "o3", "pm1Airbox", "pm25Airbox", "pm10Airbox"];
+const rankingMetricKeys = ["temp", "apparent", "tempDailyLow", "tempDailyHigh", "tempHighLow", "humidity", "wind", "gust", "rain", "rain3hr", "rain24hr", "thi", "aqi", "pm25", "pm10", "o3", "pm1Airbox", "pm25Airbox", "pm10Airbox"];
 const taiwanMetricKeys = [...rankingMetricKeys];
 
-const disasterMetricKeys = ["temp", "apparent", "dailyTempDiff", "humidity", "wind", "gust", "rain", "rain3hr", "rain24hr", "lightning", "aqi", "pm25", "pm10", "o3", "pm1Airbox", "pm25Airbox", "pm10Airbox"];
+const disasterMetricKeys = ["temp", "apparent", "tempDailyLow", "tempDailyHigh", "dailyTempDiff", "humidity", "wind", "gust", "rain", "rain3hr", "rain24hr", "lightning", "aqi", "pm25", "pm10", "o3", "pm1Airbox", "pm25Airbox", "pm10Airbox"];
 const healthMetricKeys = ["coldInjury", "tempDiff", "heatInjury"];
 const compactMetricLabels = {
   temp: "氣溫",
   apparent: "體感",
-  tempHighLow: "日溫差",
-  dailyTempDiff: "日溫差",
+  tempDailyLow: "最低溫",
+  tempDailyHigh: "最高溫",
+  tempHighLow: "溫差",
+  dailyTempDiff: "溫差",
   humidity: "濕度",
   wind: "平均風",
   gust: "陣風",
@@ -5474,6 +5490,10 @@ function isDisasterThreshold(metricKey, value) {
       return value > 0;
     case "temp":
       return value <= DISASTER_TEMP_LOW_THRESHOLD || value >= DISASTER_TEMP_HIGH_THRESHOLD;
+    case "tempDailyLow":
+      return value <= DISASTER_TEMP_LOW_THRESHOLD;
+    case "tempDailyHigh":
+      return value >= DISASTER_TEMP_HIGH_THRESHOLD;
     case "dailyTempDiff":
       return value > 10;
     case "apparent":
@@ -6392,6 +6412,10 @@ function formatDisasterLevel(metricKey, value) {
       return "雷擊預警";
     case "temp":
       return value <= DISASTER_TEMP_LOW_THRESHOLD ? "低溫警戒" : value >= DISASTER_TEMP_HIGH_THRESHOLD ? "高溫警戒" : "—";
+    case "tempDailyLow":
+      return value <= DISASTER_TEMP_LOW_THRESHOLD ? "低溫警戒" : "—";
+    case "tempDailyHigh":
+      return value >= DISASTER_TEMP_HIGH_THRESHOLD ? "高溫警戒" : "—";
     case "dailyTempDiff":
       return value > 10 ? "溫差警戒" : "—";
     case "apparent":
@@ -6502,9 +6526,9 @@ function healthWarningColor(value) {
 
 function dailyTempDiffColor(value) {
   if (!Number.isFinite(value)) return "#d1d5db";
-  const step = 2;
-  const idx = Math.max(0, Math.min(DAILY_TEMP_DIFF_COLORS.length - 1, Math.floor((value - DAILY_TEMP_DIFF_LEVELS[0]) / step)));
-  return DAILY_TEMP_DIFF_COLORS[idx];
+  const idx = DAILY_TEMP_DIFF_LEVELS.findLastIndex((level) => value >= level);
+  const safeIdx = Math.max(0, Math.min(DAILY_TEMP_DIFF_COLORS.length - 1, idx));
+  return DAILY_TEMP_DIFF_COLORS[safeIdx];
 }
 
 function aqiColor(value) {
