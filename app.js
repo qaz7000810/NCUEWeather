@@ -7917,7 +7917,54 @@ function normalizeTyphoon(payload) {
       });
     });
   }
+  const tropicalCyclones = records?.TropicalCyclones?.TropicalCyclone;
+  if (!list.length && Array.isArray(tropicalCyclones)) {
+    tropicalCyclones.forEach((item) => {
+      const fixes = Array.isArray(item?.AnalysisData?.Fix) ? item.AnalysisData.Fix : [];
+      const forecastFixes = Array.isArray(item?.ForecastData?.Fix) ? item.ForecastData.Fix : [];
+      const latest = fixes[fixes.length - 1] || {};
+      list.push({
+        name: item.CwaTyphoonName || item.CwaTdName || item.TyphoonName || item.name || item.id,
+        id: item.CwaTyNo || item.CwaTdNo || item.TyphoonName || item.id,
+        status: latest.MaxWindSpeed ? `最大風速 ${latest.MaxWindSpeed} m/s` : "",
+        time: latest.DateTime || item.UpdateTime || item.issueTime,
+        text: getLocalizedValue(latest.MovingPrediction) || formatTyphoonMotion(latest),
+        track: fixes.map(parseTrackPoint).filter(Boolean),
+        forecastTrack: forecastFixes.map(parseForecastTrackPoint).filter(Boolean),
+      });
+    });
+  }
   return list;
+}
+
+function getLocalizedValue(value) {
+  if (typeof value === "string") return value;
+  if (!Array.isArray(value)) return "";
+  const picked = value.find((item) => String(item?.lang || "").toLowerCase().includes("zh")) || value[0];
+  return picked?.value || "";
+}
+
+function formatTyphoonMotion(fix) {
+  const direction = fix?.MovingDirection || "";
+  const speed = fix?.MovingSpeed || "";
+  if (direction && speed) return `移動方向 ${direction}，移動速度 ${speed} km/h`;
+  if (direction) return `移動方向 ${direction}`;
+  if (speed) return `移動速度 ${speed} km/h`;
+  return "";
+}
+
+function parseForecastTrackPoint(point) {
+  const parsed = parseTrackPoint(point);
+  if (!parsed) return null;
+  const probabilityRadiusKm = Number(point?.Radius70PercentProbability);
+  return {
+    ...parsed,
+    forecastHour: point?.ForecastHour || "",
+    initialTime: point?.InitialTime || "",
+    probabilityRadiusKm: Number.isFinite(probabilityRadiusKm) ? probabilityRadiusKm : null,
+    maxWindSpeed: point?.MaxWindSpeed || "",
+    pressure: point?.Pressure || "",
+  };
 }
 
 function renderLiveTyphoon(list) {
@@ -7946,15 +7993,59 @@ function renderLiveTyphoon(list) {
     })
     .join("");
 
-  // 繪製第一筆可用的路徑
-  const track = list.find((t) => t.track && t.track.length)?.track;
-  if (track && realtimeState.typhoonMap) {
-    realtimeState.typhoonLayer = L.polyline(
-      track.map((p) => [p.lat, p.lon]),
-      { color: "#2563eb", weight: 4, opacity: 0.9 }
-    ).addTo(realtimeState.typhoonMap);
+  // 繪製第一筆可用的分析路徑與預報路徑潛勢。
+  const typhoon = list.find((t) => (t.track && t.track.length) || (t.forecastTrack && t.forecastTrack.length));
+  if (typhoon && realtimeState.typhoonMap) {
+    const layers = [];
+    if (typhoon.track?.length) {
+      layers.push(
+        L.polyline(
+          typhoon.track.map((p) => [p.lat, p.lon]),
+          { color: "#2563eb", weight: 4, opacity: 0.9 }
+        ).bindTooltip("分析路徑")
+      );
+    }
+    if (typhoon.forecastTrack?.length) {
+      const forecastLinePoints = (typhoon.track?.length ? [typhoon.track[typhoon.track.length - 1]] : []).concat(typhoon.forecastTrack);
+      layers.push(
+        L.polyline(
+          forecastLinePoints.map((p) => [p.lat, p.lon]),
+          { color: "#f97316", weight: 3, opacity: 0.9, dashArray: "8 8" }
+        ).bindTooltip("路徑潛勢預報")
+      );
+      typhoon.forecastTrack.forEach((point) => {
+        const label = `${point.forecastHour ? `${point.forecastHour}小時` : "預報點"}${point.probabilityRadiusKm ? `｜70%半徑 ${point.probabilityRadiusKm} km` : ""}`;
+        layers.push(
+          L.circleMarker([point.lat, point.lon], {
+            radius: 4,
+            color: "#c2410c",
+            weight: 1,
+            fillColor: "#f97316",
+            fillOpacity: 0.95,
+          }).bindTooltip(label)
+        );
+        if (Number.isFinite(point.probabilityRadiusKm) && point.probabilityRadiusKm > 0) {
+          layers.push(
+            L.circle([point.lat, point.lon], {
+              radius: point.probabilityRadiusKm * 1000,
+              color: "#f97316",
+              weight: 1,
+              opacity: 0.45,
+              fillColor: "#fed7aa",
+              fillOpacity: 0.12,
+            }).bindTooltip(label)
+          );
+        }
+      });
+    }
+    realtimeState.typhoonLayer = L.featureGroup(layers).addTo(realtimeState.typhoonMap);
     try {
-      const bounds = realtimeState.typhoonLayer.getBounds();
+      const bounds = L.latLngBounds(layers.flatMap((layer) => {
+        const b = layer.getBounds?.();
+        if (b?.isValid()) return [b.getSouthWest(), b.getNorthEast()];
+        const latLng = layer.getLatLng?.();
+        return latLng ? [latLng] : [];
+      }));
       if (bounds.isValid()) {
         realtimeState.typhoonMap.fitBounds(bounds, { padding: [20, 20] });
       }
@@ -7987,9 +8078,9 @@ function extractTrackPoints(obj) {
 function parseTrackPoint(p) {
   if (!p || typeof p !== "object") return null;
   const lat =
-    Number(p.lat ?? p.latitude ?? p.Latitude ?? p.LAT ?? p.latitute ?? p.Lat ?? p.緯度);
+    Number(p.lat ?? p.latitude ?? p.Latitude ?? p.CoordinateLatitude ?? p.LAT ?? p.latitute ?? p.Lat ?? p.緯度);
   const lon =
-    Number(p.lon ?? p.longitude ?? p.Longitude ?? p.LON ?? p.lonitude ?? p.Lon ?? p.經度);
+    Number(p.lon ?? p.longitude ?? p.Longitude ?? p.CoordinateLongitude ?? p.LON ?? p.lonitude ?? p.Lon ?? p.經度);
   if (!Number.isFinite(lat) || !Number.isFinite(lon)) return null;
   return {
     lat,
