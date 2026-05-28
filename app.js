@@ -8002,8 +8002,8 @@ function renderTyphoonDetailRows(t) {
   const rows = [
     ["目前位置", formatTyphoonCoord(current)],
     ["中心氣壓", current?.pressure ? `${current.pressure} hPa` : ""],
-    ["最大風速", current?.maxWindSpeed ? `${current.maxWindSpeed} m/s` : ""],
-    ["最大瞬間風", current?.maxGustSpeed ? `${current.maxGustSpeed} m/s` : ""],
+    ["近中心最大風速", current?.maxWindSpeed ? `${current.maxWindSpeed} m/s` : ""],
+    ["瞬間最大陣風", current?.maxGustSpeed ? `${current.maxGustSpeed} m/s` : ""],
     ["25 m/s 風圈", current?.circle25Radius ? `${current.circle25Radius} km` : ""],
   ].filter(([, value]) => value);
   if (!rows.length) return "";
