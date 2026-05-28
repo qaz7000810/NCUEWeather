@@ -8024,8 +8024,7 @@ function renderTyphoonForecastTable(t) {
           <th>位置</th>
           <th>風速</th>
           <th>氣壓</th>
-          <th>風圈</th>
-          <th>70%</th>
+          <th>暴風圈半徑</th>
         </tr>
       </thead>
       <tbody>
@@ -8035,7 +8034,6 @@ function renderTyphoonForecastTable(t) {
           <td>${sanitizeText(point.maxWindSpeed ? `${point.maxWindSpeed} m/s` : "--")}</td>
           <td>${sanitizeText(point.pressure ? `${point.pressure} hPa` : "--")}</td>
           <td>${sanitizeText(formatTyphoonWindCircle(point) || "--")}</td>
-          <td>${sanitizeText(point.probabilityRadiusKm ? `${point.probabilityRadiusKm} km` : "--")}</td>
         </tr>`).join("")}
       </tbody>
     </table>
