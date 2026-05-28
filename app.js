@@ -7926,9 +7926,12 @@ function normalizeTyphoon(payload) {
       list.push({
         name: item.CwaTyphoonName || item.CwaTdName || item.TyphoonName || item.name || item.id,
         id: item.CwaTyNo || item.CwaTdNo || item.TyphoonName || item.id,
+        year: item.Year || "",
+        englishName: item.TyphoonName || "",
         status: latest.MaxWindSpeed ? `最大風速 ${latest.MaxWindSpeed} m/s` : "",
         time: latest.DateTime || item.UpdateTime || item.issueTime,
         text: getLocalizedValue(latest.MovingPrediction) || formatTyphoonMotion(latest),
+        current: parseTyphoonFix(latest),
         track: fixes.map(parseTrackPoint).filter(Boolean),
         forecastTrack: forecastFixes.map(parseForecastTrackPoint).filter(Boolean),
       });
@@ -7954,7 +7957,7 @@ function formatTyphoonMotion(fix) {
 }
 
 function parseForecastTrackPoint(point) {
-  const parsed = parseTrackPoint(point);
+  const parsed = parseTyphoonFix(point);
   if (!parsed) return null;
   const probabilityRadiusKm = Number(point?.Radius70PercentProbability);
   return {
@@ -7965,6 +7968,78 @@ function parseForecastTrackPoint(point) {
     maxWindSpeed: point?.MaxWindSpeed || "",
     pressure: point?.Pressure || "",
   };
+}
+
+function parseTyphoonFix(point) {
+  const parsed = parseTrackPoint(point);
+  if (!parsed) return null;
+  return {
+    ...parsed,
+    maxWindSpeed: point?.MaxWindSpeed || "",
+    maxGustSpeed: point?.MaxGustSpeed || "",
+    pressure: point?.Pressure || "",
+    movingSpeed: point?.MovingSpeed || "",
+    movingDirection: point?.MovingDirection || "",
+    circle15Radius: point?.Circle15ms?.Radius || "",
+    circle25Radius: point?.Circle25ms?.Radius || "",
+  };
+}
+
+function formatTyphoonCoord(point) {
+  if (!point) return "";
+  return `${Number(point.lat).toFixed(1)}°N，${Number(point.lon).toFixed(1)}°E`;
+}
+
+function formatTyphoonWindCircle(point) {
+  const values = [];
+  if (point?.circle15Radius) values.push(`15m/s ${point.circle15Radius} km`);
+  if (point?.circle25Radius) values.push(`25m/s ${point.circle25Radius} km`);
+  return values.join(" / ");
+}
+
+function renderTyphoonDetailRows(t) {
+  const current = t.current || t.track?.[t.track.length - 1];
+  const rows = [
+    ["目前位置", formatTyphoonCoord(current)],
+    ["中心氣壓", current?.pressure ? `${current.pressure} hPa` : ""],
+    ["最大風速", current?.maxWindSpeed ? `${current.maxWindSpeed} m/s` : ""],
+    ["最大瞬間風", current?.maxGustSpeed ? `${current.maxGustSpeed} m/s` : ""],
+    ["25 m/s 風圈", current?.circle25Radius ? `${current.circle25Radius} km` : ""],
+  ].filter(([, value]) => value);
+  if (!rows.length) return "";
+  return `<dl class="typhoon-detail-grid">
+    ${rows.map(([label, value]) => `<div><dt>${sanitizeText(label)}</dt><dd>${sanitizeText(value)}</dd></div>`).join("")}
+  </dl>`;
+}
+
+function renderTyphoonForecastTable(t) {
+  const rows = (t.forecastTrack || []).slice(0, 8);
+  if (!rows.length) return "";
+  return `<div class="typhoon-forecast-wrap">
+    <div class="typhoon-section-title">路徑潛勢預報</div>
+    <table class="typhoon-forecast-table">
+      <thead>
+        <tr>
+          <th>時效</th>
+          <th>位置</th>
+          <th>風速</th>
+          <th>氣壓</th>
+          <th>風圈</th>
+          <th>70%</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${rows.map((point) => `<tr>
+          <td>${sanitizeText(point.forecastHour ? `+${point.forecastHour}h` : "--")}</td>
+          <td>${sanitizeText(formatTyphoonCoord(point) || "--")}</td>
+          <td>${sanitizeText(point.maxWindSpeed ? `${point.maxWindSpeed} m/s` : "--")}</td>
+          <td>${sanitizeText(point.pressure ? `${point.pressure} hPa` : "--")}</td>
+          <td>${sanitizeText(formatTyphoonWindCircle(point) || "--")}</td>
+          <td>${sanitizeText(point.probabilityRadiusKm ? `${point.probabilityRadiusKm} km` : "--")}</td>
+        </tr>`).join("")}
+      </tbody>
+    </table>
+  </div>`;
 }
 
 function renderLiveTyphoon(list) {
@@ -7984,11 +8059,13 @@ function renderLiveTyphoon(list) {
       return `<div class="typhoon-live-item">
         <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
           <strong>${sanitizeText(t.name || "未命名")}</strong>
-          ${t.status ? `<span class="badge">${sanitizeText(t.status)}</span>` : ""}
           ${t.id ? `<span class="badge">#${sanitizeText(t.id)}</span>` : ""}
+          ${t.englishName ? `<span class="badge">${sanitizeText(t.englishName)}</span>` : ""}
         </div>
-        ${t.time ? `<div class="forecast-range">發布時間：${sanitizeText(t.time)}</div>` : ""}
+        ${t.time ? `<div class="forecast-range">分析時間：${sanitizeText(t.time)}</div>` : ""}
         ${t.text ? `<p class="alert-desc">${sanitizeText(t.text)}</p>` : ""}
+        ${renderTyphoonDetailRows(t)}
+        ${renderTyphoonForecastTable(t)}
       </div>`;
     })
     .join("");
@@ -8053,6 +8130,7 @@ function renderLiveTyphoon(list) {
       // ignore
     }
   }
+  requestAnimationFrame(() => ensureRealtimeMapSized());
 }
 
 function extractTrackPoints(obj) {

@@ -1480,6 +1480,7 @@ table tbody tr:nth-child(odd) {
 .live-typhoon-layout .small-map {
   margin-top: 0;
   min-height: 380px;
+  height: 100%;
 }
 
 .typhoon-live-list {
@@ -1494,6 +1495,55 @@ table tbody tr:nth-child(odd) {
   border-radius: 10px;
   background: #ffffff;
   box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.7);
+}
+
+.typhoon-detail-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+  margin: 10px 0 0;
+}
+
+.typhoon-detail-grid div {
+  padding: 8px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: #f8fbff;
+}
+
+.typhoon-detail-grid dt {
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+.typhoon-detail-grid dd {
+  margin: 2px 0 0;
+  font-weight: 700;
+  line-height: 1.5;
+}
+
+.typhoon-forecast-wrap {
+  margin-top: 12px;
+  overflow-x: auto;
+}
+
+.typhoon-section-title {
+  margin-bottom: 6px;
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.typhoon-forecast-table {
+  min-width: 640px;
+  font-size: 13px;
+}
+
+.typhoon-forecast-table th,
+.typhoon-forecast-table td {
+  padding: 7px 8px;
+  text-align: center;
 }
 
 @media (max-width: 640px) {
