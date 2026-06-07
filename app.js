@@ -124,6 +124,7 @@ const dom = {
   industryWeatherThresholdBody: document.getElementById("industryWeatherThresholdBody"),
   industryWeatherStandardPanel: document.getElementById("industryWeatherStandardPanel"),
   industryWeatherMarinePanel: document.getElementById("industryWeatherMarinePanel"),
+  industryWeatherSupplementPanel: document.getElementById("industryWeatherSupplementPanel"),
   townForecastMode: document.getElementById("townForecastMode"),
   townForecastMetric: document.getElementById("townForecastMetric"),
   townForecastTown: document.getElementById("townForecastTown"),
@@ -4520,6 +4521,9 @@ function syncIndustryWeatherControls() {
   }
   if (dom.industryWeatherMarinePanel) {
     dom.industryWeatherMarinePanel.style.display = industry === "marine" ? "" : "none";
+  }
+  if (dom.industryWeatherSupplementPanel) {
+    dom.industryWeatherSupplementPanel.style.display = industry === "livestock" ? "" : "none";
   }
 }
 
