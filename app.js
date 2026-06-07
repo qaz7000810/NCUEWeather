@@ -141,6 +141,13 @@ const dom = {
   visitTotal: document.getElementById("visitTotal"),
   visitToday: document.getElementById("visitToday"),
   visitStatus: document.getElementById("visitStatus"),
+  reloadMarineBtn: document.getElementById("reloadMarineBtn"),
+  marineStatus: document.getElementById("marineStatus"),
+  marineDataTime: document.getElementById("marineDataTime"),
+  marineTableBody: document.getElementById("marineTableBody"),
+  marineDate1: document.getElementById("marineDate1"),
+  marineDate2: document.getElementById("marineDate2"),
+  marineDate3: document.getElementById("marineDate3"),
 };
 
 let fileIndex = [];
@@ -906,6 +913,7 @@ async function init() {
   initHealthView();
   initTownForecastView();
   initIndustryWeatherView();
+  initMarineView();
 }
 
 function bindTabs() {
@@ -8639,4 +8647,145 @@ async function loadAndDisplayChanghuaAlerts(view) {
   } finally {
     isChanghuaAlertLoading = false;
   }
+}
+
+// ----------------- 海象資訊 -----------------
+
+function initMarineView() {
+  if (!dom.marineTableBody) return;
+  dom.reloadMarineBtn?.addEventListener("click", loadMarineData);
+  loadMarineData();
+}
+
+async function loadMarineData() {
+  if (!dom.marineStatus) return;
+  dom.marineStatus.textContent = "讀取海象資訊...";
+  try {
+    const data = await fetchCwaDataset("F-A0021-001");
+    const parsed = parseMarineData(data);
+    renderMarineData(parsed);
+    const now = new Date();
+    if (dom.marineDataTime) dom.marineDataTime.textContent = formatObsTime(now.toISOString());
+    dom.marineStatus.textContent = "已更新";
+  } catch (err) {
+    console.error(err);
+    dom.marineStatus.textContent = err.message || "海象資訊載入失敗";
+  }
+}
+
+function parseMarineData(payload) {
+  const locations = payload?.records?.location || payload?.cwaopendata?.dataset?.location || [];
+  const targets = ["伸港", "線西", "鹿港", "福興", "芳苑", "大城"];
+  const results = [];
+  const allDates = new Set();
+  
+  const d = new Date();
+  let todayStr = "";
+  try {
+    const parts = new Intl.DateTimeFormat("zh-TW", {
+      timeZone: "Asia/Taipei",
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit"
+    }).formatToParts(d);
+    const y = parts.find(p => p.type === "year").value;
+    const m = parts.find(p => p.type === "month").value;
+    const day = parts.find(p => p.type === "day").value;
+    todayStr = `${y}/${m}/${day}`;
+  } catch (e) {
+    todayStr = d.toISOString().substring(0, 10).replace(/-/g, "/");
+  }
+
+  locations.forEach(loc => {
+    const locName = loc.locationName || loc.LocationName || "";
+    const matchedTarget = targets.find(t => locName.includes(t));
+    if (!matchedTarget) return;
+
+    const days = {};
+    
+    const walk = (node) => {
+      if (!node || typeof node !== "object") return;
+      let dt = node.dataTime || node.DataTime;
+      let type = null;
+      if (dt && Array.isArray(node.parameter)) {
+         const p = node.parameter.find(p => p.parameterValue === "滿潮" || p.parameterValue === "乾潮" || (p.parameterName === "Tide" && (p.parameterValue === "滿潮" || p.parameterValue === "乾潮")));
+         if (p) type = p.parameterValue === "滿潮" || p.parameterValue === "乾潮" ? p.parameterValue : type;
+      }
+      
+      let height = null;
+      if (dt && type) {
+         let tideHeightNodes = [];
+         if (node.tideHeights && Array.isArray(node.tideHeights.tideHeight)) tideHeightNodes = node.tideHeights.tideHeight;
+         else if (node.TideHeights && Array.isArray(node.TideHeights.TideHeight)) tideHeightNodes = node.TideHeights.TideHeight;
+         else if (Array.isArray(node.tideHeight)) tideHeightNodes = node.tideHeight;
+         else if (Array.isArray(node.TideHeight)) tideHeightNodes = node.TideHeight;
+         
+         const localHeightNode = tideHeightNodes.find(n => {
+            const text = String(n.description || n.Description || n.measure || n.Measure || "").toLowerCase();
+            return text.includes("當地") || text.includes("local");
+         });
+         if (localHeightNode) {
+             height = localHeightNode.value || localHeightNode.Value || localHeightNode.dataValue;
+         } else if (tideHeightNodes.length > 0) {
+             height = tideHeightNodes[0].value || tideHeightNodes[0].Value || tideHeightNodes[0].dataValue;
+         }
+      }
+
+      if (dt && type) {
+        const match = dt.match(/^(\d{4}-\d{2}-\d{2})T(\d{2}:\d{2})/);
+        if (match) {
+          const dateStr = match[1].replace(/-/g, "/");
+          const timeStr = match[2];
+          if (dateStr >= todayStr) {
+            allDates.add(dateStr);
+            if (!days[dateStr]) days[dateStr] = { "滿潮": [], "乾潮": [] };
+            
+            let displayStr = timeStr;
+            if (height != null) {
+               const num = Number(height);
+               if (Number.isFinite(num)) {
+                  const sign = num > 0 ? "+" : "";
+                  displayStr = `${timeStr}<br><span style="font-size: 0.85em; color: var(--muted);">( ${sign}${num} )</span>`;
+               }
+            }
+            
+            days[dateStr][type].push(displayStr);
+          }
+        }
+      } else {
+         Object.values(node).forEach(v => {
+           if (Array.isArray(v)) v.forEach(walk);
+           else if (typeof v === "object") walk(v);
+         });
+      }
+    };
+    walk(loc);
+    results.push({ name: matchedTarget, locName, days });
+  });
+
+  const sortedDates = Array.from(allDates).sort().slice(0, 3);
+  results.sort((a, b) => targets.indexOf(a.name) - targets.indexOf(b.name));
+
+  return { dates: sortedDates, locations: results };
+}
+
+function renderMarineData(parsed) {
+  if (!dom.marineTableBody) return;
+  const { dates, locations } = parsed;
+  
+  if (dom.marineDate1) dom.marineDate1.textContent = dates[0] || "第一天";
+  if (dom.marineDate2) dom.marineDate2.textContent = dates[1] || "第二天";
+  if (dom.marineDate3) dom.marineDate3.textContent = dates[2] || "第三天";
+
+  if (!locations.length) {
+    dom.marineTableBody.innerHTML = '<tr><td colspan="5" style="padding: 20px;">找不到彰化沿海潮汐資料（F-A0021-001）</td></tr>';
+    return;
+  }
+
+  dom.marineTableBody.innerHTML = locations.map((loc, index) => {
+    const getTides = (type, d) => (d && loc.days[d]?.[type]?.length) ? loc.days[d][type].join("<br><br>") : "--";
+    const bgStyle = index % 2 === 0 ? "background: transparent;" : "background: rgba(247, 249, 255, 0.6);";
+    return `<tr style="${bgStyle}"><td rowspan="2" style="vertical-align: middle; font-weight: bold; border-bottom: 1px solid var(--border); border-right: 1px solid var(--border);">${sanitizeText(loc.name)}</td><td style="color: #ef4444; font-weight: 700;">滿潮</td><td>${getTides("滿潮", dates[0])}</td><td>${getTides("滿潮", dates[1])}</td><td>${getTides("滿潮", dates[2])}</td></tr>
+            <tr style="${bgStyle}"><td style="color: #3b82f6; font-weight: 700; border-bottom: 1px solid var(--border);">乾潮</td><td style="border-bottom: 1px solid var(--border);">${getTides("乾潮", dates[0])}</td><td style="border-bottom: 1px solid var(--border);">${getTides("乾潮", dates[1])}</td><td style="border-bottom: 1px solid var(--border);">${getTides("乾潮", dates[2])}</td></tr>`;
+  }).join("");
 }

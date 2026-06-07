@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>彰師大氣象觀測網站</title>
+  <title>彰化縣即時氣象與空品</title>
   <link rel="icon" href="./favicon.ico" type="image/x-icon" />
   <link rel="shortcut icon" href="./favicon.ico" type="image/x-icon" />
   <link rel="stylesheet" href="./styles.css" />
@@ -15,10 +15,9 @@
 <body>
   <header class="header">
     <div>
-      <p class="eyebrow">彰師大氣象觀測網站</p>
-      <p class="eyebrow">CWA OpenData | 彰師大測站</p>
-      <p class="eyebrow">環境部 AQI | 彰化測站</p>
-      <h1>彰師大即時氣象與空品</h1>
+      <h1>彰化縣即時氣象與空品</h1>
+      <p class="eyebrow">資料來源：氣象署、環境部開放資料</p>
+      <p class="eyebrow">建置團隊：彰化師大地理學系</p>
       <div class="visit-counter" id="visitCounter">
         <div class="visit-item">
           <span class="visit-label">總瀏覽</span>
@@ -41,8 +40,9 @@
     <button class="tab-btn" data-tab-target="disaster">防災氣象</button>
     <button class="tab-btn" data-tab-target="health">健康氣象</button>
     <button class="tab-btn" data-tab-target="town-forecast">鄉鎮預報</button>
-    <button class="tab-btn" data-tab-target="industry-weather">彰化產業氣象</button>
-    <button class="tab-btn" data-tab-target="historical">歷史資料</button>
+    <button class="tab-btn" data-tab-target="industry-weather">產業氣象</button>
+    <button class="tab-btn" data-tab-target="marine">海象資訊</button>
+    <!-- <button class="tab-btn" data-tab-target="historical">歷史資料</button> -->
   </nav>
 
   <main class="tab-panel active" data-tab="realtime">
@@ -740,6 +740,44 @@
               </tr>
             </thead>
             <tbody id="industryWeatherThresholdBody"></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <main class="tab-panel" data-tab="marine">
+    <section class="panel">
+      <div class="controls">
+        <div class="control buttons">
+          <button id="reloadMarineBtn" class="primary">更新海象資訊</button>
+        </div>
+        <div class="control">
+          <label>狀態</label>
+          <div class="status" id="marineStatus">尚未載入</div>
+        </div>
+      </div>
+    </section>
+
+    <section class="panel">
+      <div class="table-card">
+        <div class="table-header">
+          <span>彰化縣沿海鄉鎮潮汐預報</span>
+          <span id="marineDataTime" class="table-header-time"></span>
+        </div>
+        <div class="table-source">F-A0021-001</div>
+        <div style="overflow-x: auto;">
+          <table id="marineTable">
+            <thead>
+              <tr>
+                <th>地點</th>
+                <th>潮汐</th>
+                <th id="marineDate1">第一天</th>
+                <th id="marineDate2">第二天</th>
+                <th id="marineDate3">第三天</th>
+              </tr>
+            </thead>
+            <tbody id="marineTableBody"></tbody>
           </table>
         </div>
       </div>
