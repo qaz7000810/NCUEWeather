@@ -122,6 +122,8 @@ const dom = {
   industryWeatherInfo: document.getElementById("industryWeatherInfo"),
   industryWeatherLegend: document.getElementById("industryWeatherLegend"),
   industryWeatherThresholdBody: document.getElementById("industryWeatherThresholdBody"),
+  industryWeatherStandardPanel: document.getElementById("industryWeatherStandardPanel"),
+  industryWeatherMarinePanel: document.getElementById("industryWeatherMarinePanel"),
   townForecastMode: document.getElementById("townForecastMode"),
   townForecastMetric: document.getElementById("townForecastMetric"),
   townForecastTown: document.getElementById("townForecastTown"),
@@ -4512,6 +4514,13 @@ function syncIndustryWeatherControls() {
   if (dom.industryWeatherAnimalWrap) {
     dom.industryWeatherAnimalWrap.style.display = industry === "livestock" ? "" : "none";
   }
+  
+  if (dom.industryWeatherStandardPanel) {
+    dom.industryWeatherStandardPanel.style.display = industry === "marine" ? "none" : "";
+  }
+  if (dom.industryWeatherMarinePanel) {
+    dom.industryWeatherMarinePanel.style.display = industry === "marine" ? "" : "none";
+  }
 }
 
 function initIndustryWeatherMap() {
@@ -4545,6 +4554,10 @@ async function ensureIndustryWeatherGeo() {
 
 async function loadIndustryWeatherData() {
   if (!dom.industryWeatherMap) return;
+  const industry = dom.industryWeatherIndustry?.value;
+  if (industry === "marine") {
+    loadMarineData();
+  }
   const timeMode = getIndustryWeatherTimeMode();
   setIndustryWeatherStatus(`讀取彰化產業氣象資料（${getIndustryWeatherTimeLabel(timeMode)}）...`);
   try {
