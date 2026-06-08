@@ -3298,6 +3298,8 @@ function bindIndustryWeatherEvents() {
       }
     }
     
+    populateIndustryTownOptions();
+    
     renderIndustryWeatherMap();
     renderIndustryWeatherInfo();
   });
@@ -4584,6 +4586,11 @@ function syncIndustryWeatherControls() {
   if (dom.industryWeatherAnimalWrap) {
     dom.industryWeatherAnimalWrap.style.display = industry === "livestock" ? "" : "none";
   }
+
+  const timeWrap = document.getElementById("industryWeatherTimeWrap");
+  if (timeWrap) {
+    timeWrap.style.display = industry === "marine" ? "none" : "";
+  }
   
   if (dom.industryWeatherStandardPanel) {
     dom.industryWeatherStandardPanel.style.display = industry === "marine" ? "none" : "";
@@ -4594,6 +4601,8 @@ function syncIndustryWeatherControls() {
   if (dom.industryWeatherSupplementPanel) {
     dom.industryWeatherSupplementPanel.style.display = industry === "livestock" ? "" : "none";
   }
+
+  populateIndustryTownOptions();
 }
 
 function initIndustryWeatherMap() {
@@ -5205,23 +5214,11 @@ function renderIndustryWeatherMap() {
       const townName = normalizeIndustryTownName(feature?.properties?.[TOWN_NAME_FIELD] || "");
       const row = (industryWeatherState.townData || []).find((item) => item.townKey === townName);
       const display = buildIndustryTownDisplay(row);
-      const industry = dom.industryWeatherIndustry?.value || "livestock";
-
-      if (industry === "marine" && display.highTides && display.lowTides) {
-        layer.bindTooltip(
-          `<div style="text-align: center; line-height: 1.3;">
-             <strong>${sanitizeText(townName)}</strong><br>
-             <span style="font-size: 0.9em; color: #0056b3;">滿 ${sanitizeText(display.highTides)}</span><br>
-             <span style="font-size: 0.9em; color: #008080;">乾 ${sanitizeText(display.lowTides)}</span>
-           </div>`,
-          { permanent: true, direction: "center", className: "industry-map-tooltip" }
-        );
-      } else {
-        layer.bindTooltip(
-          `<strong>${sanitizeText(townName)}</strong>${sanitizeText(display.tooltip)}`,
-          { sticky: true, className: "industry-map-tooltip" }
-        );
-      }
+      
+      layer.bindTooltip(
+        `<strong>${sanitizeText(townName)}</strong>${sanitizeText(display.tooltip)}`,
+        { sticky: true, className: "industry-map-tooltip" }
+      );
 
       layer.on("click", () => {
         industryWeatherState.selectedTownKey = townName;
@@ -5351,7 +5348,14 @@ function updateIndustryWeatherDataTime() {
 
 function populateIndustryTownOptions() {
   if (!dom.industryWeatherTown) return;
-  const towns = (industryWeatherState.townData || []).map((item) => item.townKey).filter(Boolean);
+  let towns = (industryWeatherState.townData || []).map((item) => item.townKey).filter(Boolean);
+  
+  const industry = dom.industryWeatherIndustry?.value;
+  if (industry === "marine") {
+    const coastalTowns = ["伸港鄉", "線西鄉", "鹿港鎮", "福興鄉", "芳苑鄉", "大城鄉"];
+    towns = towns.filter((town) => coastalTowns.includes(town));
+  }
+
   if (!towns.length) {
     dom.industryWeatherTown.innerHTML = '<option value="">暫無資料</option>';
     return;
