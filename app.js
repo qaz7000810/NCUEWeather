@@ -2952,36 +2952,97 @@ function isDailyTempDiffMetric(metricKey) {
   return metricKey === "tempHighLow" || metricKey === "dailyTempDiff";
 }
 
+const metricCategories = [
+  { id: "temp", label: "溫度", keys: ["temp", "apparent", "tempDailyLow", "tempDailyHigh", "tempHighLow", "dailyTempDiff", "thi"] },
+  { id: "rain_hum", label: "降雨&溼度", keys: ["humidity", "rain", "rain3hr", "rain24hr", "lightning"] },
+  { id: "wind", label: "風", keys: ["wind", "gust"] },
+  { id: "air", label: "空品", keys: ["aqi", "pm25", "pm10", "o3", "pm1Airbox", "pm25Airbox", "pm10Airbox"] }
+];
+
 function renderMetricButtonList(selectEl, metricKeys) {
   const control = selectEl.closest(".control");
   if (!control) return;
   control.classList.add("metric-control");
-  let list = control.querySelector(".metric-button-list");
+  
+  let container = control.querySelector(".metric-filter-container");
+  if (!container) {
+    container = document.createElement("div");
+    container.className = "metric-filter-container";
+    selectEl.insertAdjacentElement("afterend", container);
+  }
+  
+  let catList = container.querySelector(".metric-category-list");
+  if (!catList) {
+    catList = document.createElement("div");
+    catList.className = "alert-filter-list metric-category-list";
+    container.appendChild(catList);
+  }
+  
+  let list = container.querySelector(".metric-button-list");
   if (!list) {
     list = document.createElement("div");
-    list.className = "metric-button-list";
-    selectEl.insertAdjacentElement("afterend", list);
+    list.className = "metric-button-list alert-town-list";
+    container.appendChild(list);
   }
+  
+  const oldList = control.querySelector(":scope > .metric-button-list");
+  if (oldList) oldList.remove();
+
   selectEl.classList.add("metric-select-hidden");
+  
   const activeValue = selectEl.value;
-  list.innerHTML = metricKeys
-    .map((key) => {
-      const metric = rankingMetrics[key];
-      if (!metric) return "";
-      const active = key === activeValue ? " active" : "";
-      const label = compactMetricLabels[key] || metric.label;
-      return `<button class="metric-filter-btn${active}" type="button" data-metric-key="${sanitizeText(key)}">${sanitizeText(label)}</button>`;
+  let activeCatId = metricCategories.find(c => c.keys.includes(activeValue))?.id || metricCategories[0].id;
+
+  function renderSubItems(catId) {
+    const cat = metricCategories.find(c => c.id === catId);
+    if (!cat) return;
+    const availableKeys = cat.keys.filter(k => metricKeys.includes(k));
+    list.innerHTML = availableKeys
+      .map((key) => {
+        const metric = rankingMetrics[key];
+        if (!metric) return "";
+        const active = key === selectEl.value ? " active" : "";
+        const label = compactMetricLabels[key] || metric.label;
+        return `<button class="metric-filter-btn${active}" type="button" data-metric-key="${sanitizeText(key)}">${sanitizeText(label)}</button>`;
+      })
+      .join("");
+      
+    list.querySelectorAll("[data-metric-key]").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        const nextValue = btn.dataset.metricKey || "";
+        if (!nextValue || selectEl.value === nextValue) return;
+        selectEl.value = nextValue;
+        list.querySelectorAll(".metric-filter-btn").forEach((item) => item.classList.toggle("active", item === btn));
+        selectEl.dispatchEvent(new Event("change", { bubbles: true }));
+      });
+    });
+  }
+
+  const availableCategories = metricCategories.filter(cat => cat.keys.some(k => metricKeys.includes(k)));
+  catList.innerHTML = availableCategories
+    .map(cat => {
+      const active = cat.id === activeCatId ? " active" : "";
+      return `<button class="alert-filter-btn metric-category-btn${active}" type="button" data-cat-id="${cat.id}">${sanitizeText(cat.label)}</button>`;
     })
     .join("");
-  list.querySelectorAll("[data-metric-key]").forEach((btn) => {
+    
+  catList.querySelectorAll("[data-cat-id]").forEach((btn) => {
     btn.addEventListener("click", () => {
-      const nextValue = btn.dataset.metricKey || "";
-      if (!nextValue || selectEl.value === nextValue) return;
-      selectEl.value = nextValue;
-      list.querySelectorAll(".metric-filter-btn").forEach((item) => item.classList.toggle("active", item === btn));
-      selectEl.dispatchEvent(new Event("change", { bubbles: true }));
+      const catId = btn.dataset.catId;
+      catList.querySelectorAll(".metric-category-btn").forEach((item) => item.classList.toggle("active", item === btn));
+      
+      const cat = metricCategories.find(c => c.id === catId);
+      const availableKeys = cat.keys.filter(k => metricKeys.includes(k));
+      
+      if (!availableKeys.includes(selectEl.value) && availableKeys.length > 0) {
+        selectEl.value = availableKeys[0];
+        selectEl.dispatchEvent(new Event("change", { bubbles: true }));
+      }
+      renderSubItems(catId);
     });
   });
+
+  renderSubItems(activeCatId);
 }
 
 function toggleRankingSort(view, metricKey) {
