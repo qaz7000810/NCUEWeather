@@ -3287,9 +3287,17 @@ function bindHealthViewEvents() {
 }
 
 function bindIndustryWeatherEvents() {
-  dom.industryWeatherIndustry?.addEventListener("change", () => {
+  dom.industryWeatherIndustry?.addEventListener("change", async () => {
     syncIndustryWeatherControls();
     ensureIndustryWeatherSelection();
+    
+    // If marine mode is selected, make sure data is loaded first before rendering
+    if (dom.industryWeatherIndustry.value === "marine") {
+      if (!industryWeatherState.marineData) {
+        await loadMarineData();
+      }
+    }
+    
     renderIndustryWeatherMap();
     renderIndustryWeatherInfo();
   });
@@ -4621,7 +4629,7 @@ async function loadIndustryWeatherData() {
   if (!dom.industryWeatherMap) return;
   const industry = dom.industryWeatherIndustry?.value;
   if (industry === "marine") {
-    loadMarineData();
+    await loadMarineData();
   }
   const timeMode = getIndustryWeatherTimeMode();
   setIndustryWeatherStatus(`讀取彰化產業氣象資料（${getIndustryWeatherTimeLabel(timeMode)}）...`);
@@ -5197,10 +5205,24 @@ function renderIndustryWeatherMap() {
       const townName = normalizeIndustryTownName(feature?.properties?.[TOWN_NAME_FIELD] || "");
       const row = (industryWeatherState.townData || []).find((item) => item.townKey === townName);
       const display = buildIndustryTownDisplay(row);
-      layer.bindTooltip(
-        `<strong>${sanitizeText(townName)}</strong>${sanitizeText(display.tooltip)}`,
-        { sticky: true, className: "industry-map-tooltip" }
-      );
+      const industry = dom.industryWeatherIndustry?.value || "livestock";
+
+      if (industry === "marine" && display.highTides && display.lowTides) {
+        layer.bindTooltip(
+          `<div style="text-align: center; line-height: 1.3;">
+             <strong>${sanitizeText(townName)}</strong><br>
+             <span style="font-size: 0.9em; color: #0056b3;">滿 ${sanitizeText(display.highTides)}</span><br>
+             <span style="font-size: 0.9em; color: #008080;">乾 ${sanitizeText(display.lowTides)}</span>
+           </div>`,
+          { permanent: true, direction: "center", className: "industry-map-tooltip" }
+        );
+      } else {
+        layer.bindTooltip(
+          `<strong>${sanitizeText(townName)}</strong>${sanitizeText(display.tooltip)}`,
+          { sticky: true, className: "industry-map-tooltip" }
+        );
+      }
+
       layer.on("click", () => {
         industryWeatherState.selectedTownKey = townName;
         industryWeatherState.selectedTownName = townName;
@@ -5359,12 +5381,45 @@ function buildIndustryTownDisplay(row) {
     };
   }
   if (industry !== "livestock") {
+    if (industry === "marine" && industryWeatherState.marineData) {
+      const loc = industryWeatherState.marineData.locations.find(l => row.townKey.includes(l.name));
+      if (loc && industryWeatherState.marineData.dates.length) {
+        const today = industryWeatherState.marineData.dates[0];
+        const textTides = (type, d) => {
+          if (!d || !loc.days[d]?.[type]?.length) return "--";
+          return loc.days[d][type].map(t => {
+            const match = t.match(/^(\d{2}:\d{2})/);
+            return match ? match[1] : "";
+          }).filter(Boolean).join(", ");
+        };
+        const highTides = textTides("滿潮", today);
+        const lowTides = textTides("乾潮", today);
+        return {
+          color: "#2b3a55", // A different color to distinguish coastal? Or just neutral
+          levelLabel: "潮汐預報",
+          description: `今日滿潮: ${highTides} | 乾潮: ${lowTides}`,
+          thresholdText: "潮汐資料",
+          tooltip: `｜滿潮: ${highTides}｜乾潮: ${lowTides}`,
+          highTides,
+          lowTides,
+        };
+      } else {
+        return {
+          color: INDUSTRY_WEATHER_NEUTRAL_COLOR,
+          levelLabel: "無潮汐資料",
+          description: "非沿海鄉鎮或無潮汐資料",
+          thresholdText: "無資料",
+          tooltip: `｜無潮汐資料`,
+        };
+      }
+    }
+
     return {
       color: INDUSTRY_WEATHER_NEUTRAL_COLOR,
       levelLabel: "功能建置中",
       description: INDUSTRY_PLACEHOLDER_COPY[industry] || "功能建置中",
       thresholdText: "待後續串接正式門檻與資料源",
-      tooltip: `${formatValue(row.temperature, "°C", 1)} / ${isValidObservation(row.humidity) ? formatValue(row.humidity, "%", 0) : "濕度—"}`,
+      tooltip: `<br>${formatValue(row.temperature, "°C", 1)} / ${isValidObservation(row.humidity) ? formatValue(row.humidity, "%", 0) : "濕度—"}`,
     };
   }
   const config = LIVESTOCK_ANIMALS[animalKey] || LIVESTOCK_ANIMALS.cattle;
@@ -8741,6 +8796,7 @@ async function loadMarineData() {
   try {
     const data = await fetchCwaDataset("F-A0021-001");
     const parsed = parseMarineData(data);
+    industryWeatherState.marineData = parsed;
     renderMarineData(parsed);
     const now = new Date();
     if (dom.marineDataTime) dom.marineDataTime.textContent = formatObsTime(now.toISOString());
