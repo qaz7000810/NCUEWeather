@@ -2720,6 +2720,7 @@ function renderNCUEObservation(station) {
     normalizeObservationNumber(readWeatherElement(station, "HourlyPrecipitation"), { min: 0 });
   const dailyRain =
     normalizeObservationNumber(readWeatherElement(station, "DailyRainfall"), { min: 0 }) ??
+    normalizeObservationNumber(readWeatherNested(station, "Now.Precipitation"), { min: 0 }) ??
     normalizeObservationNumber(readWeatherElement(station, "Precipitation"), { min: 0 });
   const weather = readWeatherElement(station, "Weather");
   const windLevel = windToBeaufort(windSpeed);
