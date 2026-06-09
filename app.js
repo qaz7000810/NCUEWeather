@@ -8838,7 +8838,7 @@ function renderMarineMap() {
   
   marineState.townLayer = L.geoJSON(geo, {
     style: (feature) => {
-      const townName = normalizeIndustryTownName(feature?.properties?.TOWNNAME || feature?.properties?.TOWN_NAME || feature?.properties?.TOWN || feature?.properties?.name || "");
+      const townName = normalizeIndustryTownName(feature?.properties?.[TOWN_NAME_FIELD] || feature?.properties?.TOWNNAME || feature?.properties?.TOWN_NAME || feature?.properties?.TOWN || feature?.properties?.name || "");
       const isCoastal = coastalTowns.includes(townName);
       const selected = marineState.selectedTownName === townName;
       return {
@@ -8849,7 +8849,7 @@ function renderMarineMap() {
       };
     },
     onEachFeature: (feature, layer) => {
-      const townName = normalizeIndustryTownName(feature?.properties?.TOWNNAME || feature?.properties?.TOWN_NAME || feature?.properties?.TOWN || feature?.properties?.name || "");
+      const townName = normalizeIndustryTownName(feature?.properties?.[TOWN_NAME_FIELD] || feature?.properties?.TOWNNAME || feature?.properties?.TOWN_NAME || feature?.properties?.TOWN || feature?.properties?.name || "");
       const isCoastal = coastalTowns.includes(townName);
       if (!isCoastal) {
          layer.bindTooltip(`<strong>${sanitizeText(townName)}</strong><br>無潮汐資料`, { sticky: true, className: "industry-map-tooltip" });
