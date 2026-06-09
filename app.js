@@ -146,11 +146,15 @@ const dom = {
   visitStatus: document.getElementById("visitStatus"),
   reloadMarineBtn: document.getElementById("reloadMarineBtn"),
   marineStatus: document.getElementById("marineStatus"),
+  marineTabStatus: document.getElementById("marineTabStatus"),
   marineDataTime: document.getElementById("marineDataTime"),
+  marineMap: document.getElementById("marineMap"),
+  marineInfo: document.getElementById("marineInfo"),
   marineTableBody: document.getElementById("marineTableBody"),
   marineDate1: document.getElementById("marineDate1"),
   marineDate2: document.getElementById("marineDate2"),
   marineDate3: document.getElementById("marineDate3"),
+  marineClearBtn: document.getElementById("marineClearBtn"),
 };
 
 let fileIndex = [];
@@ -292,6 +296,12 @@ const townForecastState = {
   qpesums: null,
   primaryDatasetBlocked: false,
   qpesumsBlocked: false,
+};
+
+const marineState = {
+  map: null,
+  townLayer: null,
+  selectedTownName: "",
 };
 
 const CWA_BASE = "https://faein.climate-quiz-yuchen.workers.dev/api/v1/rest/datastore";
@@ -964,6 +974,11 @@ function bindTabs() {
       if (target === "town-forecast") {
         requestAnimationFrame(() => {
           ensureTownForecastMapSized();
+        });
+      }
+      if (target === "marine") {
+        requestAnimationFrame(() => {
+          ensureMarineMapSized();
         });
       }
     });
@@ -3292,13 +3307,6 @@ function bindIndustryWeatherEvents() {
     syncIndustryWeatherControls();
     ensureIndustryWeatherSelection();
     
-    // If marine mode is selected, make sure data is loaded first before rendering
-    if (dom.industryWeatherIndustry.value === "marine") {
-      if (!industryWeatherState.marineData) {
-        await loadMarineData();
-      }
-    }
-    
     populateIndustryTownOptions();
     
     renderIndustryWeatherMap();
@@ -4590,14 +4598,11 @@ function syncIndustryWeatherControls() {
 
   const timeWrap = document.getElementById("industryWeatherTimeWrap");
   if (timeWrap) {
-    timeWrap.style.display = industry === "marine" ? "none" : "";
+    timeWrap.style.display = "";
   }
   
   if (dom.industryWeatherStandardPanel) {
-    dom.industryWeatherStandardPanel.style.display = industry === "marine" ? "none" : "";
-  }
-  if (dom.industryWeatherMarinePanel) {
-    dom.industryWeatherMarinePanel.style.display = industry === "marine" ? "" : "none";
+    dom.industryWeatherStandardPanel.style.display = "";
   }
   if (dom.industryWeatherSupplementPanel) {
     dom.industryWeatherSupplementPanel.style.display = industry === "livestock" ? "" : "none";
@@ -8792,12 +8797,156 @@ async function loadAndDisplayChanghuaAlerts(view) {
 function initMarineView() {
   if (!dom.marineTableBody) return;
   dom.reloadMarineBtn?.addEventListener("click", loadMarineData);
+  initMarineMap();
   loadMarineData();
+}
+
+async function initMarineMap() {
+  if (!dom.marineMap || marineState.map) return;
+  marineState.map = L.map(dom.marineMap.id, { zoomControl: true }).setView([23.98, 120.46], 10);
+  L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+    maxZoom: 12,
+    attribution: "&copy; OpenStreetMap contributors",
+  }).addTo(marineState.map);
+
+  try {
+    const geo = await ensureIndustryWeatherGeo(); // reuse the geojson
+    marineState.townGeo = geo;
+    renderMarineMap();
+  } catch (err) {
+    console.error("Marine map geo error:", err);
+  }
+}
+
+function ensureMarineMapSized() {
+  if (!marineState.map) return;
+  marineState.map.invalidateSize(false);
+  if (marineState.townGeo) {
+    const bounds = L.geoJSON(marineState.townGeo).getBounds();
+    marineState.map.fitBounds(bounds, { padding: [10, 10] });
+  }
+}
+
+function renderMarineMap() {
+  const geo = marineState.townGeo;
+  if (!marineState.map || !geo) return;
+  if (marineState.townLayer) {
+    marineState.map.removeLayer(marineState.townLayer);
+  }
+  
+  const coastalTowns = ["伸港鄉", "線西鄉", "鹿港鎮", "福興鄉", "芳苑鄉", "大城鄉"];
+  
+  marineState.townLayer = L.geoJSON(geo, {
+    style: (feature) => {
+      const townName = normalizeIndustryTownName(feature?.properties?.TOWNNAME || feature?.properties?.TOWN_NAME || feature?.properties?.TOWN || feature?.properties?.name || "");
+      const isCoastal = coastalTowns.includes(townName);
+      const selected = marineState.selectedTownName === townName;
+      return {
+        color: selected ? "#0f172a" : "#2b3a55",
+        weight: selected ? 2.5 : (isCoastal ? 2 : 1),
+        fillOpacity: selected ? 0.6 : (isCoastal ? 0.3 : 0.1),
+        fillColor: isCoastal ? "#4ea3ff" : "#e2e8f0",
+      };
+    },
+    onEachFeature: (feature, layer) => {
+      const townName = normalizeIndustryTownName(feature?.properties?.TOWNNAME || feature?.properties?.TOWN_NAME || feature?.properties?.TOWN || feature?.properties?.name || "");
+      const isCoastal = coastalTowns.includes(townName);
+      if (!isCoastal) {
+         layer.bindTooltip(`<strong>${sanitizeText(townName)}</strong><br>無潮汐資料`, { sticky: true, className: "industry-map-tooltip" });
+         return;
+      }
+      
+      layer.bindTooltip(`<strong>${sanitizeText(townName)}</strong><br>點擊查看潮汐`, { sticky: true, className: "industry-map-tooltip" });
+
+      layer.on("click", () => {
+        marineState.selectedTownName = townName;
+        renderMarineMap();
+        renderMarineInfo();
+      });
+    },
+  }).addTo(marineState.map);
+}
+
+function renderMarineInfo() {
+  if (!dom.marineInfo) return;
+  const townName = marineState.selectedTownName;
+  if (!townName) {
+    dom.marineInfo.style.display = "none";
+    if (dom.marineTableBody && dom.marineTableBody.parentElement) {
+       dom.marineTableBody.parentElement.parentElement.style.display = "block";
+    }
+    return;
+  }
+  
+  if (dom.marineTableBody && dom.marineTableBody.parentElement) {
+     dom.marineTableBody.parentElement.parentElement.style.display = "none";
+  }
+  dom.marineInfo.style.display = "block";
+  
+  const data = industryWeatherState.marineData;
+  if (!data) {
+     dom.marineInfo.innerHTML = '<div class="industry-text-card"><p>資料載入中...</p></div>';
+     return;
+  }
+  
+  const loc = data.locations.find(l => townName.includes(l.name));
+  if (!loc) {
+     dom.marineInfo.innerHTML = `<div class="industry-text-card" style="position: relative;"><button class="ghost" style="position: absolute; right: 10px; top: 10px;" onclick="document.getElementById('marineClearBtn').click()">返回總表</button><p>${sanitizeText(townName)} 無潮汐資料</p></div><button id="marineClearBtn" style="display:none;"></button>`;
+     document.getElementById("marineClearBtn")?.addEventListener("click", () => {
+        marineState.selectedTownName = "";
+        renderMarineMap();
+        renderMarineInfo();
+     });
+     return;
+  }
+  
+  const { dates } = data;
+  const getTides = (type, d) => (d && loc.days[d]?.[type]?.length) ? loc.days[d][type].join("<br><br>") : "--";
+  
+  dom.marineInfo.innerHTML = `
+    <div style="margin-bottom: 15px; display: flex; justify-content: space-between; align-items: center;">
+      <h3 style="margin: 0; font-size: 1.1rem; color: var(--text);">${sanitizeText(loc.name)} 潮汐預報</h3>
+      <button class="ghost" id="marineClearBtn">返回總表</button>
+    </div>
+    <div style="overflow-x: auto;">
+      <table style="width: 100%; border-collapse: collapse; text-align: center;">
+        <thead>
+          <tr style="background: var(--surface);">
+            <th style="padding: 10px; border: 1px solid var(--border);">潮汐</th>
+            <th style="padding: 10px; border: 1px solid var(--border);">${dates[0] || 'Day 1'}</th>
+            <th style="padding: 10px; border: 1px solid var(--border);">${dates[1] || 'Day 2'}</th>
+            <th style="padding: 10px; border: 1px solid var(--border);">${dates[2] || 'Day 3'}</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td style="padding: 10px; border: 1px solid var(--border); color: #ef4444; font-weight: 700;">滿潮</td>
+            <td style="padding: 10px; border: 1px solid var(--border);">${getTides("滿潮", dates[0])}</td>
+            <td style="padding: 10px; border: 1px solid var(--border);">${getTides("滿潮", dates[1])}</td>
+            <td style="padding: 10px; border: 1px solid var(--border);">${getTides("滿潮", dates[2])}</td>
+          </tr>
+          <tr>
+            <td style="padding: 10px; border: 1px solid var(--border); color: #3b82f6; font-weight: 700;">乾潮</td>
+            <td style="padding: 10px; border: 1px solid var(--border);">${getTides("乾潮", dates[0])}</td>
+            <td style="padding: 10px; border: 1px solid var(--border);">${getTides("乾潮", dates[1])}</td>
+            <td style="padding: 10px; border: 1px solid var(--border);">${getTides("乾潮", dates[2])}</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  `;
+  
+  document.getElementById("marineClearBtn")?.addEventListener("click", () => {
+     marineState.selectedTownName = "";
+     renderMarineMap();
+     renderMarineInfo();
+  });
 }
 
 async function loadMarineData() {
   if (!dom.marineStatus) return;
   dom.marineStatus.textContent = "讀取海象資訊...";
+  if (dom.marineTabStatus) dom.marineTabStatus.textContent = "讀取海象資訊...";
   try {
     const data = await fetchCwaDataset("F-A0021-001");
     const parsed = parseMarineData(data);
@@ -8806,9 +8955,11 @@ async function loadMarineData() {
     const now = new Date();
     if (dom.marineDataTime) dom.marineDataTime.textContent = formatObsTime(now.toISOString());
     dom.marineStatus.textContent = "已更新";
+    if (dom.marineTabStatus) dom.marineTabStatus.textContent = "已更新";
   } catch (err) {
     console.error(err);
     dom.marineStatus.textContent = err.message || "海象資訊載入失敗";
+    if (dom.marineTabStatus) dom.marineTabStatus.textContent = err.message || "海象資訊載入失敗";
   }
 }
 

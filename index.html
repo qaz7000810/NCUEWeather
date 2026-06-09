@@ -41,6 +41,7 @@
     <button class="tab-btn" data-tab-target="health">健康氣象</button>
     <button class="tab-btn" data-tab-target="town-forecast">鄉鎮預報</button>
     <button class="tab-btn" data-tab-target="industry-weather">產業氣象</button>
+    <button class="tab-btn" data-tab-target="marine">海象資料</button>
     <!-- <button class="tab-btn" data-tab-target="historical">歷史資料</button> -->
   </nav>
 
@@ -647,7 +648,6 @@
             <option value="livestock" selected>畜牧業</option>
             <option value="agriculture">農業</option>
             <option value="fishery">漁業</option>
-            <option value="marine">海象資料</option>
           </select>
         </div>
         <div class="control" id="industryWeatherAnimalWrap">
@@ -717,30 +717,6 @@
             <div id="industryWeatherLegend" class="industry-legend"></div>
           </div>
         </div>
-        <div id="industryWeatherMarinePanel" style="display:none;">
-          <div class="table-card">
-            <div class="table-header">
-              <span>彰化縣沿海鄉鎮潮汐預報</span>
-              <span id="marineDataTime" class="table-header-time"></span>
-            </div>
-            <div class="table-source">F-A0021-001 <span id="marineStatus" style="float:right;">尚未載入</span></div>
-            <div style="overflow-x: auto;">
-              <table id="marineTable">
-                <thead>
-                  <tr>
-                    <th>地點</th>
-                    <th>潮汐</th>
-                    <th id="marineDate1">6/7</th>
-                    <th id="marineDate2">6/8</th>
-                    <th id="marineDate3">6/9</th>
-                  </tr>
-                </thead>
-                <tbody id="marineTableBody"></tbody>
-              </table>
-            </div>
-            </div>
-          </div>
-        </div>
       </aside>
     </section>
 
@@ -768,6 +744,53 @@
       </div>
     </section>
 
+  </main>
+
+  <main class="tab-panel" data-tab="marine">
+    <section class="panel">
+      <div class="controls">
+        <div class="control buttons">
+          <button id="reloadMarineBtn" class="primary">更新資料</button>
+        </div>
+        <div class="control">
+          <label>狀態</label>
+          <div class="status" id="marineTabStatus">尚未載入</div>
+        </div>
+      </div>
+    </section>
+
+    <section class="panel industry-layout">
+      <div class="industry-map-column">
+        <div id="marineMap" class="map-shell"></div>
+        <div class="hint">點擊沿海鄉鎮（伸港、線西、鹿港、福興、芳苑、大城）可查看該鄉鎮今日潮汐。</div>
+      </div>
+      <aside class="industry-info-panel">
+        <div class="table-card">
+          <div class="table-header">
+            <span>彰化縣沿海鄉鎮潮汐預報</span>
+            <span id="marineDataTime" class="table-header-time"></span>
+          </div>
+          <div class="table-source">F-A0021-001 <span id="marineStatus" style="float:right;">尚未載入</span></div>
+          
+          <div id="marineInfo" class="industry-info-body" style="margin-top: 10px; display: none;"></div>
+
+          <div style="overflow-x: auto;">
+            <table id="marineTable">
+              <thead>
+                <tr>
+                  <th>地點</th>
+                  <th>潮汐</th>
+                  <th id="marineDate1">6/7</th>
+                  <th id="marineDate2">6/8</th>
+                  <th id="marineDate3">6/9</th>
+                </tr>
+              </thead>
+              <tbody id="marineTableBody"></tbody>
+            </table>
+          </div>
+        </div>
+      </aside>
+    </section>
   </main>
 
   <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
