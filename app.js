@@ -729,18 +729,18 @@ const rankingMetrics = {
   },
 };
 
-const rankingMetricKeys = ["temp", "apparent", "tempDailyLow", "tempDailyHigh", "tempHighLow", "humidity", "wind", "gust", "rain", "rain3hr", "rain24hr", "thi", "aqi", "pm25", "pm10", "o3", "pm1Airbox", "pm25Airbox", "pm10Airbox"];
+const rankingMetricKeys = ["temp", "apparent", "tempDailyLow", "tempDailyHigh", "tempHighLow", "humidity", "wind", "gust", "rain", "rain3hr", "rain24hr", "lightning", "thi", "aqi", "pm25", "pm10", "o3", "pm1Airbox", "pm25Airbox", "pm10Airbox"];
 const taiwanMetricKeys = [...rankingMetricKeys];
 
 const disasterMetricKeys = ["temp", "apparent", "tempDailyLow", "tempDailyHigh", "dailyTempDiff", "humidity", "wind", "gust", "rain", "rain3hr", "rain24hr", "lightning", "aqi", "pm25", "pm10", "o3", "pm1Airbox", "pm25Airbox", "pm10Airbox"];
 const healthMetricKeys = ["coldInjury", "tempDiff", "heatInjury"];
 const compactMetricLabels = {
   temp: "氣溫",
-  apparent: "體感",
-  tempDailyLow: "最低溫",
-  tempDailyHigh: "最高溫",
-  tempHighLow: "溫差",
-  dailyTempDiff: "溫差",
+  apparent: "體感溫度",
+  tempDailyLow: "日最低溫",
+  tempDailyHigh: "日最高溫",
+  tempHighLow: "日溫差",
+  dailyTempDiff: "日溫差",
   humidity: "濕度",
   wind: "平均風",
   gust: "陣風",
