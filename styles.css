@@ -106,7 +106,8 @@ h3 {
 
 .alert-town-btn,
 .metric-filter-btn,
-.county-filter-btn {
+.county-filter-btn,
+.metric-category-btn {
   border-color: var(--border);
   background: #ffffff;
   color: var(--muted);

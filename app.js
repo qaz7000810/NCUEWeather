@@ -639,6 +639,16 @@ const rankingMetrics = {
     direction: null,
     colorScale: "rain",
   },
+  dailyRain: {
+    label: "當日累積雨量",
+    unit: "mm",
+    value: (station) =>
+      normalizeObservationNumber(readWeatherElement(station, "DailyRainfall"), { min: 0 }) ??
+      normalizeObservationNumber(readWeatherNested(station, "Now.Precipitation"), { min: 0 }) ??
+      normalizeObservationNumber(readWeatherElement(station, "Precipitation"), { min: 0 }),
+    direction: null,
+    colorScale: "rain",
+  },
   lightning: {
     label: "雷擊預警",
     unit: "筆",
@@ -740,10 +750,10 @@ const rankingMetrics = {
   },
 };
 
-const rankingMetricKeys = ["temp", "apparent", "tempDailyLow", "tempDailyHigh", "tempHighLow", "humidity", "wind", "gust", "rain", "rain3hr", "rain24hr", "lightning", "thi", "aqi", "pm25", "pm10", "o3", "pm1Airbox", "pm25Airbox", "pm10Airbox"];
+const rankingMetricKeys = ["temp", "apparent", "tempDailyLow", "tempDailyHigh", "tempHighLow", "humidity", "wind", "gust", "rain", "rain3hr", "rain24hr", "dailyRain", "lightning", "thi", "aqi", "pm25", "pm10", "o3", "pm1Airbox", "pm25Airbox", "pm10Airbox"];
 const taiwanMetricKeys = [...rankingMetricKeys];
 
-const disasterMetricKeys = ["temp", "apparent", "tempDailyLow", "tempDailyHigh", "dailyTempDiff", "humidity", "wind", "gust", "rain", "rain3hr", "rain24hr", "lightning", "aqi", "pm25", "pm10", "o3", "pm1Airbox", "pm25Airbox", "pm10Airbox"];
+const disasterMetricKeys = ["temp", "apparent", "tempDailyLow", "tempDailyHigh", "dailyTempDiff", "humidity", "wind", "gust", "rain", "rain3hr", "rain24hr", "dailyRain", "lightning", "aqi", "pm25", "pm10", "o3", "pm1Airbox", "pm25Airbox", "pm10Airbox"];
 const healthMetricKeys = ["coldInjury", "tempDiff", "heatInjury"];
 const compactMetricLabels = {
   temp: "氣溫",
@@ -758,6 +768,7 @@ const compactMetricLabels = {
   rain: "雨量(1h)",
   rain3hr: "雨量(3h)",
   rain24hr: "雨量(24h)",
+  dailyRain: "當日累積雨量",
   thi: "溫濕指數",
   lightning: "雷擊",
   aqi: "AQI(環)",
@@ -2971,7 +2982,7 @@ function isDailyTempDiffMetric(metricKey) {
 
 const metricCategories = [
   { id: "temp", label: "溫度", keys: ["temp", "apparent", "tempDailyLow", "tempDailyHigh", "tempHighLow", "dailyTempDiff", "thi"] },
-  { id: "rain_hum", label: "降雨&溼度", keys: ["humidity", "rain", "rain3hr", "rain24hr", "lightning"] },
+  { id: "rain_hum", label: "降雨&溼度", keys: ["humidity", "rain", "rain3hr", "rain24hr", "dailyRain", "lightning"] },
   { id: "wind", label: "風", keys: ["wind", "gust"] },
   { id: "air", label: "空品", keys: ["aqi", "pm25", "pm10", "o3", "pm1Airbox", "pm25Airbox", "pm10Airbox"] }
 ];
@@ -9028,7 +9039,8 @@ function parseMarineData(payload) {
            const num = Number(height);
            if (Number.isFinite(num)) {
               const sign = num > 0 ? "+" : "";
-              displayStr = `${timeStr}<br><span style="font-size: 0.85em; color: var(--muted);">( ${sign}${num} )</span>`;
+              const color = type === "滿潮" ? "#ef4444" : "#3b82f6";
+              displayStr = `${timeStr}<br><span style="font-size: 0.85em; color: ${color}; font-weight: bold;">( ${sign}${num} )</span>`;
            }
         }
         days[dateStr][type].push(displayStr);
