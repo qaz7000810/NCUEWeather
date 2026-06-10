@@ -155,6 +155,7 @@ const dom = {
   marineDate2: document.getElementById("marineDate2"),
   marineDate3: document.getElementById("marineDate3"),
   marineClearBtn: document.getElementById("marineClearBtn"),
+  marineTownSelect: document.getElementById("marineTownSelect"),
 };
 
 let fileIndex = [];
@@ -751,7 +752,7 @@ const compactMetricLabels = {
   tempDailyHigh: "日最高溫",
   tempHighLow: "日溫差",
   dailyTempDiff: "日溫差",
-  humidity: "濕度",
+  humidity: "相對濕度",
   wind: "平均風",
   gust: "陣風",
   rain: "雨量(1h)",
@@ -8797,6 +8798,11 @@ async function loadAndDisplayChanghuaAlerts(view) {
 function initMarineView() {
   if (!dom.marineTableBody) return;
   dom.reloadMarineBtn?.addEventListener("click", loadMarineData);
+  dom.marineTownSelect?.addEventListener("change", (e) => {
+    marineState.selectedTownName = e.target.value;
+    renderMarineMap();
+    renderMarineInfo();
+  });
   initMarineMap();
   loadMarineData();
 }
