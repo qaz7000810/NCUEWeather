@@ -8925,6 +8925,9 @@ function renderMarineInfo() {
       <h3 style="margin: 0; font-size: 1.1rem; color: var(--text);">${sanitizeText(loc.name)} 潮汐預報</h3>
       <button class="ghost" id="marineClearBtn">返回總表</button>
     </div>
+    <div class="chart-shell" style="height: 250px; margin-bottom: 15px;">
+      <canvas id="marineChartCanvas"></canvas>
+    </div>
     <div style="overflow-x: auto;">
       <table style="width: 100%; border-collapse: collapse; text-align: center;">
         <thead>
@@ -8958,6 +8961,62 @@ function renderMarineInfo() {
      renderMarineMap();
      renderMarineInfo();
   });
+
+  const canvas = document.getElementById("marineChartCanvas");
+  if (canvas && typeof Chart !== "undefined") {
+    const ctx = canvas.getContext("2d");
+    if (marineState.chart) {
+      marineState.chart.destroy();
+    }
+    const chartPoints = loc.chartData || [];
+    const labels = chartPoints.map(p => p.x);
+    const data = chartPoints.map(p => p.y);
+    const pointColors = chartPoints.map(p => p.type === "滿潮" ? "#ef4444" : "#3b82f6");
+
+    marineState.chart = new Chart(ctx, {
+      type: "line",
+      data: {
+        labels: labels,
+        datasets: [{
+          label: "潮高",
+          data: data,
+          borderColor: "#94a3b8",
+          backgroundColor: "transparent",
+          pointBackgroundColor: pointColors,
+          pointBorderColor: pointColors,
+          pointRadius: 4,
+          pointHoverRadius: 6,
+          tension: 0.3,
+          fill: false
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: { display: false },
+          tooltip: {
+            callbacks: {
+              label: (context) => {
+                const pt = chartPoints[context.dataIndex];
+                return `${pt.type}: ${pt.y}`;
+              }
+            }
+          }
+        },
+        scales: {
+          y: {
+            min: -400,
+            max: 400,
+            title: { display: true, text: "潮高" }
+          },
+          x: {
+            title: { display: false }
+          }
+        }
+      }
+    });
+  }
 }
 
 async function loadMarineData() {
@@ -9011,6 +9070,7 @@ function parseMarineData(payload) {
     if (!matchedTarget) return;
 
     const days = {};
+    const chartData = [];
     const dailyData = loc.TimePeriods?.Daily || [];
     
     dailyData.forEach(daily => {
@@ -9038,6 +9098,15 @@ function parseMarineData(payload) {
         if (height != null) {
            const num = Number(height);
            if (Number.isFinite(num)) {
+              const dateObj = new Date(t.DateTime);
+              const mm = dateObj.getMonth() + 1;
+              const dd = dateObj.getDate();
+              const hr = String(dateObj.getHours()).padStart(2, '0');
+              const mn = String(dateObj.getMinutes()).padStart(2, '0');
+              if (dateStr === todayStr) {
+                chartData.push({ x: `${mm}/${dd} ${hr}:${mn}`, y: num, type: type, timestamp: dateObj.getTime() });
+              }
+
               const sign = num > 0 ? "+" : "";
               const color = type === "滿潮" ? "#ef4444" : "#3b82f6";
               displayStr = `${timeStr}<br><span style="font-size: 0.85em; color: ${color}; font-weight: bold;">( ${sign}${num} )</span>`;
@@ -9047,7 +9116,8 @@ function parseMarineData(payload) {
       });
     });
 
-    results.push({ name: matchedTarget, locName, days });
+    chartData.sort((a, b) => a.timestamp - b.timestamp);
+    results.push({ name: matchedTarget, locName, days, chartData });
   });
 
   const sortedDates = Array.from(allDates).sort().slice(0, 3);
