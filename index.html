@@ -749,17 +749,23 @@
   <main class="tab-panel" data-tab="marine">
     <section class="panel">
       <div class="controls">
-        <div class="control">
-          <label for="marineTownSelect">沿海鄉鎮</label>
-          <select id="marineTownSelect">
-            <option value="">請選擇（或點擊地圖）</option>
-            <option value="伸港鄉">伸港鄉</option>
-            <option value="線西鄉">線西鄉</option>
-            <option value="鹿港鎮">鹿港鎮</option>
-            <option value="福興鄉">福興鄉</option>
-            <option value="芳苑鄉">芳苑鄉</option>
-            <option value="大城鄉">大城鄉</option>
-          </select>
+        <div class="marine-filter-bars" aria-label="海象資料篩選">
+          <div class="county-button-list marine-town-bar" aria-label="沿海鄉鎮">
+            <button class="county-filter-btn active" type="button" data-marine-town="">全部</button>
+            <button class="county-filter-btn" type="button" data-marine-town="伸港鄉">伸港</button>
+            <button class="county-filter-btn" type="button" data-marine-town="線西鄉">線西</button>
+            <button class="county-filter-btn" type="button" data-marine-town="鹿港鎮">鹿港</button>
+            <button class="county-filter-btn" type="button" data-marine-town="福興鄉">福興</button>
+            <button class="county-filter-btn" type="button" data-marine-town="芳苑鄉">芳苑</button>
+            <button class="county-filter-btn" type="button" data-marine-town="大城鄉">大城</button>
+          </div>
+          <div class="metric-button-list marine-metric-bar" aria-label="海象資料項目">
+            <button class="metric-filter-btn active" type="button" data-marine-metric="tide">潮汐</button>
+            <button class="metric-filter-btn" type="button" data-marine-metric="windSpeed">風速</button>
+            <button class="metric-filter-btn" type="button" data-marine-metric="windScale">風級</button>
+            <button class="metric-filter-btn" type="button" data-marine-metric="waveHeight">浪高</button>
+            <button class="metric-filter-btn" type="button" data-marine-metric="current">流速</button>
+          </div>
         </div>
         <div class="control buttons">
           <button id="reloadMarineBtn" class="primary">更新資料</button>
@@ -801,26 +807,7 @@
           </div>
         </div>
 
-        <div class="table-card" id="marineForecastCard">
-          <div class="table-header">
-            <span>彰化縣沿海六鄉鎮海象預報 (未來48小時)</span>
-          </div>
-          <div class="table-source">F-D0047-095</div>
-          <div style="overflow-x: auto;">
-            <table class="town-forecast-table">
-              <thead>
-                <tr>
-                  <th>鄉鎮</th>
-                  <th>時間</th>
-                  <th>風速</th>
-                  <th>風級</th>
-                  <th>浪高</th>
-                  <th>流速</th>
-                </tr>
-              </thead>
-              <tbody id="marineForecastBody"></tbody>
-            </table>
-          </div>
+        
         </div>
       </aside>
     </section>
