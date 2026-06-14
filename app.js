@@ -9154,7 +9154,7 @@ async function loadMarineData() {
     let forecastError = "";
     const [tideData, forecastData] = await Promise.all([
       fetchCwaDataset("F-A0021-001"),
-      fetchCwaDataset(MARINE_FORECAST_DATASET).catch(e => {
+      fetchRadarFileDataset(MARINE_FORECAST_DATASET).catch(e => {
         forecastError = e.message || "海象預報取得失敗";
         console.warn(e);
         return null;
