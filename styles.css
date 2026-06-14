@@ -743,10 +743,80 @@ code {
   flex: 1 1 100%;
 }
 
+.marine-controls {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
 .marine-town-bar,
 .marine-metric-bar {
   flex-basis: 100%;
   margin-top: 0;
+}
+
+.marine-update-row {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.marine-update-row .status {
+  min-width: 0;
+}
+
+.marine-town-bar {
+  flex-wrap: nowrap;
+  overflow-x: auto;
+  padding-bottom: 2px;
+}
+
+.marine-town-bar .county-filter-btn {
+  flex: 0 0 auto;
+}
+
+.marine-content-layout.table-only {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.marine-content-layout .industry-map-column[hidden] {
+  display: none;
+}
+
+.marine-content-layout.table-only .industry-info-panel {
+  position: static;
+}
+
+.marine-town-cell,
+.marine-date-cell {
+  font-weight: 700;
+  vertical-align: middle;
+}
+
+.marine-slot-cell {
+  min-width: 120px;
+}
+
+.marine-slot-time {
+  display: block;
+  margin-bottom: 4px;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.marine-slot-cell strong {
+  display: block;
+}
+
+.marine-metric-chart {
+  height: 360px;
+  padding: 14px;
+  border-bottom: 1px solid var(--border);
+}
+
+.marine-metric-chart[hidden] {
+  display: none;
 }
 
 table {

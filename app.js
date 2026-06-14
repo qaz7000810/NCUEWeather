@@ -148,6 +148,12 @@ const dom = {
   marineStatus: document.getElementById("marineStatus"),
   marineTabStatus: document.getElementById("marineTabStatus"),
   marineDataTime: document.getElementById("marineDataTime"),
+  marineTableTitle: document.getElementById("marineTableTitle"),
+  marineTableSource: document.getElementById("marineTableSource"),
+  marineContentLayout: document.getElementById("marineContentLayout"),
+  marineMapColumn: document.getElementById("marineMapColumn"),
+  marineMetricChartWrap: document.getElementById("marineMetricChartWrap"),
+  marineMetricChart: document.getElementById("marineMetricChart"),
   marineMap: document.getElementById("marineMap"),
   marineInfo: document.getElementById("marineInfo"),
   marineTableBody: document.getElementById("marineTableBody"),
@@ -309,7 +315,11 @@ const marineState = {
   selectedTownName: "",
   activeMetric: "tide",
   forecastError: "",
+  metricChart: null,
+  detailMetricChart: null,
 };
+
+const MARINE_LOCATION_KEYS = ["伸港", "線西", "鹿港", "福興", "芳苑", "大城", "崙尾灣"];
 
 const CWA_BASE = "https://faein.climate-quiz-yuchen.workers.dev/api/v1/rest/datastore";
 const CWA_DIRECT_BASE = "https://opendata.cwa.gov.tw/api/v1/rest/datastore";
@@ -8845,6 +8855,7 @@ function initMarineView() {
       updateMarineMetricButtons();
       if (industryWeatherState.marineData) {
         renderMarineData(industryWeatherState.marineData);
+        renderMarineInfo();
       }
     });
   });
@@ -8938,6 +8949,7 @@ function renderMarineInfo() {
   if (!dom.marineInfo) return;
   const townName = marineState.selectedTownName;
   if (!townName) {
+    destroyMarineChart("detailMetricChart");
     dom.marineInfo.style.display = "none";
     if (dom.marineTableBody && dom.marineTableBody.parentElement) {
        dom.marineTableBody.parentElement.parentElement.style.display = "block";
@@ -8961,6 +8973,12 @@ function renderMarineInfo() {
      dom.marineInfo.innerHTML = '<div class="industry-text-card"><p>資料載入中...</p></div>';
      return;
   }
+
+  if (marineState.activeMetric !== "tide") {
+    renderMarineTownMetricInfo(townName, marineState.activeMetric);
+    return;
+  }
+  destroyMarineChart("detailMetricChart");
   
   const loc = data.locations.find(l => townName.includes(l.name));
   if (!loc) {
@@ -9017,60 +9035,6 @@ function renderMarineInfo() {
     </div>
   `;
   
-  const matchedTarget = ["伸港", "線西", "鹿港", "福興", "芳苑", "大城"].find(t => townName.includes(t));
-  const forecastData = industryWeatherState.marineForecast?.get(matchedTarget);
-
-  if (forecastData && forecastData.length) {
-    const d = new Date();
-    const nowMs = d.getTime();
-    const future48hMs = nowMs + 48 * 60 * 60 * 1000;
-    const upcoming = forecastData.filter(row => {
-      const ts = Date.parse(row.dataTime);
-      return ts >= nowMs - 3 * 3600 * 1000 && ts <= future48hMs;
-    }).slice(0, 16);
-
-    if (upcoming.length) {
-      html += `
-        <h4 style="margin-top: 25px; font-size: 1rem; color: var(--text);">逐三小時海象預報 (未來48小時)</h4>
-        <div style="overflow-x: auto; margin-top: 10px;">
-          <table class="town-forecast-table">
-            <thead>
-              <tr>
-                <th>時間</th>
-                <th>風速</th>
-                <th>風級</th>
-                <th>浪高</th>
-                <th>流速</th>
-              </tr>
-            </thead>
-            <tbody>
-              ${upcoming.map(row => {
-                const rowDate = new Date(row.dataTime);
-                const timeStr = `${rowDate.getMonth()+1}/${rowDate.getDate()} ${String(rowDate.getHours()).padStart(2, '0')}:00`;
-                const ws = row.windSpeed != null ? (typeof row.windSpeed === "number" ? `${row.windSpeed} m/s` : row.windSpeed) : "—";
-                const wscale = row.windScale != null ? row.windScale : "—";
-                const wh = row.waveHeight != null ? (typeof row.waveHeight === "number" ? `${row.waveHeight} m` : row.waveHeight) : "—";
-                const curr = row.current != null ? row.current : "—";
-                return `
-                  <tr>
-                    <td>${timeStr}</td>
-                    <td>${ws}</td>
-                    <td>${wscale}</td>
-                    <td>${wh}</td>
-                    <td>${curr}</td>
-                  </tr>
-                `;
-              }).join("")}
-            </tbody>
-          </table>
-        </div>
-        <div class="industry-text-card" style="margin-top: 10px; padding: 10px;">
-          <p style="margin: 0; font-size: 0.85rem;">資料來源：${MARINE_FORECAST_DATASET}</p>
-        </div>
-      `;
-    }
-  }
-
   dom.marineInfo.innerHTML = html;
 
   document.getElementById("marineClearBtn")?.addEventListener("click", () => {
@@ -9145,6 +9109,59 @@ function renderMarineInfo() {
   }
 }
 
+function renderMarineTownMetricInfo(townName, metricKey) {
+  const cfg = MARINE_METRIC_CONFIGS[metricKey] || MARINE_METRIC_CONFIGS.windSpeed;
+  const townKey = MARINE_LOCATION_KEYS.find((town) => townName.includes(town));
+  const forecastData = townKey ? industryWeatherState.marineForecast?.get(townKey) : null;
+  const dayGroups = buildMarineThreeDayGroups(forecastData || [], metricKey);
+  destroyMarineChart("detailMetricChart");
+
+  dom.marineInfo.innerHTML = `
+    <div style="margin-bottom: 15px; display: flex; justify-content: space-between; align-items: center; gap: 10px;">
+      <h3 style="margin: 0; font-size: 1.1rem; color: var(--text);">${sanitizeText(townKey || townName)}${sanitizeText(cfg.label)}預報</h3>
+      <button class="ghost" id="marineClearBtn">返回總表</button>
+    </div>
+    ${isMarineLineChartMetric(metricKey) ? `
+      <div id="marineMetricDetailChartWrap" class="marine-metric-chart">
+        <canvas id="marineMetricDetailChart"></canvas>
+      </div>
+    ` : ""}
+    <div style="overflow-x: auto;">
+      <table class="town-forecast-table">
+        <thead>
+          <tr>
+            <th>日期</th>
+            <th>半日</th>
+            ${Array.from({ length: 4 }, () => `<th>時間 / ${sanitizeText(cfg.label)}${cfg.unit ? ` (${sanitizeText(cfg.unit)})` : ""}</th>`).join("")}
+          </tr>
+        </thead>
+        <tbody>
+          ${dayGroups.length ? renderMarineHalfDayRows(dayGroups, metricKey, false) : `
+            <tr>
+              <td colspan="6">找不到${sanitizeText(townKey || townName)}${sanitizeText(cfg.label)}資料</td>
+            </tr>
+          `}
+        </tbody>
+      </table>
+    </div>
+  `;
+
+  if (isMarineLineChartMetric(metricKey) && townKey) {
+    const canvas = document.getElementById("marineMetricDetailChart");
+    const chartRendered = renderMarineMetricLineChart(canvas, metricKey, [townKey], "detailMetricChart");
+    const chartWrap = document.getElementById("marineMetricDetailChartWrap");
+    if (chartWrap) chartWrap.hidden = !chartRendered;
+  }
+
+  document.getElementById("marineClearBtn")?.addEventListener("click", () => {
+    marineState.selectedTownName = "";
+    updateMarineTownButtons();
+    renderMarineMap();
+    renderMarineInfo();
+    if (industryWeatherState.marineData) renderMarineData(industryWeatherState.marineData);
+  });
+}
+
 async function loadMarineData() {
   if (!dom.marineStatus) return;
   dom.marineStatus.textContent = "讀取海象資訊...";
@@ -9189,7 +9206,7 @@ async function loadMarineData() {
 
 function renderMarineForecastTable(forecastByTown) {
   if (!dom.marineForecastBody) return;
-  const targets = ["伸港", "線西", "鹿港", "福興", "芳苑", "大城"];
+  const targets = MARINE_LOCATION_KEYS;
   let html = "";
 
   const d = new Date();
@@ -9244,7 +9261,7 @@ function renderMarineForecastTable(forecastByTown) {
 const MARINE_METRIC_CONFIGS = {
   tide: { label: "潮汐", source: "F-A0021-001" },
   windSpeed: { label: "風速", unit: "m/s", source: MARINE_FORECAST_DATASET },
-  windScale: { label: "風級", source: MARINE_FORECAST_DATASET },
+  windScale: { label: "風級", source: `${MARINE_FORECAST_DATASET}（依風速換算蒲福風級）` },
   waveHeight: { label: "浪高", unit: "m", source: MARINE_FORECAST_DATASET },
   current: { label: "流速", source: MARINE_FORECAST_DATASET },
 };
@@ -9253,6 +9270,12 @@ function updateMarineMetricButtons() {
   dom.marineMetricButtons.forEach((btn) => {
     btn.classList.toggle("active", btn.dataset.marineMetric === marineState.activeMetric);
   });
+  const showMap = marineState.activeMetric === "tide";
+  if (dom.marineMapColumn) dom.marineMapColumn.hidden = !showMap;
+  if (dom.marineContentLayout) dom.marineContentLayout.classList.toggle("table-only", !showMap);
+  if (showMap && marineState.map) {
+    requestAnimationFrame(() => marineState.map.invalidateSize(false));
+  }
 }
 
 function updateMarineTownButtons() {
@@ -9263,38 +9286,205 @@ function updateMarineTownButtons() {
 
 function getSelectedMarineTownKeys() {
   const selected = marineState.selectedTownName || "";
-  const targets = ["伸港", "線西", "鹿港", "福興", "芳苑", "大城"];
+  const targets = MARINE_LOCATION_KEYS;
   const matched = targets.find((town) => selected.includes(town));
   return matched ? [matched] : targets;
 }
 
-function getMarineForecastRowsForMetric(metricKey) {
+function parseMarineForecastSlot(dataTime) {
+  const match = String(dataTime || "").match(/(\d{4})-(\d{2})-(\d{2})T(\d{2}):/);
+  if (!match) return null;
+  return {
+    dateKey: `${match[1]}-${match[2]}-${match[3]}`,
+    dateLabel: `${Number(match[2])}/${Number(match[3])}`,
+    hour: Number(match[4]),
+  };
+}
+
+function buildMarineThreeDayGroups(forecastData, metricKey) {
+  const nowMs = Date.now();
+  const availableRows = (forecastData || [])
+    .filter((row) => {
+      const ts = Date.parse(row.dataTime);
+      return Number.isFinite(ts) && ts >= nowMs - 3 * 60 * 60 * 1000;
+    })
+    .map((row) => ({ row, slot: parseMarineForecastSlot(row.dataTime) }))
+    .filter((item) => item.slot)
+    .sort((a, b) => String(a.row.dataTime).localeCompare(String(b.row.dataTime)));
+
+  const dateKeys = Array.from(new Set(availableRows.map((item) => item.slot.dateKey))).slice(0, 3);
+  return dateKeys.map((dateKey) => {
+    const dateRows = availableRows.filter((item) => item.slot.dateKey === dateKey);
+    const valuesByHour = new Map(dateRows.map((item) => [item.slot.hour, item.row[metricKey]]));
+    return {
+      dateKey,
+      dateLabel: dateRows[0]?.slot.dateLabel || dateKey,
+      valuesByHour,
+    };
+  });
+}
+
+function renderMarineHalfDayRows(dayGroups, metricKey, includeTown, town = "") {
+  const halfDays = [
+    { label: "上午", hours: [0, 3, 6, 9] },
+    { label: "下午", hours: [12, 15, 18, 21] },
+  ];
+  const townRowspan = dayGroups.length * halfDays.length;
+  let rowIndex = 0;
+
+  return dayGroups.map((day) => halfDays.map((halfDay, halfDayIndex) => {
+    const townCell = includeTown && rowIndex === 0
+      ? `<td rowspan="${townRowspan}" class="marine-town-cell">${sanitizeText(town)}</td>`
+      : "";
+    rowIndex += 1;
+    return `
+      <tr>
+        ${townCell}
+        ${halfDayIndex === 0 ? `<td rowspan="2" class="marine-date-cell">${sanitizeText(day.dateLabel)}</td>` : ""}
+        <td>${halfDay.label}</td>
+        ${halfDay.hours.map((hour) => `
+          <td class="marine-slot-cell">
+            <span class="marine-slot-time">${String(hour).padStart(2, "0")}:00</span>
+            <strong>${formatMarineForecastMetricValue(metricKey, day.valuesByHour.get(hour))}</strong>
+          </td>
+        `).join("")}
+      </tr>
+    `;
+  }).join("")).join("");
+}
+
+function getMarineForecastGroupsForMetric(metricKey) {
   const forecastByTown = industryWeatherState.marineForecast;
   if (!forecastByTown) return [];
   const targets = getSelectedMarineTownKeys();
-  const nowMs = Date.now();
-  const future48hMs = nowMs + 48 * 60 * 60 * 1000;
-  const rows = [];
+  return targets.map((town) => ({
+    town,
+    dayGroups: buildMarineThreeDayGroups(forecastByTown.get(town) || [], metricKey),
+  })).filter((group) => group.dayGroups.length);
+}
 
-  targets.forEach((town) => {
-    const forecastData = forecastByTown.get(town);
-    if (!forecastData || !forecastData.length) return;
-    forecastData
-      .filter((row) => {
-        const ts = Date.parse(row.dataTime);
-        return ts >= nowMs - 3 * 3600 * 1000 && ts <= future48hMs;
-      })
-      .slice(0, 16)
-      .forEach((row) => {
-        rows.push({
-          town,
-          dataTime: row.dataTime,
-          value: row[metricKey],
+function isMarineLineChartMetric(metricKey) {
+  return metricKey === "windSpeed" || metricKey === "waveHeight";
+}
+
+function destroyMarineChart(stateKey) {
+  if (!marineState[stateKey]) return;
+  marineState[stateKey].destroy();
+  marineState[stateKey] = null;
+}
+
+function getMarineChartSlots(towns, metricKey) {
+  const forecastByTown = industryWeatherState.marineForecast;
+  const nowMs = Date.now();
+  const slotsByTime = new Map();
+  towns.forEach((town) => {
+    (forecastByTown?.get(town) || []).forEach((row) => {
+      const ts = Date.parse(row.dataTime);
+      const slot = parseMarineForecastSlot(row.dataTime);
+      const value = extractMarineMetricNumber(row[metricKey]);
+      if (!slot || !Number.isFinite(ts) || ts < nowMs || !Number.isFinite(value)) return;
+      if (!slotsByTime.has(ts)) {
+        slotsByTime.set(ts, {
+          timestamp: ts,
+          dateKey: slot.dateKey,
+          hour: slot.hour,
         });
-      });
+      }
+    });
+  });
+  return Array.from(slotsByTime.values())
+    .sort((a, b) => a.timestamp - b.timestamp)
+    .slice(0, 24);
+}
+
+function extractMarineMetricNumber(value) {
+  if (typeof value === "number") return Number.isFinite(value) ? value : null;
+  const match = String(value ?? "").match(/-?\d+(?:\.\d+)?/);
+  if (!match) return null;
+  const numeric = Number(match[0]);
+  return Number.isFinite(numeric) ? numeric : null;
+}
+
+function renderMarineMetricLineChart(canvas, metricKey, towns, stateKey) {
+  destroyMarineChart(stateKey);
+  if (!canvas || typeof Chart === "undefined" || !isMarineLineChartMetric(metricKey)) return false;
+
+  const slots = getMarineChartSlots(towns, metricKey);
+  if (!slots.length) return false;
+
+  const palette = ["#2563eb", "#dc2626", "#059669", "#d97706", "#7c3aed", "#0891b2"];
+  const datasets = towns.map((town, index) => {
+    const values = new Map();
+    (industryWeatherState.marineForecast?.get(town) || []).forEach((row) => {
+      const timestamp = Date.parse(row.dataTime);
+      if (!Number.isFinite(timestamp)) return;
+      values.set(timestamp, extractMarineMetricNumber(row[metricKey]));
+    });
+    return {
+      label: town,
+      data: slots.map((slot) => values.get(slot.timestamp) ?? null),
+      borderColor: palette[index % palette.length],
+      backgroundColor: palette[index % palette.length],
+      pointRadius: 3,
+      pointHoverRadius: 5,
+      borderWidth: 2,
+      tension: 0.25,
+      spanGaps: false,
+    };
+  }).filter((dataset) => dataset.data.some((value) => Number.isFinite(value)));
+
+  if (!datasets.length) return false;
+  const unit = metricKey === "windSpeed" ? "m/s" : "m";
+  const stepSize = metricKey === "windSpeed" ? 1 : 0.1;
+  const chartValues = datasets.flatMap((dataset) => dataset.data).filter(Number.isFinite);
+  const dataMin = Math.min(...chartValues);
+  const dataMax = Math.max(...chartValues);
+  let axisMin = Math.floor(dataMin / stepSize + 1e-9) * stepSize;
+  let axisMax = Math.ceil(dataMax / stepSize - 1e-9) * stepSize;
+  if (axisMin === axisMax) {
+    axisMin -= stepSize;
+    axisMax += stepSize;
+  }
+  axisMin = Math.max(0, Number(axisMin.toFixed(metricKey === "waveHeight" ? 1 : 0)));
+  axisMax = Number(axisMax.toFixed(metricKey === "waveHeight" ? 1 : 0));
+  const labels = slots.map((slot) => {
+    const [, month, day] = slot.dateKey.split("-");
+    return `${Number(month)}/${Number(day)} ${String(slot.hour).padStart(2, "0")}:00`;
   });
 
-  return rows;
+  marineState[stateKey] = new Chart(canvas.getContext("2d"), {
+    type: "line",
+    data: { labels, datasets },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      interaction: { mode: "index", intersect: false },
+      plugins: {
+        legend: { display: datasets.length > 1, position: "top" },
+        tooltip: {
+          callbacks: {
+            label: (context) => `${context.dataset.label}: ${context.parsed.y} ${unit}`,
+          },
+        },
+      },
+      scales: {
+        x: {
+          title: { display: true, text: "時間（每 3 小時）" },
+          ticks: { maxRotation: 45, minRotation: 0 },
+        },
+        y: {
+          min: axisMin,
+          max: axisMax,
+          title: { display: true, text: `${MARINE_METRIC_CONFIGS[metricKey].label} (${unit})` },
+          ticks: {
+            stepSize,
+            callback: (value) => metricKey === "waveHeight" ? Number(value).toFixed(1) : Number(value).toFixed(0),
+          },
+        },
+      },
+    },
+  });
+  return true;
 }
 
 function formatMarineForecastMetricValue(metricKey, value) {
@@ -9303,15 +9493,10 @@ function formatMarineForecastMetricValue(metricKey, value) {
   const numeric = Number(value);
   if (Number.isFinite(numeric)) {
     const fixed = Number.isInteger(numeric) ? String(numeric) : numeric.toFixed(1);
+    if (metricKey === "windScale") return `${fixed} 級`;
     return `${fixed}${cfg.unit ? ` ${cfg.unit}` : ""}`;
   }
   return sanitizeText(String(value));
-}
-
-function formatMarineForecastTime(dataTime) {
-  const rowDate = new Date(dataTime);
-  if (!Number.isFinite(rowDate.getTime())) return sanitizeText(dataTime || "");
-  return `${rowDate.getMonth() + 1}/${rowDate.getDate()} ${String(rowDate.getHours()).padStart(2, "0")}:00`;
 }
 
 function renderMarineForecastMetricData(metricKey) {
@@ -9320,37 +9505,38 @@ function renderMarineForecastMetricData(metricKey) {
   if (headerRow) {
     headerRow.innerHTML = `
       <th>鄉鎮</th>
-      <th>時間</th>
-      <th>${sanitizeText(cfg.label)}${cfg.unit ? ` (${sanitizeText(cfg.unit)})` : ""}</th>
+      <th>日期</th>
+      <th>半日</th>
+      ${Array.from({ length: 4 }, () => `<th>時間 / ${sanitizeText(cfg.label)}${cfg.unit ? ` (${sanitizeText(cfg.unit)})` : ""}</th>`).join("")}
     `;
   }
 
-  const rows = getMarineForecastRowsForMetric(metricKey);
-  if (!rows.length) {
+  const townGroups = getMarineForecastGroupsForMetric(metricKey);
+  const chartTowns = townGroups.map((group) => group.town);
+  const shouldShowMainChart = isMarineLineChartMetric(metricKey) && !marineState.selectedTownName && chartTowns.length > 0;
+  let chartRendered = false;
+  if (shouldShowMainChart) {
+    chartRendered = renderMarineMetricLineChart(dom.marineMetricChart, metricKey, chartTowns, "metricChart");
+  } else {
+    destroyMarineChart("metricChart");
+  }
+  if (dom.marineMetricChartWrap) dom.marineMetricChartWrap.hidden = !chartRendered;
+  if (!townGroups.length) {
     const message = marineState.forecastError
       ? `彰化沿海${sanitizeText(cfg.label)}資料取得失敗：${sanitizeText(marineState.forecastError)}`
       : `找不到彰化沿海${sanitizeText(cfg.label)}資料（${MARINE_FORECAST_DATASET}）`;
-    dom.marineTableBody.innerHTML = `<tr><td colspan="3" style="padding: 20px;">${message}</td></tr>`;
+    dom.marineTableBody.innerHTML = `<tr><td colspan="7" style="padding: 20px;">${message}</td></tr>`;
     return;
   }
 
-  let lastTown = "";
-  dom.marineTableBody.innerHTML = rows.map((row) => {
-    const showTown = row.town !== lastTown;
-    lastTown = row.town;
-    return `
-      <tr>
-        <td style="font-weight: ${showTown ? "700" : "400"};">${showTown ? sanitizeText(row.town) : ""}</td>
-        <td>${formatMarineForecastTime(row.dataTime)}</td>
-        <td>${formatMarineForecastMetricValue(metricKey, row.value)}</td>
-      </tr>
-    `;
-  }).join("");
+  dom.marineTableBody.innerHTML = townGroups
+    .map((group) => renderMarineHalfDayRows(group.dayGroups, metricKey, true, group.town))
+    .join("");
 }
 
 function parseMarineData(payload) {
   const forecasts = payload?.records?.TideForecasts || [];
-  const targets = ["伸港", "線西", "鹿港", "福興", "芳苑", "大城"];
+  const targets = MARINE_LOCATION_KEYS;
   const results = [];
   const allDates = new Set();
   
@@ -9442,10 +9628,16 @@ function renderMarineData(parsed) {
   if (!dom.marineTableBody) return;
   updateMarineTownButtons();
   updateMarineMetricButtons();
+  const metricConfig = MARINE_METRIC_CONFIGS[marineState.activeMetric] || MARINE_METRIC_CONFIGS.tide;
+  if (dom.marineTableTitle) dom.marineTableTitle.textContent = `彰化縣沿海鄉鎮${metricConfig.label}預報`;
+  if (dom.marineTableSource) dom.marineTableSource.textContent = metricConfig.source;
   if (marineState.activeMetric && marineState.activeMetric !== "tide") {
     renderMarineForecastMetricData(marineState.activeMetric);
     return;
   }
+  if (dom.marineMetricChartWrap) dom.marineMetricChartWrap.hidden = true;
+  destroyMarineChart("metricChart");
+  destroyMarineChart("detailMetricChart");
 
   const { dates } = parsed;
   const selectedTowns = getSelectedMarineTownKeys();
@@ -9482,7 +9674,7 @@ function renderMarineData(parsed) {
 function parseMarineForecast(payload) {
   if (!payload) return new Map();
   const locations = extractTownForecastLocations(payload);
-  const targets = ["伸港", "線西", "鹿港", "福興", "芳苑", "大城"];
+  const targets = MARINE_LOCATION_KEYS;
   const forecastByTown = new Map();
   const fallbackTimelines = [];
 
@@ -9512,7 +9704,7 @@ function parseMarineForecast(payload) {
 
     if (matchedTarget) {
       forecastByTown.set(matchedTarget, timeline);
-    } else if (/彰化|伸港|線西|鹿港|福興|芳苑|大城/.test(locationText)) {
+    } else if (/彰化|伸港|線西|鹿港|福興|芳苑|大城|崙尾灣/.test(locationText)) {
       fallbackTimelines.push(timeline);
     }
   });
@@ -9526,7 +9718,7 @@ function parseMarineForecast(payload) {
 
 function buildMarineForecastTimelineForLocation(location, aliases) {
   const fromTimeBlocks = buildMarineForecastTimelineFromTimeBlocks(location, aliases);
-  if (fromTimeBlocks.length) return fromTimeBlocks;
+  if (fromTimeBlocks.length) return fillMarineWindScale(fromTimeBlocks);
 
   const elementSeries = {};
   Object.keys(aliases).forEach((key) => {
@@ -9534,13 +9726,34 @@ function buildMarineForecastTimelineForLocation(location, aliases) {
   });
 
   const keys = Array.from(new Set(Object.values(elementSeries).flatMap((series) => series.map((item) => item.dataTime)))).sort();
-  return keys.map((dataTime) => {
+  const timeline = keys.map((dataTime) => {
     const row = { dataTime };
     Object.keys(elementSeries).forEach((key) => {
       row[key] = readTownForecastValueAtTime(elementSeries[key], dataTime) ?? null;
     });
     return row;
   }).filter((row) => Object.keys(aliases).some((key) => row[key] != null));
+  return fillMarineWindScale(timeline);
+}
+
+function fillMarineWindScale(timeline) {
+  return timeline.map((row) => {
+    if (row.windScale != null && row.windScale !== "") return row;
+    const windSpeed = extractMarineWindSpeed(row.windSpeed);
+    const windScale = windToBeaufortLevel(windSpeed);
+    return {
+      ...row,
+      windScale: Number.isFinite(windScale) ? windScale : null,
+    };
+  });
+}
+
+function extractMarineWindSpeed(value) {
+  if (typeof value === "number") return Number.isFinite(value) ? value : null;
+  const match = String(value ?? "").match(/-?\d+(?:\.\d+)?/);
+  if (!match) return null;
+  const numeric = Number(match[0]);
+  return Number.isFinite(numeric) && numeric >= 0 ? numeric : null;
 }
 
 function buildMarineForecastTimelineFromTimeBlocks(location, aliases) {

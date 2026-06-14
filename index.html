@@ -748,17 +748,18 @@
 
   <main class="tab-panel" data-tab="marine">
     <section class="panel">
-      <div class="controls">
+      <div class="controls marine-controls">
+        <div class="county-button-list marine-town-bar" aria-label="沿海鄉鎮">
+          <button class="county-filter-btn active" type="button" data-marine-town="">全部</button>
+          <button class="county-filter-btn" type="button" data-marine-town="伸港鄉">伸港</button>
+          <button class="county-filter-btn" type="button" data-marine-town="線西鄉">線西</button>
+          <button class="county-filter-btn" type="button" data-marine-town="鹿港鎮">鹿港</button>
+          <button class="county-filter-btn" type="button" data-marine-town="福興鄉">福興</button>
+          <button class="county-filter-btn" type="button" data-marine-town="芳苑鄉">芳苑</button>
+          <button class="county-filter-btn" type="button" data-marine-town="大城鄉">大城</button>
+          <button class="county-filter-btn" type="button" data-marine-town="崙尾灣">崙尾灣</button>
+        </div>
         <div class="marine-filter-bars" aria-label="海象資料篩選">
-          <div class="county-button-list marine-town-bar" aria-label="沿海鄉鎮">
-            <button class="county-filter-btn active" type="button" data-marine-town="">全部</button>
-            <button class="county-filter-btn" type="button" data-marine-town="伸港鄉">伸港</button>
-            <button class="county-filter-btn" type="button" data-marine-town="線西鄉">線西</button>
-            <button class="county-filter-btn" type="button" data-marine-town="鹿港鎮">鹿港</button>
-            <button class="county-filter-btn" type="button" data-marine-town="福興鄉">福興</button>
-            <button class="county-filter-btn" type="button" data-marine-town="芳苑鄉">芳苑</button>
-            <button class="county-filter-btn" type="button" data-marine-town="大城鄉">大城</button>
-          </div>
           <div class="metric-button-list marine-metric-bar" aria-label="海象資料項目">
             <button class="metric-filter-btn active" type="button" data-marine-metric="tide">潮汐</button>
             <button class="metric-filter-btn" type="button" data-marine-metric="windSpeed">風速</button>
@@ -767,31 +768,32 @@
             <button class="metric-filter-btn" type="button" data-marine-metric="current">流速</button>
           </div>
         </div>
-        <div class="control buttons">
+        <div class="marine-update-row">
           <button id="reloadMarineBtn" class="primary">更新資料</button>
-        </div>
-        <div class="control">
-          <label>狀態</label>
           <div class="status" id="marineTabStatus">尚未載入</div>
         </div>
       </div>
     </section>
 
-    <section class="panel industry-layout">
-      <div class="industry-map-column">
+    <section id="marineContentLayout" class="panel industry-layout marine-content-layout">
+      <div id="marineMapColumn" class="industry-map-column">
         <div id="marineMap" class="map-shell"></div>
-        <div class="hint">點擊沿海鄉鎮（伸港、線西、鹿港、福興、芳苑、大城）可查看該鄉鎮今日潮汐。</div>
+        <div class="hint">點擊地圖上的沿海鄉鎮，或使用上方按鈕查看伸港、線西、鹿港、福興、芳苑、大城及崙尾灣海象資料。</div>
       </div>
       <aside class="industry-info-panel">
         <div class="table-card">
           <div class="table-header">
-            <span>彰化縣沿海鄉鎮潮汐預報</span>
+            <span id="marineTableTitle">彰化縣沿海鄉鎮潮汐預報</span>
             <span id="marineDataTime" class="table-header-time"></span>
           </div>
-          <div class="table-source">F-A0021-001 <span id="marineStatus" style="float:right;">尚未載入</span></div>
+          <div class="table-source"><span id="marineTableSource">F-A0021-001</span> <span id="marineStatus" style="float:right;">尚未載入</span></div>
           
           <div id="marineInfo" class="industry-info-body" style="margin-top: 10px; display: none;">
             <canvas id="marineChart"></canvas>
+          </div>
+
+          <div id="marineMetricChartWrap" class="marine-metric-chart" hidden>
+            <canvas id="marineMetricChart"></canvas>
           </div>
 
           <div style="overflow-x: auto;">
