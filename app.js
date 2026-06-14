@@ -331,6 +331,8 @@ const CHANGHUA_DATA_BASE = `${GEO_ASSETS_BASE}/changhua`;
 const TYPHOON_COUNTIES_URL = `${GEO_ASSETS_BASE}/typhoon/counties.geojson`;
 const RADAR_DATASET = "O-A0059-001";
 const LIGHTNING_DATASET = "O-A0039-001";
+const LUNWEI_MARINE_DATASET = "M-B0078-001";
+const LUNWEI_MARINE_LOCATION_CODE = "I04400";
 const LIGHTNING_SAMPLE_URL = "./data/lightning/O-A0039-001.kmz";
 const NCUE_COORDS = { lat: 24.0816, lon: 120.5584 };
 const LIGHTNING_ALERT_RADIUS_KM = 10;
@@ -9114,6 +9116,9 @@ function renderMarineTownMetricInfo(townName, metricKey) {
   const townKey = MARINE_LOCATION_KEYS.find((town) => townName.includes(town));
   const forecastData = townKey ? industryWeatherState.marineForecast?.get(townKey) : null;
   const dayGroups = buildMarineThreeDayGroups(forecastData || [], metricKey);
+  const hasMetricData = dayGroups.some((day) =>
+    Array.from(day.valuesByHour.values()).some((value) => value != null && value !== "")
+  );
   destroyMarineChart("detailMetricChart");
 
   dom.marineInfo.innerHTML = `
@@ -9136,9 +9141,11 @@ function renderMarineTownMetricInfo(townName, metricKey) {
           </tr>
         </thead>
         <tbody>
-          ${dayGroups.length ? renderMarineHalfDayRows(dayGroups, metricKey, false) : `
+          ${hasMetricData ? renderMarineHalfDayRows(dayGroups, metricKey, false) : `
             <tr>
-              <td colspan="6">找不到${sanitizeText(townKey || townName)}${sanitizeText(cfg.label)}資料</td>
+              <td colspan="6">${townKey === "崙尾灣" && (metricKey === "windSpeed" || metricKey === "windScale")
+                ? `${LUNWEI_MARINE_DATASET} 未提供崙尾灣${sanitizeText(cfg.label)}欄位`
+                : `找不到${sanitizeText(townKey || townName)}${sanitizeText(cfg.label)}資料`}</td>
             </tr>
           `}
         </tbody>
@@ -9169,13 +9176,17 @@ async function loadMarineData() {
   try {
     marineState.forecastError = "";
     let forecastError = "";
-    const [tideData, forecastData] = await Promise.all([
+    const [tideData, forecastData, lunweiData] = await Promise.all([
       fetchCwaDataset("F-A0021-001"),
       fetchRadarFileDataset(MARINE_FORECAST_DATASET).catch(e => {
         forecastError = e.message || "海象預報取得失敗";
         console.warn(e);
         return null;
-      })
+      }),
+      fetchRadarFileDataset(LUNWEI_MARINE_DATASET).catch(e => {
+        console.warn(`崙尾灣 ${LUNWEI_MARINE_DATASET} 取得失敗`, e);
+        return null;
+      }),
     ]);
     const parsed = parseMarineData(tideData);
     industryWeatherState.marineData = parsed;
@@ -9184,6 +9195,12 @@ async function loadMarineData() {
     } else {
       industryWeatherState.marineForecast = new Map();
       marineState.forecastError = forecastError;
+    }
+    if (lunweiData) {
+      const lunweiTimeline = parseLunweiMarineForecast(lunweiData);
+      if (lunweiTimeline.length) {
+        industryWeatherState.marineForecast.set("崙尾灣", lunweiTimeline);
+      }
     }
     renderMarineData(parsed);
     const now = new Date();
@@ -9360,7 +9377,11 @@ function getMarineForecastGroupsForMetric(metricKey) {
   return targets.map((town) => ({
     town,
     dayGroups: buildMarineThreeDayGroups(forecastByTown.get(town) || [], metricKey),
-  })).filter((group) => group.dayGroups.length);
+  })).filter((group) =>
+    group.dayGroups.some((day) =>
+      Array.from(day.valuesByHour.values()).some((value) => value != null && value !== "")
+    )
+  );
 }
 
 function isMarineLineChartMetric(metricKey) {
@@ -9522,9 +9543,14 @@ function renderMarineForecastMetricData(metricKey) {
   }
   if (dom.marineMetricChartWrap) dom.marineMetricChartWrap.hidden = !chartRendered;
   if (!townGroups.length) {
-    const message = marineState.forecastError
+    const isLunweiWithoutWind =
+      marineState.selectedTownName.includes("崙尾灣") &&
+      (metricKey === "windSpeed" || metricKey === "windScale");
+    const message = isLunweiWithoutWind
+      ? `${LUNWEI_MARINE_DATASET} 未提供崙尾灣${sanitizeText(cfg.label)}欄位`
+      : marineState.forecastError
       ? `彰化沿海${sanitizeText(cfg.label)}資料取得失敗：${sanitizeText(marineState.forecastError)}`
-      : `找不到彰化沿海${sanitizeText(cfg.label)}資料（${MARINE_FORECAST_DATASET}）`;
+      : `找不到彰化沿海${sanitizeText(cfg.label)}資料（${sanitizeText(getMarineMetricSource(metricKey))}）`;
     dom.marineTableBody.innerHTML = `<tr><td colspan="7" style="padding: 20px;">${message}</td></tr>`;
     return;
   }
@@ -9630,7 +9656,7 @@ function renderMarineData(parsed) {
   updateMarineMetricButtons();
   const metricConfig = MARINE_METRIC_CONFIGS[marineState.activeMetric] || MARINE_METRIC_CONFIGS.tide;
   if (dom.marineTableTitle) dom.marineTableTitle.textContent = `彰化縣沿海鄉鎮${metricConfig.label}預報`;
-  if (dom.marineTableSource) dom.marineTableSource.textContent = metricConfig.source;
+  if (dom.marineTableSource) dom.marineTableSource.textContent = getMarineMetricSource(marineState.activeMetric);
   if (marineState.activeMetric && marineState.activeMetric !== "tide") {
     renderMarineForecastMetricData(marineState.activeMetric);
     return;
@@ -9669,6 +9695,33 @@ function renderMarineData(parsed) {
     return `<tr style="${bgStyle}"><td rowspan="2" style="vertical-align: middle; font-weight: bold; border-bottom: 1px solid var(--border); border-right: 1px solid var(--border);">${sanitizeText(loc.name)}</td><td style="color: #ef4444; font-weight: 700;">滿潮</td><td>${getTides("滿潮", dates[0])}</td><td>${getTides("滿潮", dates[1])}</td><td>${getTides("滿潮", dates[2])}</td></tr>
             <tr style="${bgStyle}"><td style="color: #3b82f6; font-weight: 700; border-bottom: 1px solid var(--border);">乾潮</td><td style="border-bottom: 1px solid var(--border);">${getTides("乾潮", dates[0])}</td><td style="border-bottom: 1px solid var(--border);">${getTides("乾潮", dates[1])}</td><td style="border-bottom: 1px solid var(--border);">${getTides("乾潮", dates[2])}</td></tr>`;
   }).join("");
+}
+
+function getMarineMetricSource(metricKey) {
+  if (metricKey === "tide") return MARINE_METRIC_CONFIGS.tide.source;
+  if (marineState.selectedTownName.includes("崙尾灣")) {
+    return `${LUNWEI_MARINE_DATASET}（崙尾灣）`;
+  }
+  if (!marineState.selectedTownName) {
+    return `${MARINE_METRIC_CONFIGS[metricKey]?.source || MARINE_FORECAST_DATASET}；${LUNWEI_MARINE_DATASET}（崙尾灣）`;
+  }
+  return MARINE_METRIC_CONFIGS[metricKey]?.source || MARINE_FORECAST_DATASET;
+}
+
+function parseLunweiMarineForecast(payload) {
+  const locations = payload?.cwaopendata?.dataset?.location;
+  const rows = Array.isArray(locations) ? locations : locations ? [locations] : [];
+  return rows
+    .filter((row) => String(row?.LocationCode || "") === LUNWEI_MARINE_LOCATION_CODE)
+    .map((row) => ({
+      dataTime: row?.DateTime || "",
+      windSpeed: null,
+      windScale: null,
+      waveHeight: normalizeMarineForecastValue(row?.SignificantWaveHeight),
+      current: normalizeMarineForecastValue(row?.OceanCurrentSpeed),
+    }))
+    .filter((row) => row.dataTime)
+    .sort((a, b) => String(a.dataTime).localeCompare(String(b.dataTime)));
 }
 
 function parseMarineForecast(payload) {
