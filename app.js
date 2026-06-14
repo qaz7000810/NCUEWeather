@@ -1,4 +1,4 @@
-﻿const metricConfigs = {
+﻿﻿const metricConfigs = {
   TX01: { label: "氣溫 (°C)", mode: "mean", color: "#5be4a8", index: 2 },
   PP01: { label: "降雨量 (mm)", mode: "sum", color: "#4ea3ff", index: 5 },
   RH01: { label: "相對濕度 (%)", mode: "mean", color: "#fcb97d", index: 3 },
@@ -151,6 +151,8 @@ const dom = {
   marineMap: document.getElementById("marineMap"),
   marineInfo: document.getElementById("marineInfo"),
   marineTableBody: document.getElementById("marineTableBody"),
+  marineForecastCard: document.getElementById("marineForecastCard"),
+  marineForecastBody: document.getElementById("marineForecastBody"),
   marineDate1: document.getElementById("marineDate1"),
   marineDate2: document.getElementById("marineDate2"),
   marineDate3: document.getElementById("marineDate3"),
@@ -337,6 +339,7 @@ const RAIN_DATASET = "O-A0002-001";
 const TOWN_FORECAST_DATASET = "F-D0047-017";
 const CHANGHUA_TOWN_FORECAST_DATASET = "F-D0047-019";
 const QPESUMS_FORECAST_DATASET = "F-B0046-001";
+const MARINE_FORECAST_DATASET = "F-D0047-095";
 const COLD_INJURY_DATASET = "F-A0085-003";
 const TEMP_DIFF_DATASET = "F-A0085-005";
 const HEAT_INJURY_DATASET = "M-A0085-001";
@@ -3665,6 +3668,12 @@ function readTownForecastElementValue(entry, valueKey) {
     "RelativeHumidity",
     "ProbabilityOfPrecipitation",
     "WindSpeed",
+    "WindScale",
+    "BeaufortScale",
+    "WaveHeight",
+    "SignificantWaveHeight",
+    "OceanCurrentSpeed",
+    "CurrentVelocity",
     "ComfortIndex",
     "ApparentTemperature",
     "UVIndex",
@@ -8892,11 +8901,17 @@ function renderMarineInfo() {
     if (dom.marineTableBody && dom.marineTableBody.parentElement) {
        dom.marineTableBody.parentElement.parentElement.style.display = "block";
     }
+    if (dom.marineForecastCard) {
+       dom.marineForecastCard.style.display = "block";
+    }
     return;
   }
-  
+
   if (dom.marineTableBody && dom.marineTableBody.parentElement) {
      dom.marineTableBody.parentElement.parentElement.style.display = "none";
+  }
+  if (dom.marineForecastCard) {
+     dom.marineForecastCard.style.display = "none";
   }
   dom.marineInfo.style.display = "block";
   
@@ -8920,7 +8935,7 @@ function renderMarineInfo() {
   const { dates } = data;
   const getTides = (type, d) => (d && loc.days[d]?.[type]?.length) ? loc.days[d][type].join("<br><br>") : "--";
   
-  dom.marineInfo.innerHTML = `
+  let html = `
     <div style="margin-bottom: 15px; display: flex; justify-content: space-between; align-items: center;">
       <h3 style="margin: 0; font-size: 1.1rem; color: var(--text);">${sanitizeText(loc.name)} 潮汐預報</h3>
       <button class="ghost" id="marineClearBtn">返回總表</button>
@@ -8956,6 +8971,62 @@ function renderMarineInfo() {
     </div>
   `;
   
+  const matchedTarget = ["伸港", "線西", "鹿港", "福興", "芳苑", "大城"].find(t => townName.includes(t));
+  const forecastData = industryWeatherState.marineForecast?.get(matchedTarget);
+
+  if (forecastData && forecastData.length) {
+    const d = new Date();
+    const nowMs = d.getTime();
+    const future48hMs = nowMs + 48 * 60 * 60 * 1000;
+    const upcoming = forecastData.filter(row => {
+      const ts = Date.parse(row.dataTime);
+      return ts >= nowMs - 3 * 3600 * 1000 && ts <= future48hMs;
+    }).slice(0, 16);
+
+    if (upcoming.length) {
+      html += `
+        <h4 style="margin-top: 25px; font-size: 1rem; color: var(--text);">逐三小時海象預報 (未來48小時)</h4>
+        <div style="overflow-x: auto; margin-top: 10px;">
+          <table class="town-forecast-table">
+            <thead>
+              <tr>
+                <th>時間</th>
+                <th>風速</th>
+                <th>風級</th>
+                <th>浪高</th>
+                <th>流速</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${upcoming.map(row => {
+                const rowDate = new Date(row.dataTime);
+                const timeStr = `${rowDate.getMonth()+1}/${rowDate.getDate()} ${String(rowDate.getHours()).padStart(2, '0')}:00`;
+                const ws = row.windSpeed != null ? (typeof row.windSpeed === "number" ? `${row.windSpeed} m/s` : row.windSpeed) : "—";
+                const wscale = row.windScale != null ? row.windScale : "—";
+                const wh = row.waveHeight != null ? (typeof row.waveHeight === "number" ? `${row.waveHeight} m` : row.waveHeight) : "—";
+                const curr = row.current != null ? row.current : "—";
+                return `
+                  <tr>
+                    <td>${timeStr}</td>
+                    <td>${ws}</td>
+                    <td>${wscale}</td>
+                    <td>${wh}</td>
+                    <td>${curr}</td>
+                  </tr>
+                `;
+              }).join("")}
+            </tbody>
+          </table>
+        </div>
+        <div class="industry-text-card" style="margin-top: 10px; padding: 10px;">
+          <p style="margin: 0; font-size: 0.85rem;">資料來源：${MARINE_FORECAST_DATASET}</p>
+        </div>
+      `;
+    }
+  }
+
+  dom.marineInfo.innerHTML = html;
+
   document.getElementById("marineClearBtn")?.addEventListener("click", () => {
      marineState.selectedTownName = "";
      renderMarineMap();
@@ -8997,6 +9068,10 @@ function renderMarineInfo() {
           legend: { display: false },
           tooltip: {
             callbacks: {
+              title: (context) => {
+                const pt = chartPoints[context[0].dataIndex];
+                return Array.isArray(pt.x) ? pt.x.join(' ') : pt.x;
+              },
               label: (context) => {
                 const pt = chartPoints[context.dataIndex];
                 return `${pt.type}: ${pt.y}`;
@@ -9024,19 +9099,84 @@ async function loadMarineData() {
   dom.marineStatus.textContent = "讀取海象資訊...";
   if (dom.marineTabStatus) dom.marineTabStatus.textContent = "讀取海象資訊...";
   try {
-    const data = await fetchCwaDataset("F-A0021-001");
-    const parsed = parseMarineData(data);
+    const [tideData, forecastData] = await Promise.all([
+      fetchCwaDataset("F-A0021-001"),
+      fetchCwaDataset(MARINE_FORECAST_DATASET, { locationName: "伸港鄉,線西鄉,鹿港鎮,福興鄉,芳苑鄉,大城鄉" }).catch(e => { console.warn(e); return null; })
+    ]);
+    const parsed = parseMarineData(tideData);
     industryWeatherState.marineData = parsed;
+    if (forecastData) {
+      industryWeatherState.marineForecast = parseMarineForecast(forecastData);
+    }
     renderMarineData(parsed);
     const now = new Date();
     if (dom.marineDataTime) dom.marineDataTime.textContent = formatObsTime(now.toISOString());
     dom.marineStatus.textContent = "已更新";
     if (dom.marineTabStatus) dom.marineTabStatus.textContent = "已更新";
+    
+    if (industryWeatherState.marineForecast) {
+      renderMarineForecastTable(industryWeatherState.marineForecast);
+    }
+
+    if (marineState.selectedTownName) {
+      renderMarineInfo();
+    }
   } catch (err) {
     console.error(err);
     dom.marineStatus.textContent = err.message || "海象資訊載入失敗";
     if (dom.marineTabStatus) dom.marineTabStatus.textContent = err.message || "海象資訊載入失敗";
   }
+}
+
+function renderMarineForecastTable(forecastByTown) {
+  if (!dom.marineForecastBody) return;
+  const targets = ["伸港", "線西", "鹿港", "福興", "芳苑", "大城"];
+  let html = "";
+
+  const d = new Date();
+  const nowMs = d.getTime();
+  const future48hMs = nowMs + 48 * 60 * 60 * 1000;
+
+  targets.forEach((town, index) => {
+    const forecastData = forecastByTown.get(town);
+    if (!forecastData || !forecastData.length) return;
+
+    const upcoming = forecastData.filter(row => {
+      const ts = Date.parse(row.dataTime);
+      return ts >= nowMs - 3 * 3600 * 1000 && ts <= future48hMs;
+    }).slice(0, 16);
+
+    if (!upcoming.length) return;
+
+    const bgStyle = index % 2 === 0 ? "background: transparent;" : "background: rgba(247, 249, 255, 0.6);";
+    
+    upcoming.forEach((row, rowIndex) => {
+      const rowDate = new Date(row.dataTime);
+      const timeStr = `${rowDate.getMonth()+1}/${rowDate.getDate()} ${String(rowDate.getHours()).padStart(2, '0')}:00`;
+      const ws = row.windSpeed != null ? (typeof row.windSpeed === "number" ? `${row.windSpeed} m/s` : row.windSpeed) : "—";
+      const wscale = row.windScale != null ? row.windScale : "—";
+      const wh = row.waveHeight != null ? (typeof row.waveHeight === "number" ? `${row.waveHeight} m` : row.waveHeight) : "—";
+      const curr = row.current != null ? row.current : "—";
+
+      html += `<tr style="${bgStyle}">`;
+      if (rowIndex === 0) {
+        html += `<td rowspan="${upcoming.length}" style="vertical-align: middle; font-weight: bold; border-right: 1px solid var(--border); border-bottom: 1px solid var(--border);">${sanitizeText(town)}</td>`;
+      }
+      html += `
+        <td style="${rowIndex === upcoming.length - 1 ? 'border-bottom: 1px solid var(--border);' : ''}">${timeStr}</td>
+        <td style="${rowIndex === upcoming.length - 1 ? 'border-bottom: 1px solid var(--border);' : ''}">${ws}</td>
+        <td style="${rowIndex === upcoming.length - 1 ? 'border-bottom: 1px solid var(--border);' : ''}">${wscale}</td>
+        <td style="${rowIndex === upcoming.length - 1 ? 'border-bottom: 1px solid var(--border);' : ''}">${wh}</td>
+        <td style="${rowIndex === upcoming.length - 1 ? 'border-bottom: 1px solid var(--border);' : ''}">${curr}</td>
+      </tr>`;
+    });
+  });
+
+  if (!html) {
+    html = '<tr><td colspan="6" style="padding: 20px;">找不到彰化沿海海象預報（F-D0047-095）</td></tr>';
+  }
+
+  dom.marineForecastBody.innerHTML = html;
 }
 
 function parseMarineData(payload) {
@@ -9061,6 +9201,8 @@ function parseMarineData(payload) {
   } catch (e) {
     todayStr = d.toISOString().substring(0, 10).replace(/-/g, "/");
   }
+    const nowMs = d.getTime();
+    const future48hMs = nowMs + 48 * 60 * 60 * 1000;
 
   forecasts.forEach(forecast => {
     const loc = forecast.Location;
@@ -9103,9 +9245,10 @@ function parseMarineData(payload) {
               const dd = dateObj.getDate();
               const hr = String(dateObj.getHours()).padStart(2, '0');
               const mn = String(dateObj.getMinutes()).padStart(2, '0');
-              if (dateStr === todayStr) {
-                chartData.push({ x: `${mm}/${dd} ${hr}:${mn}`, y: num, type: type, timestamp: dateObj.getTime() });
-              }
+                  const ptMs = dateObj.getTime();
+                  if (ptMs >= nowMs && ptMs <= future48hMs) {
+                    chartData.push({ x: [`${mm}/${dd}`, `${hr}:${mn}`], y: num, type: type, timestamp: ptMs });
+                  }
 
               const sign = num > 0 ? "+" : "";
               const color = type === "滿潮" ? "#ef4444" : "#3b82f6";
@@ -9134,6 +9277,17 @@ function renderMarineData(parsed) {
   if (dom.marineDate2) dom.marineDate2.textContent = dates[1] || "6/8";
   if (dom.marineDate3) dom.marineDate3.textContent = dates[2] || "6/9";
 
+  const headerRow = document.getElementById("marineTableHeaderRow");
+  if (headerRow) {
+    headerRow.innerHTML = `
+      <th>地點</th>
+      <th>潮汐</th>
+      <th>${dates[0] || "--"}</th>
+      <th>${dates[1] || "--"}</th>
+      <th>${dates[2] || "--"}</th>
+    `;
+  }
+
   if (!locations.length) {
     dom.marineTableBody.innerHTML = '<tr><td colspan="5" style="padding: 20px;">找不到彰化沿海潮汐資料（F-A0021-001）</td></tr>';
     return;
@@ -9145,4 +9299,42 @@ function renderMarineData(parsed) {
     return `<tr style="${bgStyle}"><td rowspan="2" style="vertical-align: middle; font-weight: bold; border-bottom: 1px solid var(--border); border-right: 1px solid var(--border);">${sanitizeText(loc.name)}</td><td style="color: #ef4444; font-weight: 700;">滿潮</td><td>${getTides("滿潮", dates[0])}</td><td>${getTides("滿潮", dates[1])}</td><td>${getTides("滿潮", dates[2])}</td></tr>
             <tr style="${bgStyle}"><td style="color: #3b82f6; font-weight: 700; border-bottom: 1px solid var(--border);">乾潮</td><td style="border-bottom: 1px solid var(--border);">${getTides("乾潮", dates[0])}</td><td style="border-bottom: 1px solid var(--border);">${getTides("乾潮", dates[1])}</td><td style="border-bottom: 1px solid var(--border);">${getTides("乾潮", dates[2])}</td></tr>`;
   }).join("");
+}
+
+function parseMarineForecast(payload) {
+  if (!payload) return new Map();
+  const locations = extractTownForecastLocations(payload);
+  const targets = ["伸港", "線西", "鹿港", "福興", "芳苑", "大城"];
+  const forecastByTown = new Map();
+
+  locations.forEach((location) => {
+    const townName = normalizeIndustryTownName(location?.LocationName || location?.locationName || location?.name || "");
+    const matchedTarget = targets.find(t => townName.includes(t));
+    if (!matchedTarget) return;
+
+    const elementSeries = {};
+    const aliases = {
+      windSpeed: ["風速", "WindSpeed", "WS"],
+      windScale: ["風級", "WindScale", "BeaufortScale"],
+      waveHeight: ["浪高", "WaveHeight", "Wave", "SignificantWaveHeight"],
+      current: ["流速", "CurrentVelocity", "Current", "Flow", "OceanCurrentSpeed"]
+    };
+
+    Object.keys(aliases).forEach((key) => {
+      elementSeries[key] = buildTownForecastElementSeries(location, aliases[key], key);
+    });
+
+    const keys = Array.from(new Set(Object.values(elementSeries).flatMap((series) => series.map((item) => item.dataTime)))).sort();
+
+    const timeline = keys.map((dataTime) => {
+      const row = { dataTime };
+      Object.keys(elementSeries).forEach((key) => {
+        row[key] = readTownForecastValueAtTime(elementSeries[key], dataTime) ?? null;
+      });
+      return row;
+    });
+
+    forecastByTown.set(matchedTarget, timeline);
+  });
+  return forecastByTown;
 }

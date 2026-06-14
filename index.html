@@ -784,20 +784,41 @@
           </div>
           <div class="table-source">F-A0021-001 <span id="marineStatus" style="float:right;">尚未載入</span></div>
           
-          <div id="marineInfo" class="industry-info-body" style="margin-top: 10px; display: none;"></div>
+          <div id="marineInfo" class="industry-info-body" style="margin-top: 10px; display: none;">
+            <canvas id="marineChart"></canvas>
+          </div>
 
           <div style="overflow-x: auto;">
             <table id="marineTable">
               <thead>
-                <tr>
+                <tr id="marineTableHeaderRow">
                   <th>地點</th>
                   <th>潮汐</th>
-                  <th id="marineDate1">6/7</th>
-                  <th id="marineDate2">6/8</th>
-                  <th id="marineDate3">6/9</th>
                 </tr>
               </thead>
               <tbody id="marineTableBody"></tbody>
+            </table>
+          </div>
+        </div>
+
+        <div class="table-card" id="marineForecastCard">
+          <div class="table-header">
+            <span>彰化縣沿海六鄉鎮海象預報 (未來48小時)</span>
+          </div>
+          <div class="table-source">F-D0047-095</div>
+          <div style="overflow-x: auto;">
+            <table class="town-forecast-table">
+              <thead>
+                <tr>
+                  <th>鄉鎮</th>
+                  <th>時間</th>
+                  <th>風速</th>
+                  <th>風級</th>
+                  <th>浪高</th>
+                  <th>流速</th>
+                </tr>
+              </thead>
+              <tbody id="marineForecastBody"></tbody>
             </table>
           </div>
         </div>
@@ -809,4 +830,3 @@
   <script src="./app.js" type="module"></script>
 </body>
 </html>
-tml>
