@@ -9468,9 +9468,16 @@ function renderMarineMetricLineChart(canvas, metricKey, towns, stateKey) {
   }
   axisMin = Math.max(0, Number(axisMin.toFixed(metricKey === "waveHeight" ? 1 : 0)));
   axisMax = Number(axisMax.toFixed(metricKey === "waveHeight" ? 1 : 0));
+  const seenDates = new Set();
   const labels = slots.map((slot) => {
     const [, month, day] = slot.dateKey.split("-");
-    return `${Number(month)}/${Number(day)} ${String(slot.hour).padStart(2, "0")}:00`;
+    const dateLabel = `${Number(month)}/${Number(day)}`;
+    const shouldShowDate = !seenDates.has(slot.dateKey);
+    seenDates.add(slot.dateKey);
+    return [
+      `${String(slot.hour).padStart(2, "0")}:00`,
+      shouldShowDate ? dateLabel : "",
+    ];
   });
 
   marineState[stateKey] = new Chart(canvas.getContext("2d"), {
@@ -9491,7 +9498,7 @@ function renderMarineMetricLineChart(canvas, metricKey, towns, stateKey) {
       scales: {
         x: {
           title: { display: true, text: "時間（每 3 小時）" },
-          ticks: { maxRotation: 45, minRotation: 0 },
+          ticks: { maxRotation: 0, minRotation: 0 },
         },
         y: {
           min: axisMin,
@@ -9568,6 +9575,7 @@ function parseMarineData(payload) {
   
   const d = new Date();
   let todayStr = "";
+  let todayStartMs = NaN;
   try {
     const parts = new Intl.DateTimeFormat("zh-TW", {
       timeZone: "Asia/Taipei",
@@ -9579,11 +9587,15 @@ function parseMarineData(payload) {
     const m = parts.find(p => p.type === "month").value;
     const day = parts.find(p => p.type === "day").value;
     todayStr = `${y}/${m}/${day}`;
+    todayStartMs = Date.parse(`${y}-${m}-${day}T00:00:00+08:00`);
   } catch (e) {
-    todayStr = d.toISOString().substring(0, 10).replace(/-/g, "/");
+    const isoDate = d.toISOString().substring(0, 10);
+    todayStr = isoDate.replace(/-/g, "/");
+    todayStartMs = Date.parse(`${isoDate}T00:00:00+08:00`);
   }
-    const nowMs = d.getTime();
-    const future48hMs = nowMs + 48 * 60 * 60 * 1000;
+  const nowMs = d.getTime();
+  const chartStartMs = Number.isFinite(todayStartMs) ? todayStartMs : nowMs;
+  const future48hMs = nowMs + 48 * 60 * 60 * 1000;
 
   forecasts.forEach(forecast => {
     const loc = forecast.Location;
@@ -9627,7 +9639,7 @@ function parseMarineData(payload) {
               const hr = String(dateObj.getHours()).padStart(2, '0');
               const mn = String(dateObj.getMinutes()).padStart(2, '0');
                   const ptMs = dateObj.getTime();
-                  if (ptMs >= nowMs && ptMs <= future48hMs) {
+                  if (ptMs >= chartStartMs && ptMs <= future48hMs) {
                     chartData.push({ x: [`${mm}/${dd}`, `${hr}:${mn}`], y: num, type: type, timestamp: ptMs });
                   }
 
