@@ -2306,14 +2306,18 @@ async function loadNCUEObservation() {
   if (!dom.ncueObservation) return;
   setNCUEStatus("載入中...");
   try {
-    const data = await fetchCwaDataset("O-A0003-001");
+    const [data, rainData] = await Promise.all([
+      fetchCwaDataset("O-A0003-001"),
+      fetchCwaDataset(RAIN_DATASET).catch(() => null),
+    ]);
     const station = pickNCUEStation(data);
     if (!station) {
       dom.ncueObservation.innerHTML = "";
       setNCUEStatus("找不到彰師大測站資料");
       return;
     }
-    renderNCUEObservation(station);
+    const rainStation = rainData ? pickMatchingStation(extractCwaStations(rainData), station) : null;
+    renderNCUEObservation(station, rainStation);
     setNCUEStatus("已更新");
   } catch (err) {
     console.error(err);
@@ -2330,6 +2334,31 @@ function pickNCUEStation(payload) {
     return NCUE_STATION_KEYWORDS.some((k) => name.includes(k));
   });
   return found || stations[0];
+}
+
+function pickMatchingStation(stations, target) {
+  if (!Array.isArray(stations) || !stations.length || !target) return null;
+  const targetId = String(getStationId(target) || "").trim();
+  if (targetId) {
+    const byId = stations.find((station) => String(getStationId(station) || "").trim() === targetId);
+    if (byId) return byId;
+  }
+
+  const targetName = getStationName(target).trim();
+  if (targetName) {
+    const byName = stations.find((station) => getStationName(station).trim() === targetName);
+    if (byName) return byName;
+  }
+
+  const targetCoords = readStationCoords(target?.GeoInfo || target?.geoInfo || {});
+  if (!targetCoords) return null;
+  return (
+    stations.find((station) => {
+      const coords = readStationCoords(station?.GeoInfo || station?.geoInfo || {});
+      if (!coords) return false;
+      return Math.abs(coords.lat - targetCoords.lat) < 0.005 && Math.abs(coords.lon - targetCoords.lon) < 0.005;
+    }) || null
+  );
 }
 
 function extractCwaStations(payload) {
@@ -2655,6 +2684,36 @@ function realtimeRain24hrColor(value) {
   return "#00e400";
 }
 
+function getRealtimeRainTone(value, period) {
+  if (!isValidObservation(value)) return null;
+  const thresholds = {
+    hour: [
+      { min: 50, label: "大豪雨", color: "#8f3f97" },
+      { min: 30, label: "大雨", color: "#ff0000" },
+      { min: 20, label: "中雨", color: "#ff7e00" },
+      { min: 1, label: "小雨", color: "#ffff00" },
+      { min: 0, label: "無雨/小雨", color: "#00e400" },
+    ],
+    threeHour: [
+      { min: 150, label: "大豪雨", color: "#8f3f97" },
+      { min: 100, label: "大雨", color: "#ff0000" },
+      { min: 80, label: "中雨", color: "#ff7e00" },
+      { min: 30, label: "小雨", color: "#ffff00" },
+      { min: 0, label: "無雨/小雨", color: "#00e400" },
+    ],
+    day: [
+      { min: 350, label: "大豪雨", color: "#8f3f97" },
+      { min: 200, label: "大雨", color: "#ff0000" },
+      { min: 100, label: "中雨", color: "#ff7e00" },
+      { min: 50, label: "小雨", color: "#ffff00" },
+      { min: 0, label: "無雨/小雨", color: "#00e400" },
+    ],
+  };
+  const scale = thresholds[period] || thresholds.hour;
+  const v = Number(value);
+  return scale.find((item) => v >= item.min) || null;
+}
+
 function realtimeWindColor(value) {
   if (!isValidObservation(value)) return "";
   const v = Number(value);
@@ -2740,8 +2799,9 @@ function calcApparentTemp(temperature, humidity, windMps) {
   return Math.round(at * 10) / 10;
 }
 
-function renderNCUEObservation(station) {
+function renderNCUEObservation(station, rainStation = null) {
   if (!dom.ncueObservation) return;
+  const rainSource = rainStation || station;
   const name = getStationName(station) || "彰師大測站";
   const obsTime =
     station?.ObsTime?.DateTime ||
@@ -2766,9 +2826,16 @@ function renderNCUEObservation(station) {
     normalizeObservationNumber(readWeatherElement(station, "GustWindSpeed"), { min: 0 }) ??
     normalizeObservationNumber(readWeatherElement(station, "PeakGustSpeed"), { min: 0 });
   const rain =
+    normalizeObservationNumber(readRainElement(rainSource, "Past1hr"), { min: 0 }) ??
+    normalizeObservationNumber(readRainElement(rainSource, "Now"), { min: 0 }) ??
+    normalizeObservationNumber(readWeatherNested(station, "Now.Precipitation"), { min: 0 }) ??
     normalizeObservationNumber(readWeatherElement(station, "NowPrecipitation"), { min: 0 }) ??
     normalizeObservationNumber(readWeatherElement(station, "Precipitation"), { min: 0 }) ??
     normalizeObservationNumber(readWeatherElement(station, "HourlyPrecipitation"), { min: 0 });
+  const rain3hr =
+    normalizeObservationNumber(readRainElement(rainSource, "Past3hr"), { min: 0 }) ??
+    normalizeObservationNumber(readWeatherElement(station, "Past3hrPrecipitation"), { min: 0 }) ??
+    normalizeObservationNumber(readWeatherElement(station, "ThreeHourPrecipitation"), { min: 0 });
   const dailyRain =
     normalizeObservationNumber(readWeatherElement(station, "DailyRainfall"), { min: 0 }) ??
     normalizeObservationNumber(readWeatherNested(station, "Now.Precipitation"), { min: 0 }) ??
@@ -2784,6 +2851,8 @@ function renderNCUEObservation(station) {
     windSpeed,
     gust: gustRaw,
     rain,
+    rain3hr,
+    dailyRain,
     weather,
     obsTime: obsTimeFormatted || "",
     lat: coords?.lat ?? NCUE_COORDS.lat,
@@ -2806,7 +2875,9 @@ function renderNCUEObservation(station) {
       value: formatValue(gustRaw, " m/s", 1),
       tone: { color: realtimeWindColor(gustRaw), label: gustLevel !== "--" ? gustLevel : "" },
     },
-    { label: "日累積雨量", value: formatValue(dailyRain, " mm", 1), tone: { color: realtimeRain24hrColor(dailyRain) } },
+    { label: "時雨量", value: formatValue(rain, " mm", 1), tone: getRealtimeRainTone(rain, "hour") },
+    { label: "3小時雨量", value: formatValue(rain3hr, " mm", 1), tone: getRealtimeRainTone(rain3hr, "threeHour") },
+    { label: "日累積雨量", value: formatValue(dailyRain, " mm", 1), tone: getRealtimeRainTone(dailyRain, "day") },
     { label: "天氣現象", value: weather ? String(weather) : "—" },
   ];
   dom.ncueObservation.innerHTML = rows
@@ -9056,10 +9127,12 @@ function renderMarineInfo() {
     if (marineState.chart) {
       marineState.chart.destroy();
     }
-    const chartPoints = loc.chartData || [];
-    const labels = chartPoints.map(p => p.x);
+    const chartPoints = buildMarineTideChartPoints(loc.chartData || []);
+    const labels = buildMarineTideChartLabels(chartPoints);
     const data = chartPoints.map(p => p.y);
-    const pointColors = chartPoints.map(p => p.type === "滿潮" ? "#ef4444" : "#3b82f6");
+    const pointColors = chartPoints.map(p => p.isNow ? "#16a34a" : p.type === "滿潮" ? "#ef4444" : "#3b82f6");
+    const pointRadii = chartPoints.map(p => p.isNow ? 6 : 4);
+    const pointHoverRadii = chartPoints.map(p => p.isNow ? 8 : 6);
 
     marineState.chart = new Chart(ctx, {
       type: "line",
@@ -9072,8 +9145,9 @@ function renderMarineInfo() {
           backgroundColor: "transparent",
           pointBackgroundColor: pointColors,
           pointBorderColor: pointColors,
-          pointRadius: 4,
-          pointHoverRadius: 6,
+          pointBorderWidth: chartPoints.map(p => p.isNow ? 2 : 1),
+          pointRadius: pointRadii,
+          pointHoverRadius: pointHoverRadii,
           tension: 0.3,
           fill: false
         }]
@@ -9087,11 +9161,12 @@ function renderMarineInfo() {
             callbacks: {
               title: (context) => {
                 const pt = chartPoints[context[0].dataIndex];
-                return Array.isArray(pt.x) ? pt.x.join(' ') : pt.x;
+                return `${pt.dateLabel || ""} ${pt.timeLabel || ""}`.trim();
               },
               label: (context) => {
                 const pt = chartPoints[context.dataIndex];
-                return `${pt.type}: ${pt.y}`;
+                const unit = Number.isFinite(Number(pt.y)) ? `${Number(pt.y).toFixed(1)}` : pt.y;
+                return `${pt.type}: ${unit}`;
               }
             }
           }
@@ -9103,12 +9178,96 @@ function renderMarineInfo() {
             title: { display: true, text: "潮高" }
           },
           x: {
-            title: { display: false }
+            title: { display: false },
+            ticks: {
+              autoSkip: false,
+              maxRotation: 0,
+              callback: function(value) {
+                const label = this.getLabelForValue(value);
+                return Array.isArray(label) ? label : String(label || "");
+              }
+            }
           }
         }
       }
     });
   }
+}
+
+function formatMarineChartDate(timestamp) {
+  const date = new Date(timestamp);
+  if (Number.isNaN(date.getTime())) return "";
+  return `${date.getMonth() + 1}/${date.getDate()}`;
+}
+
+function formatMarineChartTime(timestamp) {
+  const date = new Date(timestamp);
+  if (Number.isNaN(date.getTime())) return "";
+  return `${String(date.getHours()).padStart(2, "0")}:${String(date.getMinutes()).padStart(2, "0")}`;
+}
+
+function buildMarineTideChartPoints(points, now = new Date()) {
+  const source = (points || [])
+    .filter((point) => Number.isFinite(point?.timestamp) && Number.isFinite(Number(point?.y)))
+    .map((point) => ({
+      ...point,
+      y: Number(point.y),
+      dateLabel: point.dateLabel || formatMarineChartDate(point.timestamp),
+      timeLabel: point.timeLabel || formatMarineChartTime(point.timestamp),
+    }))
+    .sort((a, b) => a.timestamp - b.timestamp);
+  if (!source.length) return [];
+
+  const nowMs = now.getTime();
+  if (!Number.isFinite(nowMs)) return source;
+  const first = source[0];
+  const last = source[source.length - 1];
+
+  const exactIndex = source.findIndex((point) => Math.abs(point.timestamp - nowMs) < 60 * 1000);
+  if (exactIndex >= 0) {
+    source[exactIndex] = { ...source[exactIndex], type: "現在", dateLabel: formatMarineChartDate(nowMs), timeLabel: formatMarineChartTime(nowMs), isNow: true };
+    return source;
+  }
+
+  let previous = first;
+  let next = last;
+  if (nowMs <= first.timestamp) {
+    next = first;
+  } else if (nowMs >= last.timestamp) {
+    previous = last;
+  } else {
+    for (let i = 1; i < source.length; i += 1) {
+      if (source[i].timestamp >= nowMs) {
+        previous = source[i - 1];
+        next = source[i];
+        break;
+      }
+    }
+  }
+  const span = next.timestamp - previous.timestamp;
+  const ratio = span > 0 ? (nowMs - previous.timestamp) / span : 0;
+  const interpolatedY = previous.y + (next.y - previous.y) * ratio;
+  const nowPoint = {
+    x: [formatMarineChartTime(nowMs), formatMarineChartDate(nowMs)],
+    y: Math.round(interpolatedY * 10) / 10,
+    type: "現在",
+    timestamp: nowMs,
+    dateLabel: formatMarineChartDate(nowMs),
+    timeLabel: formatMarineChartTime(nowMs),
+    isNow: true,
+  };
+  return [...source, nowPoint].sort((a, b) => a.timestamp - b.timestamp);
+}
+
+function buildMarineTideChartLabels(points) {
+  const seenDates = new Set();
+  return (points || []).map((point) => {
+    const dateLabel = point.dateLabel || formatMarineChartDate(point.timestamp);
+    const timeLabel = point.timeLabel || formatMarineChartTime(point.timestamp);
+    const showDate = dateLabel && !seenDates.has(dateLabel);
+    if (showDate) seenDates.add(dateLabel);
+    return [timeLabel, showDate ? dateLabel : ""];
+  });
 }
 
 function renderMarineTownMetricInfo(townName, metricKey) {
@@ -9280,7 +9439,7 @@ const MARINE_METRIC_CONFIGS = {
   windSpeed: { label: "風速", unit: "m/s", source: MARINE_FORECAST_DATASET },
   windScale: { label: "風級", source: `${MARINE_FORECAST_DATASET}（依風速換算蒲福風級）` },
   waveHeight: { label: "浪高", unit: "m", source: MARINE_FORECAST_DATASET },
-  current: { label: "流速", source: MARINE_FORECAST_DATASET },
+  current: { label: "流速", unit: "m/s", source: MARINE_FORECAST_DATASET },
 };
 
 function updateMarineMetricButtons() {
@@ -9385,13 +9544,54 @@ function getMarineForecastGroupsForMetric(metricKey) {
 }
 
 function isMarineLineChartMetric(metricKey) {
-  return metricKey === "windSpeed" || metricKey === "waveHeight";
+  return metricKey === "windSpeed" || metricKey === "waveHeight" || metricKey === "current";
 }
 
 function destroyMarineChart(stateKey) {
   if (!marineState[stateKey]) return;
   marineState[stateKey].destroy();
   marineState[stateKey] = null;
+}
+
+function getMarineMetricUnit(metricKey) {
+  return MARINE_METRIC_CONFIGS[metricKey]?.unit || "";
+}
+
+function getMarineMetricPrecision(metricKey) {
+  return metricKey === "waveHeight" || metricKey === "current" ? 1 : 0;
+}
+
+function getMarineMetricStepSize(metricKey) {
+  return metricKey === "windSpeed" ? 1 : 0.1;
+}
+
+function getMarineMetricValueAtTime(rows, metricKey, targetMs) {
+  const points = (rows || [])
+    .map((row) => ({
+      timestamp: Date.parse(row.dataTime),
+      value: extractMarineMetricNumber(row[metricKey]),
+    }))
+    .filter((point) => Number.isFinite(point.timestamp) && Number.isFinite(point.value))
+    .sort((a, b) => a.timestamp - b.timestamp);
+  if (!points.length || !Number.isFinite(targetMs)) return null;
+
+  const exact = points.find((point) => Math.abs(point.timestamp - targetMs) < 60 * 1000);
+  if (exact) return exact.value;
+
+  const first = points[0];
+  const last = points[points.length - 1];
+  if (targetMs <= first.timestamp) return first.value;
+  if (targetMs >= last.timestamp) return last.value;
+
+  for (let i = 1; i < points.length; i += 1) {
+    const next = points[i];
+    if (next.timestamp < targetMs) continue;
+    const previous = points[i - 1];
+    const span = next.timestamp - previous.timestamp;
+    if (span <= 0) return previous.value;
+    return previous.value + (next.value - previous.value) * ((targetMs - previous.timestamp) / span);
+  }
+  return null;
 }
 
 function getMarineChartSlots(towns, metricKey) {
@@ -9413,9 +9613,26 @@ function getMarineChartSlots(towns, metricKey) {
       }
     });
   });
-  return Array.from(slotsByTime.values())
+  const slots = Array.from(slotsByTime.values())
     .sort((a, b) => a.timestamp - b.timestamp)
     .slice(0, 24);
+  const hasNowValue = towns.some((town) =>
+    Number.isFinite(getMarineMetricValueAtTime(forecastByTown?.get(town) || [], metricKey, nowMs))
+  );
+  if (hasNowValue) {
+    const nowDate = new Date(nowMs);
+    const y = nowDate.getFullYear();
+    const m = String(nowDate.getMonth() + 1).padStart(2, "0");
+    const d = String(nowDate.getDate()).padStart(2, "0");
+    slots.unshift({
+      timestamp: nowMs,
+      dateKey: `${y}-${m}-${d}`,
+      hour: nowDate.getHours(),
+      minute: nowDate.getMinutes(),
+      isNow: true,
+    });
+  }
+  return slots;
 }
 
 function extractMarineMetricNumber(value) {
@@ -9436,18 +9653,23 @@ function renderMarineMetricLineChart(canvas, metricKey, towns, stateKey) {
   const palette = ["#2563eb", "#dc2626", "#059669", "#d97706", "#7c3aed", "#0891b2"];
   const datasets = towns.map((town, index) => {
     const values = new Map();
+    const rows = industryWeatherState.marineForecast?.get(town) || [];
     (industryWeatherState.marineForecast?.get(town) || []).forEach((row) => {
       const timestamp = Date.parse(row.dataTime);
       if (!Number.isFinite(timestamp)) return;
       values.set(timestamp, extractMarineMetricNumber(row[metricKey]));
     });
+    const lineColor = palette[index % palette.length];
     return {
       label: town,
-      data: slots.map((slot) => values.get(slot.timestamp) ?? null),
-      borderColor: palette[index % palette.length],
-      backgroundColor: palette[index % palette.length],
-      pointRadius: 3,
-      pointHoverRadius: 5,
+      data: slots.map((slot) => slot.isNow ? getMarineMetricValueAtTime(rows, metricKey, slot.timestamp) : values.get(slot.timestamp) ?? null),
+      borderColor: lineColor,
+      backgroundColor: lineColor,
+      pointBackgroundColor: slots.map((slot) => slot.isNow ? "#16a34a" : lineColor),
+      pointBorderColor: slots.map((slot) => slot.isNow ? "#16a34a" : lineColor),
+      pointBorderWidth: slots.map((slot) => slot.isNow ? 2 : 1),
+      pointRadius: slots.map((slot) => slot.isNow ? 6 : 3),
+      pointHoverRadius: slots.map((slot) => slot.isNow ? 8 : 5),
       borderWidth: 2,
       tension: 0.25,
       spanGaps: false,
@@ -9455,27 +9677,31 @@ function renderMarineMetricLineChart(canvas, metricKey, towns, stateKey) {
   }).filter((dataset) => dataset.data.some((value) => Number.isFinite(value)));
 
   if (!datasets.length) return false;
-  const unit = metricKey === "windSpeed" ? "m/s" : "m";
-  const stepSize = metricKey === "windSpeed" ? 1 : 0.1;
+  const unit = getMarineMetricUnit(metricKey);
+  const stepSize = getMarineMetricStepSize(metricKey);
+  const precision = getMarineMetricPrecision(metricKey);
   const chartValues = datasets.flatMap((dataset) => dataset.data).filter(Number.isFinite);
   const dataMin = Math.min(...chartValues);
   const dataMax = Math.max(...chartValues);
-  let axisMin = Math.floor(dataMin / stepSize + 1e-9) * stepSize;
-  let axisMax = Math.ceil(dataMax / stepSize - 1e-9) * stepSize;
+  let axisMin = Math.floor(dataMin / stepSize + 1e-9) * stepSize - stepSize;
+  let axisMax = Math.ceil(dataMax / stepSize - 1e-9) * stepSize + stepSize;
   if (axisMin === axisMax) {
     axisMin -= stepSize;
     axisMax += stepSize;
   }
-  axisMin = Math.max(0, Number(axisMin.toFixed(metricKey === "waveHeight" ? 1 : 0)));
-  axisMax = Number(axisMax.toFixed(metricKey === "waveHeight" ? 1 : 0));
+  axisMin = Math.max(0, Number(axisMin.toFixed(precision)));
+  axisMax = Number(axisMax.toFixed(precision));
   const seenDates = new Set();
   const labels = slots.map((slot) => {
     const [, month, day] = slot.dateKey.split("-");
     const dateLabel = `${Number(month)}/${Number(day)}`;
     const shouldShowDate = !seenDates.has(slot.dateKey);
     seenDates.add(slot.dateKey);
+    const timeLabel = slot.isNow
+      ? `${String(slot.hour).padStart(2, "0")}:${String(slot.minute).padStart(2, "0")}`
+      : `${String(slot.hour).padStart(2, "0")}:00`;
     return [
-      `${String(slot.hour).padStart(2, "0")}:00`,
+      timeLabel,
       shouldShowDate ? dateLabel : "",
     ];
   });
@@ -9491,7 +9717,19 @@ function renderMarineMetricLineChart(canvas, metricKey, towns, stateKey) {
         legend: { display: datasets.length > 1, position: "top" },
         tooltip: {
           callbacks: {
-            label: (context) => `${context.dataset.label}: ${context.parsed.y} ${unit}`,
+            title: (context) => {
+              const slot = slots[context[0].dataIndex];
+              const [, month, day] = slot.dateKey.split("-");
+              const timeLabel = slot.isNow
+                ? `${String(slot.hour).padStart(2, "0")}:${String(slot.minute).padStart(2, "0")}`
+                : `${String(slot.hour).padStart(2, "0")}:00`;
+              return `${slot.isNow ? "現在 " : ""}${Number(month)}/${Number(day)} ${timeLabel}`.trim();
+            },
+            label: (context) => {
+              const value = Number(context.parsed.y);
+              const text = Number.isFinite(value) ? value.toFixed(precision) : context.parsed.y;
+              return `${context.dataset.label}: ${text}${unit ? ` ${unit}` : ""}`;
+            },
           },
         },
       },
@@ -9503,10 +9741,10 @@ function renderMarineMetricLineChart(canvas, metricKey, towns, stateKey) {
         y: {
           min: axisMin,
           max: axisMax,
-          title: { display: true, text: `${MARINE_METRIC_CONFIGS[metricKey].label} (${unit})` },
+          title: { display: true, text: `${MARINE_METRIC_CONFIGS[metricKey].label}${unit ? ` (${unit})` : ""}` },
           ticks: {
             stepSize,
-            callback: (value) => metricKey === "waveHeight" ? Number(value).toFixed(1) : Number(value).toFixed(0),
+            callback: (value) => Number(value).toFixed(precision),
           },
         },
       },
@@ -9640,7 +9878,7 @@ function parseMarineData(payload) {
               const mn = String(dateObj.getMinutes()).padStart(2, '0');
                   const ptMs = dateObj.getTime();
                   if (ptMs >= chartStartMs && ptMs <= future48hMs) {
-                    chartData.push({ x: [`${mm}/${dd}`, `${hr}:${mn}`], y: num, type: type, timestamp: ptMs });
+                    chartData.push({ x: [`${hr}:${mn}`, `${mm}/${dd}`], y: num, type: type, timestamp: ptMs, timeLabel: `${hr}:${mn}`, dateLabel: `${mm}/${dd}` });
                   }
 
               const sign = num > 0 ? "+" : "";
