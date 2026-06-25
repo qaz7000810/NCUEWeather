@@ -195,11 +195,14 @@ const realtimeState = {
   radarMap: null,
   radarLayer: null,
   radarCountyLayer: null,
+  radarTownLayer: null,
   lightningMap: null,
   lightningLayer: null,
   lightningCountyLayer: null,
+  lightningTownLayer: null,
   radarTime: null,
   countiesGeo: null,
+  townshipsGeo: null,
   latestObservation: null,
   latestAqi: null,
   latestLightning: null,
@@ -331,6 +334,7 @@ const GEO_ASSETS_CDN_BASE = "https://cdn.jsdelivr.net/gh/qaz7000810/geo-assets@m
 const GEO_ASSETS_PAGES_BASE = "https://qaz7000810.github.io/geo-assets";
 const CHANGHUA_DATA_BASE = `${GEO_ASSETS_BASE}/changhua`;
 const TYPHOON_COUNTIES_URL = `${GEO_ASSETS_BASE}/typhoon/counties.geojson`;
+const TOWNSHIPS_URL = `${GEO_ASSETS_BASE}/townships.geojson`;
 const RADAR_DATASET = "O-A0059-001";
 const LIGHTNING_DATASET = "O-A0039-001";
 const LUNWEI_MARINE_DATASET = "M-B0078-001";
@@ -1668,6 +1672,14 @@ async function ensureCountiesGeo() {
   return realtimeState.countiesGeo;
 }
 
+async function ensureTownshipsGeo() {
+  if (realtimeState.townshipsGeo) return realtimeState.townshipsGeo;
+  const res = await fetch(TOWNSHIPS_URL);
+  if (!res.ok) throw new Error("無法載入鄉鎮邊界資料");
+  realtimeState.townshipsGeo = await res.json();
+  return realtimeState.townshipsGeo;
+}
+
 async function resolveCountyByPoint(lon, lat) {
   const geo = await ensureCountiesGeo();
   const features = geo.features || [];
@@ -1752,9 +1764,33 @@ function initRadarMap() {
     maxZoom: 10,
     attribution: "&copy; OpenStreetMap contributors",
   }).addTo(realtimeState.radarMap);
+  realtimeState.radarMap.createPane("radarTownBoundaryPane");
+  realtimeState.radarMap.getPane("radarTownBoundaryPane").style.zIndex = 440;
   realtimeState.radarMap.createPane("radarBoundaryPane");
   realtimeState.radarMap.getPane("radarBoundaryPane").style.zIndex = 450;
+  loadRadarTownBoundaries();
   loadRadarCountyBoundaries();
+}
+
+async function loadRadarTownBoundaries() {
+  if (!realtimeState.radarMap || realtimeState.radarTownLayer) return;
+  try {
+    const townshipsGeo = await ensureTownshipsGeo();
+    realtimeState.radarTownLayer = L.geoJSON(townshipsGeo, {
+      pane: "radarTownBoundaryPane",
+      interactive: false,
+      style: {
+        color: "#9ca3af",
+        weight: 1.2,
+        opacity: 0.9,
+        dashArray: "3 4",
+        fill: false,
+      },
+    }).addTo(realtimeState.radarMap);
+    bringRadarBoundariesToFront();
+  } catch (err) {
+    console.warn("雷達鄉鎮邊界載入失敗", err);
+  }
 }
 
 async function loadRadarCountyBoundaries() {
@@ -1782,6 +1818,7 @@ async function loadRadarCountyBoundaries() {
       },
     });
     realtimeState.radarCountyLayer = L.layerGroup([haloLayer, boundaryLayer]).addTo(realtimeState.radarMap);
+    bringRadarBoundariesToFront();
   } catch (err) {
     console.warn("雷達縣市邊界載入失敗", err);
   }
@@ -1794,10 +1831,34 @@ function initLightningMap() {
     maxZoom: 10,
     attribution: "&copy; OpenStreetMap contributors",
   }).addTo(realtimeState.lightningMap);
+  realtimeState.lightningMap.createPane("lightningTownBoundaryPane");
+  realtimeState.lightningMap.getPane("lightningTownBoundaryPane").style.zIndex = 440;
   realtimeState.lightningMap.createPane("lightningBoundaryPane");
   realtimeState.lightningMap.getPane("lightningBoundaryPane").style.zIndex = 450;
+  loadLightningTownBoundaries();
   loadLightningCountyBoundaries();
   resetLightningMapView();
+}
+
+async function loadLightningTownBoundaries() {
+  if (!realtimeState.lightningMap || realtimeState.lightningTownLayer) return;
+  try {
+    const townshipsGeo = await ensureTownshipsGeo();
+    realtimeState.lightningTownLayer = L.geoJSON(townshipsGeo, {
+      pane: "lightningTownBoundaryPane",
+      interactive: false,
+      style: {
+        color: "#9ca3af",
+        weight: 1.2,
+        opacity: 0.9,
+        dashArray: "3 4",
+        fill: false,
+      },
+    }).addTo(realtimeState.lightningMap);
+    bringLightningLayersToFront();
+  } catch (err) {
+    console.warn("落雷鄉鎮邊界載入失敗", err);
+  }
 }
 
 async function loadLightningCountyBoundaries() {
@@ -7744,6 +7805,7 @@ function renderLightningData(lightning) {
 }
 
 function bringLightningLayersToFront() {
+  realtimeState.lightningTownLayer?.bringToFront?.();
   realtimeState.lightningCountyLayer?.eachLayer((layer) => {
     layer.bringToFront?.();
   });
@@ -7854,11 +7916,12 @@ function renderRadarOverlay(radar) {
       interactive: false,
       className: "radar-overlay-image",
     }).addTo(realtimeState.radarMap);
-    bringRadarCountyBoundariesToFront();
+    bringRadarBoundariesToFront();
   }
 }
 
-function bringRadarCountyBoundariesToFront() {
+function bringRadarBoundariesToFront() {
+  realtimeState.radarTownLayer?.bringToFront?.();
   realtimeState.radarCountyLayer?.eachLayer((layer) => {
     layer.bringToFront?.();
   });
