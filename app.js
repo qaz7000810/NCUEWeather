@@ -1780,10 +1780,9 @@ async function loadRadarTownBoundaries() {
       pane: "radarTownBoundaryPane",
       interactive: false,
       style: {
-        color: "#9ca3af",
+        color: "#64748b",
         weight: 1.2,
         opacity: 0.9,
-        dashArray: "3 4",
         fill: false,
       },
     }).addTo(realtimeState.radarMap);
@@ -1848,10 +1847,9 @@ async function loadLightningTownBoundaries() {
       pane: "lightningTownBoundaryPane",
       interactive: false,
       style: {
-        color: "#9ca3af",
+        color: "#64748b",
         weight: 1.2,
         opacity: 0.9,
-        dashArray: "3 4",
         fill: false,
       },
     }).addTo(realtimeState.lightningMap);
