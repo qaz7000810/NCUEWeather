@@ -1,0 +1,44 @@
+name: Store marine tide history
+
+on:
+  schedule:
+    - cron: "50 15 * * *"
+  workflow_dispatch:
+    inputs:
+      target_date:
+        description: "Date that should use the stored previous-day tide point, in YYYY-MM-DD. Leave blank for tomorrow in Asia/Taipei."
+        required: false
+        type: string
+
+permissions:
+  contents: write
+
+jobs:
+  store:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Store tide history
+        env:
+          CWA_API_KEY: ${{ secrets.CWA_API_KEY }}
+          TARGET_DATE: ${{ inputs.target_date }}
+        run: node scripts/store-marine-tide-history.mjs
+
+      - name: Commit updated tide history
+        run: |
+          if git diff --quiet -- data/marine-tide-history.json; then
+            echo "No tide history changes to commit."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add data/marine-tide-history.json
+          git commit -m "Update marine tide history"
+          git push

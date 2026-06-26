@@ -333,6 +333,7 @@ const RADAR_DATASET = "O-A0059-001";
 const LIGHTNING_DATASET = "O-A0039-001";
 const LUNWEI_MARINE_DATASET = "M-B0078-001";
 const LUNWEI_MARINE_LOCATION_CODE = "I04400";
+const MARINE_TIDE_HISTORY_URL = "./data/marine-tide-history.json";
 const LIGHTNING_SAMPLE_URL = "./data/lightning/O-A0039-001.kmz";
 const NCUE_COORDS = { lat: 24.0816, lon: 120.5584 };
 const LIGHTNING_ALERT_RADIUS_KM = 10;
@@ -2686,32 +2687,37 @@ function realtimeRain24hrColor(value) {
 
 function getRealtimeRainTone(value, period) {
   if (!isValidObservation(value)) return null;
+  const v = Number(value);
+  if (v === 0) return { label: "無雨", color: "#00e400" };
   const thresholds = {
     hour: [
-      { min: 50, label: "大豪雨", color: "#8f3f97" },
-      { min: 30, label: "大雨", color: "#ff0000" },
-      { min: 20, label: "中雨", color: "#ff7e00" },
-      { min: 1, label: "小雨", color: "#ffff00" },
-      { min: 0, label: "無雨/小雨", color: "#00e400" },
+      { gte: 50, label: "豪雨", color: "#8f3f97" },
+      { gte: 30, label: "大雨", color: "#ff0000" },
+      { gte: 20, label: "中雨", color: "#ff7e00" },
+      { gte: 1, label: "小雨", color: "#ffff00" },
+      { gte: 0, label: "小雨", color: "#00e400" },
     ],
     threeHour: [
-      { min: 150, label: "大豪雨", color: "#8f3f97" },
-      { min: 100, label: "大雨", color: "#ff0000" },
-      { min: 80, label: "中雨", color: "#ff7e00" },
-      { min: 30, label: "小雨", color: "#ffff00" },
-      { min: 0, label: "無雨/小雨", color: "#00e400" },
+      { gte: 150, label: "大豪雨", color: "#8f3f97" },
+      { gte: 100, label: "豪雨", color: "#ff0000" },
+      { gt: 80, label: "大雨", color: "#ff7e00" },
+      { gte: 30, label: "中雨", color: "#ffff00" },
+      { gte: 0, label: "小雨", color: "#00e400" },
     ],
     day: [
-      { min: 350, label: "大豪雨", color: "#8f3f97" },
-      { min: 200, label: "大雨", color: "#ff0000" },
-      { min: 100, label: "中雨", color: "#ff7e00" },
-      { min: 50, label: "小雨", color: "#ffff00" },
-      { min: 0, label: "無雨/小雨", color: "#00e400" },
+      { gte: 350, label: "大豪雨", color: "#8f3f97" },
+      { gte: 200, label: "豪雨", color: "#ff0000" },
+      { gte: 100, label: "大雨", color: "#ff7e00" },
+      { gte: 50, label: "中雨", color: "#ffff00" },
+      { gte: 0, label: "小雨", color: "#00e400" },
     ],
   };
   const scale = thresholds[period] || thresholds.hour;
-  const v = Number(value);
-  return scale.find((item) => v >= item.min) || null;
+  return scale.find((item) => (
+    Number.isFinite(item.gte) && v >= item.gte
+  ) || (
+    Number.isFinite(item.gt) && v > item.gt
+  )) || null;
 }
 
 function realtimeWindColor(value) {
@@ -9206,6 +9212,57 @@ function formatMarineChartTime(timestamp) {
   return `${String(date.getHours()).padStart(2, "0")}:${String(date.getMinutes()).padStart(2, "0")}`;
 }
 
+function getTaipeiDateKey(date = new Date()) {
+  try {
+    const parts = new Intl.DateTimeFormat("en-CA", {
+      timeZone: "Asia/Taipei",
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+    }).formatToParts(date);
+    const y = parts.find((part) => part.type === "year")?.value;
+    const m = parts.find((part) => part.type === "month")?.value;
+    const d = parts.find((part) => part.type === "day")?.value;
+    if (y && m && d) return `${y}-${m}-${d}`;
+  } catch (_) {
+    // Fall through to a fixed UTC+8 calculation.
+  }
+  const taipei = new Date(date.getTime() + 8 * 60 * 60 * 1000);
+  return taipei.toISOString().slice(0, 10);
+}
+
+async function fetchMarineTideHistory() {
+  try {
+    const res = await fetch(`${MARINE_TIDE_HISTORY_URL}?t=${Date.now()}`, { cache: "no-store" });
+    if (!res.ok) return null;
+    return await res.json();
+  } catch (err) {
+    console.warn("潮汐歷史快取讀取失敗", err);
+    return null;
+  }
+}
+
+function normalizeMarineHistoryPoint(point) {
+  if (!point || !Number.isFinite(Number(point.timestamp)) || !Number.isFinite(Number(point.y))) return null;
+  const timestamp = Number(point.timestamp);
+  const y = Number(point.y);
+  return {
+    x: point.x || [point.timeLabel || formatMarineChartTime(timestamp), point.dateLabel || formatMarineChartDate(timestamp)],
+    y,
+    type: point.type || "昨日",
+    timestamp,
+    timeLabel: point.timeLabel || formatMarineChartTime(timestamp),
+    dateLabel: point.dateLabel || formatMarineChartDate(timestamp),
+    isPreviousDayLastPoint: true,
+  };
+}
+
+function getMarinePreviousDayChartPoint(history, locationName, now = new Date()) {
+  const todayKey = getTaipeiDateKey(now);
+  const rawPoint = history?.byDate?.[todayKey]?.[locationName];
+  return normalizeMarineHistoryPoint(rawPoint);
+}
+
 function buildMarineTideChartPoints(points, now = new Date()) {
   const source = (points || [])
     .filter((point) => Number.isFinite(point?.timestamp) && Number.isFinite(Number(point?.y)))
@@ -9335,8 +9392,9 @@ async function loadMarineData() {
   try {
     marineState.forecastError = "";
     let forecastError = "";
-    const [tideData, forecastData, lunweiData] = await Promise.all([
+    const [tideData, tideHistory, forecastData, lunweiData] = await Promise.all([
       fetchCwaDataset("F-A0021-001"),
+      fetchMarineTideHistory(),
       fetchRadarFileDataset(MARINE_FORECAST_DATASET).catch(e => {
         forecastError = e.message || "海象預報取得失敗";
         console.warn(e);
@@ -9347,7 +9405,7 @@ async function loadMarineData() {
         return null;
       }),
     ]);
-    const parsed = parseMarineData(tideData);
+    const parsed = parseMarineData(tideData, tideHistory);
     industryWeatherState.marineData = parsed;
     if (forecastData) {
       industryWeatherState.marineForecast = parseMarineForecast(forecastData);
@@ -9805,7 +9863,7 @@ function renderMarineForecastMetricData(metricKey) {
     .join("");
 }
 
-function parseMarineData(payload) {
+function parseMarineData(payload, tideHistory = null) {
   const forecasts = payload?.records?.TideForecasts || [];
   const targets = MARINE_LOCATION_KEYS;
   const results = [];
@@ -9891,6 +9949,11 @@ function parseMarineData(payload) {
     });
 
     chartData.sort((a, b) => a.timestamp - b.timestamp);
+    const previousDayPoint = getMarinePreviousDayChartPoint(tideHistory, matchedTarget, d);
+    const hasSamePoint = previousDayPoint && chartData.some((point) => point.timestamp === previousDayPoint.timestamp);
+    if (previousDayPoint && !hasSamePoint) {
+      chartData.unshift(previousDayPoint);
+    }
     results.push({ name: matchedTarget, locName, days, chartData });
   });
 
