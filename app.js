@@ -194,10 +194,15 @@ const realtimeState = {
   typhoonLayer: null,
   radarMap: null,
   radarLayer: null,
+  radarCountyLayer: null,
+  radarTownLayer: null,
   lightningMap: null,
   lightningLayer: null,
+  lightningCountyLayer: null,
+  lightningTownLayer: null,
   radarTime: null,
   countiesGeo: null,
+  townshipsGeo: null,
   latestObservation: null,
   latestAqi: null,
   latestLightning: null,
@@ -329,6 +334,7 @@ const GEO_ASSETS_CDN_BASE = "https://cdn.jsdelivr.net/gh/qaz7000810/geo-assets@m
 const GEO_ASSETS_PAGES_BASE = "https://qaz7000810.github.io/geo-assets";
 const CHANGHUA_DATA_BASE = `${GEO_ASSETS_BASE}/changhua`;
 const TYPHOON_COUNTIES_URL = `${GEO_ASSETS_BASE}/typhoon/counties.geojson`;
+const TOWNSHIPS_URL = `${GEO_ASSETS_BASE}/townships.geojson`;
 const RADAR_DATASET = "O-A0059-001";
 const LIGHTNING_DATASET = "O-A0039-001";
 const LUNWEI_MARINE_DATASET = "M-B0078-001";
@@ -1667,6 +1673,14 @@ async function ensureCountiesGeo() {
   return realtimeState.countiesGeo;
 }
 
+async function ensureTownshipsGeo() {
+  if (realtimeState.townshipsGeo) return realtimeState.townshipsGeo;
+  const res = await fetch(TOWNSHIPS_URL);
+  if (!res.ok) throw new Error("無法載入鄉鎮邊界資料");
+  realtimeState.townshipsGeo = await res.json();
+  return realtimeState.townshipsGeo;
+}
+
 async function resolveCountyByPoint(lon, lat) {
   const geo = await ensureCountiesGeo();
   const features = geo.features || [];
@@ -1751,6 +1765,63 @@ function initRadarMap() {
     maxZoom: 10,
     attribution: "&copy; OpenStreetMap contributors",
   }).addTo(realtimeState.radarMap);
+  realtimeState.radarMap.createPane("radarTownBoundaryPane");
+  realtimeState.radarMap.getPane("radarTownBoundaryPane").style.zIndex = 440;
+  realtimeState.radarMap.createPane("radarBoundaryPane");
+  realtimeState.radarMap.getPane("radarBoundaryPane").style.zIndex = 450;
+  loadRadarTownBoundaries();
+  loadRadarCountyBoundaries();
+}
+
+async function loadRadarTownBoundaries() {
+  if (!realtimeState.radarMap || realtimeState.radarTownLayer) return;
+  try {
+    const townshipsGeo = await ensureTownshipsGeo();
+    realtimeState.radarTownLayer = L.geoJSON(townshipsGeo, {
+      pane: "radarTownBoundaryPane",
+      interactive: false,
+      style: {
+        color: "#64748b",
+        weight: 1.2,
+        opacity: 0.9,
+        fill: false,
+      },
+    }).addTo(realtimeState.radarMap);
+    bringRadarBoundariesToFront();
+  } catch (err) {
+    console.warn("雷達鄉鎮邊界載入失敗", err);
+  }
+}
+
+async function loadRadarCountyBoundaries() {
+  if (!realtimeState.radarMap || realtimeState.radarCountyLayer) return;
+  try {
+    const countiesGeo = await ensureCountiesGeo();
+    const haloLayer = L.geoJSON(countiesGeo, {
+      pane: "radarBoundaryPane",
+      interactive: false,
+      style: {
+        color: "#ffffff",
+        weight: 5,
+        opacity: 0.9,
+        fill: false,
+      },
+    });
+    const boundaryLayer = L.geoJSON(countiesGeo, {
+      pane: "radarBoundaryPane",
+      interactive: false,
+      style: {
+        color: "#1f2937",
+        weight: 2,
+        opacity: 0.95,
+        fill: false,
+      },
+    });
+    realtimeState.radarCountyLayer = L.layerGroup([haloLayer, boundaryLayer]).addTo(realtimeState.radarMap);
+    bringRadarBoundariesToFront();
+  } catch (err) {
+    console.warn("雷達縣市邊界載入失敗", err);
+  }
 }
 
 function initLightningMap() {
@@ -1760,7 +1831,64 @@ function initLightningMap() {
     maxZoom: 10,
     attribution: "&copy; OpenStreetMap contributors",
   }).addTo(realtimeState.lightningMap);
+  realtimeState.lightningMap.createPane("lightningTownBoundaryPane");
+  realtimeState.lightningMap.getPane("lightningTownBoundaryPane").style.zIndex = 440;
+  realtimeState.lightningMap.createPane("lightningBoundaryPane");
+  realtimeState.lightningMap.getPane("lightningBoundaryPane").style.zIndex = 450;
+  loadLightningTownBoundaries();
+  loadLightningCountyBoundaries();
   resetLightningMapView();
+}
+
+async function loadLightningTownBoundaries() {
+  if (!realtimeState.lightningMap || realtimeState.lightningTownLayer) return;
+  try {
+    const townshipsGeo = await ensureTownshipsGeo();
+    realtimeState.lightningTownLayer = L.geoJSON(townshipsGeo, {
+      pane: "lightningTownBoundaryPane",
+      interactive: false,
+      style: {
+        color: "#64748b",
+        weight: 1.2,
+        opacity: 0.9,
+        fill: false,
+      },
+    }).addTo(realtimeState.lightningMap);
+    bringLightningLayersToFront();
+  } catch (err) {
+    console.warn("落雷鄉鎮邊界載入失敗", err);
+  }
+}
+
+async function loadLightningCountyBoundaries() {
+  if (!realtimeState.lightningMap || realtimeState.lightningCountyLayer) return;
+  try {
+    const countiesGeo = await ensureCountiesGeo();
+    const haloLayer = L.geoJSON(countiesGeo, {
+      pane: "lightningBoundaryPane",
+      interactive: false,
+      style: {
+        color: "#ffffff",
+        weight: 4,
+        opacity: 0.85,
+        fill: false,
+      },
+    });
+    const boundaryLayer = L.geoJSON(countiesGeo, {
+      pane: "lightningBoundaryPane",
+      interactive: false,
+      style: {
+        color: "#334155",
+        weight: 1.5,
+        opacity: 0.9,
+        fill: false,
+      },
+    });
+    realtimeState.lightningCountyLayer = L.layerGroup([haloLayer, boundaryLayer]).addTo(realtimeState.lightningMap);
+    bringLightningLayersToFront();
+  } catch (err) {
+    console.warn("落雷縣市邊界載入失敗", err);
+  }
 }
 
 function ensureRealtimeMapSized() {
@@ -7676,7 +7804,18 @@ function renderLightningData(lightning) {
     return marker;
   });
   realtimeState.lightningLayer = L.layerGroup(markers).addTo(realtimeState.lightningMap);
+  bringLightningLayersToFront();
   resetLightningMapView();
+}
+
+function bringLightningLayersToFront() {
+  realtimeState.lightningTownLayer?.bringToFront?.();
+  realtimeState.lightningCountyLayer?.eachLayer((layer) => {
+    layer.bringToFront?.();
+  });
+  realtimeState.lightningLayer?.eachLayer((layer) => {
+    layer.setZIndexOffset?.(1000);
+  });
 }
 
 function getLightningAgeClass(ageMinutes) {
@@ -7766,9 +7905,10 @@ async function fetchRadarFileDataset(datasetId) {
 
 function renderRadarOverlay(radar) {
   const canvas = buildRadarCanvas(radar);
+  const halfGrid = radar.gridResolution / 2;
   const bounds = [
-    [radar.startLat, radar.startLon],
-    [radar.startLat + radar.gridResolution * (radar.gridY - 1), radar.startLon + radar.gridResolution * (radar.gridX - 1)],
+    [radar.startLat - halfGrid, radar.startLon - halfGrid],
+    [radar.startLat + radar.gridResolution * radar.gridY - halfGrid, radar.startLon + radar.gridResolution * radar.gridX - halfGrid],
   ];
   if (realtimeState.radarLayer && realtimeState.radarMap) {
     realtimeState.radarMap.removeLayer(realtimeState.radarLayer);
@@ -7778,8 +7918,17 @@ function renderRadarOverlay(radar) {
     realtimeState.radarLayer = L.imageOverlay(canvas.toDataURL("image/png"), bounds, {
       opacity: 1,
       interactive: false,
+      className: "radar-overlay-image",
     }).addTo(realtimeState.radarMap);
+    bringRadarBoundariesToFront();
   }
+}
+
+function bringRadarBoundariesToFront() {
+  realtimeState.radarTownLayer?.bringToFront?.();
+  realtimeState.radarCountyLayer?.eachLayer((layer) => {
+    layer.bringToFront?.();
+  });
 }
 
 function isHealthMetric(metricKey) {
